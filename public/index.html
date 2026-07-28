@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diagnóstico Técnico de Riego — CFI</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.44.0/iconfont/tabler-icons.min.css">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="loginScreen"></div>
+<div class="app" id="mainApp" style="display:none">
+  <div class="topbar">
+    <div class="brand"><h1>Diagnóstico Técnico de Riego</h1><span class="prog">CFI · DGI</span></div>
+    <div id="userBadge"></div>
+  </div>
+  <div id="viewRoot" style="display:flex;flex-direction:column;flex:1;"></div>
+  <div class="footer-note">Diagnóstico Técnico de Riego — datos reales persistidos en PostgreSQL.</div>
+</div>
+<div id="reauthOverlay"></div>
+<div id="toast"><i class="ti ti-device-floppy"></i> Borrador guardado</div>
+<div id="printArea"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
