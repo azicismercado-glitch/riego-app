@@ -138,29 +138,47 @@ function renderUserBadge() {
 }
 
 /* ================= home ================= */
-function renderHome() {
-  const list = state.diagnosticos;
-  let cards = '';
-  if (!list.length) {
-    cards = `<div class="empty-state"><i class="ti ti-clipboard-plus"></i><p>Todavía no hay diagnósticos cargados.<br>Creá el primero con el botón de arriba.</p></div>`;
-  } else {
-    cards = list.map(dg => `
-      <div class="diag-card" onclick="openDiag(${dg.id})">
+function diagCardHTML(dg) {
+  return `
+      <div class="diag-card ${dg.myTurn ? 'my-turn' : ''}" onclick="openDiag(${dg.id})">
         <div class="dc-top">
           <div><div class="dc-name">${dg.finca || 'Sin nombre de finca'}</div>
           <div class="dc-prod">${dg.productor || 'Productor sin cargar'} · ${dg.localidad || 's/localidad'}</div></div>
-          <span class="badge ${dg.docStatus}">${STAGE_LABELS[dg.docStatus]}</span>
+          <div class="dc-badges">
+            <span class="badge ${dg.docStatus}">${STAGE_LABELS[dg.docStatus]}</span>
+            ${dg.wasRejected ? `<span class="badge devuelto"><i class="ti ti-arrow-back-up"></i> Devuelto</span>` : ''}
+            ${dg.myTurn ? `<span class="badge tu-turno"><i class="ti ti-bell-ringing"></i> Te toca a vos</span>` : ''}
+          </div>
         </div>
         <div class="meter ${dg.completenessPct===100?'full':''}"><b style="width:${dg.completenessPct}%"></b></div>
         <div class="dc-meta"><div class="dc-date"><i class="ti ti-clock"></i> Últ. actividad: ${nowFmt(dg.updatedAt)}</div>
         <div class="dc-date">${dg.completenessPct}% completo</div></div>
-      </div>`).join('');
+      </div>`;
+}
+function renderHome() {
+  const list = state.diagnosticos;
+  const pendientes = list.filter(dg => dg.myTurn);
+  const resto = list.filter(dg => !dg.myTurn);
+  let pendingBanner = '';
+  let cards = '';
+  if (!list.length) {
+    cards = `<div class="empty-state"><i class="ti ti-clipboard-plus"></i><p>Todavía no hay diagnósticos cargados.<br>Creá el primero con el botón de arriba.</p></div>`;
+  } else {
+    if (pendientes.length) {
+      const rejCount = pendientes.filter(d => d.wasRejected).length;
+      pendingBanner = `<div class="pending-banner"><i class="ti ti-bell-ringing"></i> Tenés <b>${pendientes.length}</b> diagnóstico${pendientes.length===1?'':'s'} pendiente${pendientes.length===1?'':'s'} de tu firma${rejCount ? ` (${rejCount} por devolución/rechazo)` : ''}.</div>`;
+      cards += `<div class="list-section-title">Pendientes de tu firma</div>` + pendientes.map(diagCardHTML).join('');
+    }
+    if (resto.length) {
+      cards += `${pendientes.length ? '<div class="list-section-title">Otros diagnósticos</div>' : ''}` + resto.map(diagCardHTML).join('');
+    }
   }
   const canCreate = state.session.role === 'tecnico';
   return `
     <div class="home-head"><h2>Diagnósticos</h2>
     ${canCreate?`<button class="btn-new" onclick="createDiag()"><i class="ti ti-plus"></i> Nuevo</button>`:''}
     </div>
+    ${pendingBanner}
     <div class="diag-list">${cards}</div>`;
 }
 async function createDiag() {
