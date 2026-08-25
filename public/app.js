@@ -338,10 +338,10 @@ function renderDashboardView() {
   }
   return `
     <div class="detail-bar">
-      <button class="back" onclick="goHome()" aria-label="Volver"><i class="ti ti-arrow-left"></i></button>
+      <button class="back" onclick="goHome()" aria-label="Volver"><i class="ti ti-arrow-left"></i> Volver</button>
       <div style="flex:1"><div class="db-name">Panel del programa</div>
       <div class="db-sub">Resumen agregado de todos los diagnósticos</div></div>
-      ${state.dashboardData ? `<button class="back" onclick="exportDashboardCSV()" aria-label="Exportar CSV" title="Exportar CSV"><i class="ti ti-download"></i></button>` : ''}
+      ${state.dashboardData ? `<button class="back" onclick="exportDashboardCSV()" aria-label="Exportar CSV" title="Exportar CSV"><i class="ti ti-download"></i> Exportar CSV</button>` : ''}
     </div>
     <div class="content">${body}</div>`;
 }
@@ -505,7 +505,7 @@ function renderDetail() {
   }).join('');
   return `
     <div class="detail-bar">
-      <button class="back" onclick="goHome()" aria-label="Volver"><i class="ti ti-arrow-left"></i></button>
+      <button class="back" onclick="goHome()" aria-label="Volver"><i class="ti ti-arrow-left"></i> Volver</button>
       <div><div class="db-name">${dg.data.finca||'Diagnóstico sin nombre'}</div>
       <div class="db-sub">${dg.data.productor||'Productor sin cargar'}</div></div>
     </div>

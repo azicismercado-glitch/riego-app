@@ -59,7 +59,8 @@ button{font-family:inherit;}
 
 /* ---------- detail chrome ---------- */
 .detail-bar{display:flex; align-items:center; gap:10px; padding:10px 14px; background:var(--green-dark); color:#fff; border-top:1px solid rgba(255,255,255,0.1);}
-.detail-bar button.back{background:none; border:none; color:#A9BCA4; font-size:18px; cursor:pointer; padding:2px;}
+.detail-bar button.back{background:none; border:none; color:#A9BCA4; font-size:13px; font-weight:600; cursor:pointer; padding:4px 6px; display:flex; align-items:center; gap:4px; white-space:nowrap;}
+.detail-bar button.back i{font-size:16px;}
 .detail-bar .db-name{font-family:var(--serif); font-size:13.5px; font-weight:700; line-height:1.25;}
 .detail-bar .db-sub{font-size:9.5px; color:#A9BCA4;}
 .status-strip{display:flex; align-items:center; gap:8px; padding:8px 18px; background:var(--clay-light); border-bottom:1px solid var(--border); font-size:11px; font-weight:700; color:var(--clay);}
