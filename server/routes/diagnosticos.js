@@ -65,18 +65,16 @@ router.get('/', async (req, res) => {
   for (const d of rows) {
     const n = await fotosCount(d.id);
     const c = completeness(d.data, n);
-    const myTurn = STAGE_ROLE[stageIndex(d.doc_status)] === req.user.role;
     out.push({
       id: d.id,
       productor: d.data.productor,
       finca: d.data.finca,
       localidad: d.data.localidad,
+      cuit: d.data.cuit || '',
       docStatus: d.doc_status,
       stageLabel: STAGE_LABELS[d.doc_status],
       updatedAt: d.updated_at,
-      completenessPct: c.pct,
-      myTurn,
-      wasRejected: !!d.rejection
+      completenessPct: c.pct
     });
   }
   res.json(out);

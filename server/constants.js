@@ -8,6 +8,19 @@ const STAGE_LABELS = {
 // Rol de sesión requerido para poder ser quien firma en cada etapa (en orden).
 const STAGE_ROLE = ['tecnico', 'provincia', 'cfi'];
 
+// Categorías de tipo de inversión, usadas en el presupuesto y en el panel agregado.
+const TIPOS_INVERSION = [
+  'Riego presurizado (goteo)',
+  'Riego por aspersión',
+  'Paneles solares / energía',
+  'Cañería / tubería',
+  'Perforación de pozos',
+  'Reservorio / represa',
+  'Sistema antiheladas',
+  'Obra civil / cabezal de riego',
+  'Otro'
+];
+
 function stageIndex(s) {
   return STAGES.indexOf(s);
 }
@@ -16,11 +29,11 @@ function emptyCultivo() {
   return { cultivo: '', variedad: '', destino: '', anio: '', marco: '', superficie: '', conduccion: '', rendimiento: '' };
 }
 function emptyPresupuesto() {
-  return { inversion: '', monto: '' };
+  return { inversion: '', tipo: '', monto: '', montoUSD: '' };
 }
 function emptyData() {
   return {
-    productor: '', finca: '', renspa: '', localidad: '',
+    productor: '', finca: '', renspa: '', localidad: '', cuit: '', expedienteSigi: '',
     superficieTotal: '', superficieCultivada: '', superficieInculta: '', superficieDerecho: '',
     ccpp: '', pozos: '', obsGenerales: '',
     cultivos: [emptyCultivo()], obsCultivos: '',
@@ -36,6 +49,12 @@ function emptyData() {
 
 function has(v) {
   return v !== null && v !== undefined && String(v).trim() !== '';
+}
+
+// Deja solo los dígitos de un CUIT (saca guiones/espacios) para poder cruzar
+// con lo importado de SIGI sin depender del formato exacto en que se escribió.
+function normalizeCuit(v) {
+  return String(v || '').replace(/\D/g, '');
 }
 
 function completeness(data, fotosCount) {
@@ -75,7 +94,7 @@ function missingForSign(data) {
 }
 
 module.exports = {
-  STAGES, STAGE_LABELS, STAGE_ROLE, stageIndex,
+  STAGES, STAGE_LABELS, STAGE_ROLE, TIPOS_INVERSION, stageIndex,
   emptyCultivo, emptyPresupuesto, emptyData,
-  has, completeness, missingForSign
+  has, completeness, missingForSign, normalizeCuit
 };
