@@ -28,6 +28,9 @@ router.get('/', async (req, res) => {
   const creditosPorCuit = {};
   creditosRes.rows.forEach((r) => { creditosPorCuit[r.cuit] = r; });
 
+  const consultasRes = await db.query('SELECT cuit, provincia, solicitante, estado_normalizado, monto_credito_ars FROM consultas');
+  const cuitsConDiagnostico = new Set();
+
   const porEstado = {};
   STAGES.forEach((s) => { porEstado[s] = 0; });
 
@@ -61,6 +64,7 @@ router.get('/', async (req, res) => {
     }
 
     const cuit = normalizeCuit(d.data.cuit);
+    if (cuit) cuitsConDiagnostico.add(cuit);
     if (!cuit) {
       sigiSinCuit++;
     } else {
@@ -111,6 +115,30 @@ router.get('/', async (req, res) => {
   estancados.sort((a, b) => b.diasSinAvanzar - a.diasSinAvanzar);
   incompletos.sort((a, b) => a.pct - b.pct);
 
+  // Embudo del programa: Consulta (provincia) -> Diagnóstico (nuestra app) ->
+  // Crédito (SIGI), más cuántas quedaron desistidas o en trámite en el camino.
+  const porProvinciaMap = {};
+  let consultasDesistidas = 0, consultasEnTramite = 0, consultasDesembolsadas = 0;
+  let consultasConDiagnostico = 0, consultasConCredito = 0;
+  for (const c of consultasRes.rows) {
+    if (c.estado_normalizado === 'Desistido') consultasDesistidas++;
+    else if (c.estado_normalizado === 'Desembolsado') consultasDesembolsadas++;
+    else consultasEnTramite++;
+
+    const tieneDiag = cuitsConDiagnostico.has(c.cuit);
+    const tieneCred = !!creditosPorCuit[c.cuit];
+    if (tieneDiag) consultasConDiagnostico++;
+    if (tieneCred) consultasConCredito++;
+
+    const prov = c.provincia || 'Sin especificar';
+    if (!porProvinciaMap[prov]) porProvinciaMap[prov] = { provincia: prov, total: 0, desistidos: 0, conDiagnostico: 0, conCredito: 0 };
+    porProvinciaMap[prov].total++;
+    if (c.estado_normalizado === 'Desistido') porProvinciaMap[prov].desistidos++;
+    if (tieneDiag) porProvinciaMap[prov].conDiagnostico++;
+    if (tieneCred) porProvinciaMap[prov].conCredito++;
+  }
+  const embudoPorProvincia = Object.values(porProvinciaMap).sort((a, b) => b.total - a.total);
+
   const aprobados = rows.filter((d) => d.doc_status === 'firmado_cfi');
   let tiempoPromedioDias = null;
   if (aprobados.length) {
@@ -147,6 +175,15 @@ router.get('/', async (req, res) => {
       montoDesembolsadoARS,
       montoEnTramiteARS,
       matches: sigiMatches
+    },
+    embudo: {
+      totalConsultas: consultasRes.rows.length,
+      desistidas: consultasDesistidas,
+      enTramite: consultasEnTramite,
+      desembolsadas: consultasDesembolsadas,
+      conDiagnostico: consultasConDiagnostico,
+      conCredito: consultasConCredito,
+      porProvincia: embudoPorProvincia
     }
   });
 });

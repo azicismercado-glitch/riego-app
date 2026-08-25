@@ -91,6 +91,30 @@ CREATE TABLE IF NOT EXISTS creditos_sigi (
   imported_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Consultas cargadas por provincia (hoy vía Google Sheet, a futuro vía SIGI):
+-- la base madre de solicitantes, algunos de los cuales avanzan a diagnóstico
+-- y crédito, y otros quedan en trámite o desisten en el camino.
+CREATE TABLE IF NOT EXISTS consultas (
+  id SERIAL PRIMARY KEY,
+  cuit TEXT UNIQUE NOT NULL,
+  provincia TEXT NOT NULL,
+  solicitante TEXT,
+  localidad TEXT,
+  telefono TEXT,
+  email TEXT,
+  destino TEXT,
+  fecha_primer_contacto TEXT,
+  monto_credito_ars NUMERIC,
+  estado TEXT,
+  etapa TEXT,
+  fecha_etapa TEXT,
+  observaciones TEXT,
+  estado_normalizado TEXT NOT NULL DEFAULT 'En trámite'
+    CHECK (estado_normalizado IN ('En trámite','Desembolsado','Desistido')),
+  imported_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_consultas_cuit ON consultas(cuit);
+
 CREATE INDEX IF NOT EXISTS idx_signatures_diag ON signatures(diagnostico_id);
 CREATE INDEX IF NOT EXISTS idx_historial_diag ON historial(diagnostico_id);
 CREATE INDEX IF NOT EXISTS idx_fotos_diag ON fotos(diagnostico_id);

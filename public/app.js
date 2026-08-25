@@ -255,12 +255,47 @@ function renderDashboardView() {
         <span class="badge-pill ${pillClass}" style="margin-left:auto">${m.estado}</span></li>`;
     }).join('')}</ul>` : `<div class="hint">Todavía no hay diagnósticos cruzados con datos de SIGI. Cargá el CUIT en cada diagnóstico e importá el Excel de créditos.</div>`;
 
+    const emb = dash.embudo;
+    const maxEmbudo = Math.max(1, emb.totalConsultas);
+    const barsEmbudo = [
+      { label: 'Consultas totales', val: emb.totalConsultas },
+      { label: 'Con diagnóstico técnico', val: emb.conDiagnostico },
+      { label: 'Con crédito (SIGI)', val: emb.conCredito }
+    ].map((x) => `
+      <div class="bar-row">
+        <div class="bar-top"><span>${x.label}</span><span>${x.val}</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.round((x.val/maxEmbudo)*100)}%; background:var(--clay)"></div></div>
+      </div>`).join('');
+    const listProvincias = emb.porProvincia.length ? `<ul class="check-list">${emb.porProvincia.map((p) => `
+      <li><i class="ti ti-map-2" style="color:var(--clay)"></i>
+        <span>${p.provincia}<br><span style="color:var(--lock);font-size:10.5px">${p.conDiagnostico} con diagnóstico · ${p.conCredito} con crédito · ${p.desistidos} desistidos</span></span>
+        <span class="badge-pill" style="margin-left:auto;background:var(--clay-light);color:var(--clay)">${p.total}</span></li>`).join('')}</ul>`
+      : `<div class="hint">Todavía no importaste consultas de ninguna provincia.</div>`;
+
     body = `
       <div class="stat-grid">
         <div class="stat-card"><div class="stat-value">${dash.total}</div><div class="stat-label">Diagnósticos totales</div></div>
         <div class="stat-card"><div class="stat-value">${dash.aprobados}</div><div class="stat-label">Validados por CFI</div></div>
         <div class="stat-card"><div class="stat-value">${fmtUSD(dash.montoTotalUSD)}</div><div class="stat-label">Monto total solicitado</div></div>
         <div class="stat-card"><div class="stat-value">${dash.tiempoPromedioDias!=null?dash.tiempoPromedioDias+' días':'—'}</div><div class="stat-label">Tiempo promedio de aprobación</div></div>
+      </div>
+      <div class="section-card">
+        <div class="section-title"><i class="ti ti-filter"></i> Embudo del programa <span class="hint" style="margin-left:4px">consulta → diagnóstico → crédito</span></div>
+        ${state.session.role==='cfi' ? `
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+          <input type="text" id="consultaProvinciaInput" placeholder="Provincia (ej: Río Negro)" style="max-width:180px">
+          <input type="file" id="consultaImportInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="importConsultasExcel(this)">
+          <button class="btn-new" style="background:var(--clay)" onclick="triggerConsultaImport()"><i class="ti ti-upload"></i> Importar consultas</button>
+          <span class="hint">${emb.totalConsultas} consulta(s) cargadas hasta ahora.</span>
+        </div>` : ''}
+        ${barsEmbudo}
+        <div class="stat-grid" style="padding:12px 0 4px">
+          <div class="stat-card"><div class="stat-value">${emb.enTramite}</div><div class="stat-label">En trámite</div></div>
+          <div class="stat-card"><div class="stat-value">${emb.desembolsadas}</div><div class="stat-label">Desembolsadas</div></div>
+          <div class="stat-card"><div class="stat-value">${emb.desistidas}</div><div class="stat-label">Desistidas</div></div>
+        </div>
+        <div class="section-title" style="margin-top:8px"><i class="ti ti-map"></i> Por provincia</div>
+        ${listProvincias}
       </div>
       <div class="section-card">
         <div class="section-title"><i class="ti ti-stack-2"></i> Diagnósticos por etapa</div>
@@ -312,6 +347,28 @@ function renderDashboardView() {
 }
 function fmtARS(n) {
   return '$ ' + Number(n || 0).toLocaleString('es-AR', { maximumFractionDigits: 0 });
+}
+function triggerConsultaImport() {
+  const prov = document.getElementById('consultaProvinciaInput').value.trim();
+  if (!prov) { showToast('Escribí primero la provincia de este listado', true); return; }
+  document.getElementById('consultaImportInput').click();
+}
+async function importConsultasExcel(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  const provincia = document.getElementById('consultaProvinciaInput').value.trim();
+  if (!provincia) { showToast('Escribí primero la provincia de este listado', true); input.value = ''; return; }
+  const fd = new FormData();
+  fd.append('archivo', file);
+  fd.append('provincia', provincia);
+  try {
+    const r = await api('/consultas/import', { method: 'POST', body: fd });
+    showToast(`Importadas ${r.importados} de ${r.totalFilas} consulta(s) de ${r.provincia}${r.sinCuit?` (${r.sinCuit} sin CUIT, se ignoraron)`:''}.`);
+    await openDashboard();
+  } catch (e) {
+    showToast(e.message || 'Error al importar el Excel', true);
+  }
+  input.value = '';
 }
 async function importSigiExcel(input) {
   const file = input.files && input.files[0];
@@ -386,6 +443,21 @@ function exportDashboardCSV() {
   section('Detalle de diagnósticos cruzados con SIGI');
   header('ID', 'Nombre', 'CUIT', 'Expediente', 'Estado', 'Monto (ARS)');
   dash.creditosSigi.matches.forEach((m) => row(m.id, m.nombre, m.cuit, m.expediente, m.estado, m.montoARS));
+  rows.push([]);
+
+  section('Embudo del programa (consulta -> diagnóstico -> crédito)');
+  header('Indicador', 'Valor');
+  row('Consultas totales', dash.embudo.totalConsultas);
+  row('Con diagnóstico técnico', dash.embudo.conDiagnostico);
+  row('Con crédito (SIGI)', dash.embudo.conCredito);
+  row('En trámite', dash.embudo.enTramite);
+  row('Desembolsadas', dash.embudo.desembolsadas);
+  row('Desistidas', dash.embudo.desistidas);
+  rows.push([]);
+
+  section('Embudo por provincia');
+  header('Provincia', 'Total consultas', 'Con diagnóstico', 'Con crédito', 'Desistidos');
+  dash.embudo.porProvincia.forEach((p) => row(p.provincia, p.total, p.conDiagnostico, p.conCredito, p.desistidos));
 
   const csv = rows.map((r) => r.map(csvEscape).join(',')).join('\n');
   const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
