@@ -7,7 +7,8 @@
     "start": "node server/index.js",
     "dev": "nodemon server/index.js",
     "migrate": "node server/migrate.js",
-    "seed": "node server/seed.js"
+    "seed": "node server/seed.js",
+    "seed:lectores": "node server/seed-lectores.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -17,9 +18,11 @@
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.2.0",
     "nodemailer": "^6.9.14",
-    "pg": "^8.12.0"
+    "pg": "^8.12.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "embedded-postgres": "^18.4.0-beta.17",
     "nodemon": "^3.1.4"
   }
 }

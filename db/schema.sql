@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
   username TEXT UNIQUE NOT NULL,
   password_hash TEXT NOT NULL,
-  role TEXT NOT NULL CHECK (role IN ('tecnico','provincia','cfi')),
+  role TEXT NOT NULL CHECK (role IN ('tecnico','provincia','cfi','lector')),
   nombre TEXT NOT NULL,
   rol_label TEXT NOT NULL,
   email TEXT NOT NULL
@@ -71,6 +71,19 @@ CREATE TABLE IF NOT EXISTS emails (
   error TEXT,
   leido BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Créditos importados desde SIGI (CFI), para cruzar por CUIT con nuestros
+-- diagnósticos y saber cuáles ya tienen crédito otorgado/desembolsado.
+CREATE TABLE IF NOT EXISTS creditos_sigi (
+  id SERIAL PRIMARY KEY,
+  cuit TEXT UNIQUE NOT NULL,
+  expediente TEXT,
+  titular TEXT,
+  linea_programa TEXT,
+  monto_ars NUMERIC,
+  desembolso TEXT,
+  imported_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE INDEX IF NOT EXISTS idx_signatures_diag ON signatures(diagnostico_id);

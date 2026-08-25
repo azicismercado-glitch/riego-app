@@ -5,15 +5,16 @@
 const STAGES = ['borrador','firmado_tecnico','firmado_provincia','firmado_cfi'];
 const STAGE_LABELS = {borrador:'Borrador', firmado_tecnico:'Firmado por técnico', firmado_provincia:'Firmado por provincia', firmado_cfi:'Validado por CFI'};
 const STAGE_ROLE = ['tecnico','provincia','cfi'];
-const DEMO_HINT = {tecnico:{username:'aperez', password:'1234'}, provincia:{username:'mgomez', password:'1234'}, cfi:{username:'lcosta', password:'1234'}};
+const DEMO_HINT = {tecnico:{username:'aperez', password:'1234'}, provincia:{username:'mgomez', password:'1234'}, cfi:{username:'lcosta', password:'1234'}, lector:{username:'invitado', password:'1234'}};
 const TABS = [['estab','Establec.'],['cultivos','Cultivos'],['suelo','Suelo'],['riego','Riego'],['propuesta','Propuesta'],['fotos','Fotos'],['resumen','Resumen'],['firmas','Firmas'],['historial','Historial']];
+const TIPOS_INVERSION = ['Riego presurizado (goteo)','Riego por aspersión','Paneles solares / energía','Cañería / tubería','Perforación de pozos','Reservorio / represa','Sistema antiheladas','Obra civil / cabezal de riego','Otro'];
 
 let state = {
   token: localStorage.getItem('riego_token') || null,
   session: JSON.parse(localStorage.getItem('riego_user') || 'null'),
   loginSelectedRole: 'tecnico', loginError: '', loginBusy:false,
-  view: 'home', currentId: null, activeTab: 'estab',
-  diagnosticos: [], currentDiag: null,
+  view: 'home', currentId: null, activeTab: 'estab', showLogin: false,
+  diagnosticos: [], currentDiag: null, dashboardData: null, dashboardLoading: false,
   pendingSignAction: null, reauthError: '', reauthBusy:false, pendingObs:'', pendingSignatureData:null,
   emails: [], emailsSmtpConfigured:false, showMail: false, unreadCount:0
 };
@@ -57,7 +58,8 @@ function clearSession() {
 async function render() {
   if (!state.session) {
     document.getElementById('mainApp').style.display = 'none';
-    renderLoginScreen(); renderReauthOverlay();
+    if (state.showLogin) { renderLoginScreen(); } else { renderWelcomeScreen(); }
+    renderReauthOverlay();
     return;
   }
   document.getElementById('loginScreen').innerHTML = '';
@@ -70,6 +72,8 @@ async function render() {
       state.diagnosticos = await api('/diagnosticos');
     } catch (e) { handleAuthError(e); return; }
     root.innerHTML = renderHome();
+  } else if (state.view === 'dashboard') {
+    root.innerHTML = renderDashboardView();
   } else {
     root.innerHTML = renderDetail();
     if (state.activeTab === 'firmas') setTimeout(setupCanvases, 0);
@@ -87,10 +91,22 @@ function handleAuthError(e) {
   }
 }
 
+/* ================= bienvenida ================= */
+function renderWelcomeScreen() {
+  document.getElementById('loginScreen').innerHTML = `
+    <div class="login-screen"><div class="login-card welcome-card">
+      <div class="eyebrow">Programa de Apoyo para la Tecnificación del Riego</div>
+      <h1>Diagnósticos técnicos</h1>
+      <div class="login-sub">Relevamiento técnico y circuito de firmas digitales para proyectos de mejora del riego, con seguimiento de inversiones y créditos.</div>
+      <button class="btn-login" onclick="goToLogin()">Ingresar <i class="ti ti-arrow-right"></i></button>
+    </div></div>`;
+}
+function goToLogin() { state.showLogin = true; render(); }
+
 /* ================= login ================= */
 function renderLoginScreen() {
   const r = state.loginSelectedRole;
-  const roles = [['tecnico','Técnico de campo'],['provincia','Resp. provincial'],['cfi','Técnico CFI']];
+  const roles = [['tecnico','Técnico de campo'],['provincia','Resp. provincial'],['cfi','Técnico CFI'],['lector','Solo lectura']];
   document.getElementById('loginScreen').innerHTML = `
     <div class="login-screen"><div class="login-card">
       <div class="eyebrow">Programa de Apoyo para la Tecnificación del Riego</div>
@@ -123,7 +139,7 @@ async function doLogin() {
     render();
   }
 }
-function logout() { clearSession(); state.view = 'home'; state.currentId = null; state.currentDiag = null; render(); }
+function logout() { clearSession(); state.view = 'home'; state.currentId = null; state.currentDiag = null; state.showLogin = false; render(); }
 
 function renderUserBadge() {
   const s = state.session;
@@ -148,7 +164,7 @@ function renderHome() {
       <div class="diag-card" onclick="openDiag(${dg.id})">
         <div class="dc-top">
           <div><div class="dc-name">${dg.finca || 'Sin nombre de finca'}</div>
-          <div class="dc-prod">${dg.productor || 'Productor sin cargar'} · ${dg.localidad || 's/localidad'}</div></div>
+          <div class="dc-prod">${dg.productor || 'Productor sin cargar'} · ${dg.localidad || 's/localidad'}${dg.cuit?` · CUIT ${dg.cuit}`:''}</div></div>
           <span class="badge ${dg.docStatus}">${STAGE_LABELS[dg.docStatus]}</span>
         </div>
         <div class="meter ${dg.completenessPct===100?'full':''}"><b style="width:${dg.completenessPct}%"></b></div>
@@ -159,7 +175,10 @@ function renderHome() {
   const canCreate = state.session.role === 'tecnico';
   return `
     <div class="home-head"><h2>Diagnósticos</h2>
+    <div style="display:flex;gap:6px">
+    <button class="btn-new" style="background:var(--clay)" onclick="openDashboard()"><i class="ti ti-chart-bar"></i> Panel</button>
     ${canCreate?`<button class="btn-new" onclick="createDiag()"><i class="ti ti-plus"></i> Nuevo</button>`:''}
+    </div>
     </div>
     <div class="diag-list">${cards}</div>`;
 }
@@ -178,6 +197,207 @@ async function openDiag(id) {
   } catch (e) { handleAuthError(e); }
 }
 function goHome() { state.view = 'home'; state.currentId = null; state.currentDiag = null; render(); }
+
+/* ================= panel / dashboard agregado ================= */
+async function openDashboard() {
+  state.view = 'dashboard'; state.dashboardLoading = true; state.dashboardData = null;
+  render();
+  try {
+    state.dashboardData = await api('/dashboard');
+  } catch (e) { handleAuthError(e); }
+  state.dashboardLoading = false;
+  render();
+}
+function fmtUSD(n) {
+  return 'USD ' + Number(n || 0).toLocaleString('es-AR', { maximumFractionDigits: 0 });
+}
+function renderDashboardView() {
+  const dash = state.dashboardData;
+  let body;
+  if (state.dashboardLoading || !dash) {
+    body = `<div class="empty-state"><i class="ti ti-loader-2"></i><p>Cargando panel…</p></div>`;
+  } else {
+    const maxTipo = Math.max(1, ...dash.montoPorTipo.map((t) => t.monto));
+    const maxLoc = Math.max(1, ...dash.porLocalidad.map((l) => l.cantidad));
+    const barsTipo = dash.montoPorTipo.length ? dash.montoPorTipo.map((t) => `
+      <div class="bar-row">
+        <div class="bar-top"><span>${t.tipo}</span><span>${fmtUSD(t.monto)}</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.round((t.monto/maxTipo)*100)}%"></div></div>
+      </div>`).join('') : `<div class="hint">Todavía no hay montos en USD cargados en ningún presupuesto.</div>`;
+    const barsEstado = dash.porEstado.map((e) => `
+      <div class="bar-row">
+        <div class="bar-top"><span>${e.label}</span><span>${e.cantidad}</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:${dash.total?Math.round((e.cantidad/dash.total)*100):0}%; background:var(--clay)"></div></div>
+      </div>`).join('');
+    const listLoc = dash.porLocalidad.length ? `<ul class="check-list">${dash.porLocalidad.map((l) => `
+      <li><i class="ti ti-map-pin" style="color:var(--clay)"></i>
+        <span>${l.localidad}<br><span style="color:var(--lock);font-size:10.5px">${l.cantidad} diagnóstico(s) · ${fmtUSD(l.monto)}</span></span>
+        <span class="badge-pill" style="margin-left:auto;background:var(--clay-light);color:var(--clay)">${l.pct}%</span></li>`).join('')}</ul>` : `<div class="hint">Sin datos de localidad todavía.</div>`;
+
+    const listEstancados = dash.estancados.length ? `<ul class="check-list">${dash.estancados.map((e) => `
+      <li class="clickable" onclick="openDiag(${e.id})"><i class="ti ti-clock-exclamation" style="color:var(--danger)"></i>
+        <span>${e.nombre}<br><span style="color:var(--lock);font-size:10.5px">${e.etapa}</span></span>
+        <span class="badge-pill danger" style="margin-left:auto">${e.diasSinAvanzar} días</span></li>`).join('')}</ul>`
+      : `<div class="hint">Ningún diagnóstico lleva más de ${dash.staleDays} días sin avanzar de etapa.</div>`;
+
+    const listIncompletos = dash.incompletos.length ? `<ul class="check-list">${dash.incompletos.map((e) => {
+      const nivel = e.pct >= 75 ? 'warn' : 'danger';
+      return `<li class="clickable" onclick="openDiag(${e.id})"><i class="ti ti-alert-triangle" style="color:var(--${nivel})"></i>
+        <span>${e.nombre}<br><span style="color:var(--lock);font-size:10.5px">${e.etapa}</span></span>
+        <span class="badge-pill ${nivel}" style="margin-left:auto">${e.pct}%</span></li>`;
+    }).join('')}</ul>` : `<div class="hint">Todos los diagnósticos en curso tienen los datos completos.</div>`;
+
+    const sigi = dash.creditosSigi;
+    const listSigi = sigi.matches.length ? `<ul class="check-list">${sigi.matches.map((m) => {
+      const pillClass = m.estado === 'Desembolsado' ? 'ok' : m.estado === 'En trámite' ? 'warn' : 'danger';
+      return `<li class="clickable" onclick="openDiag(${m.id})"><i class="ti ti-building-bank" style="color:var(--clay)"></i>
+        <span>${m.nombre}<br><span style="color:var(--lock);font-size:10.5px">Exp. ${m.expediente||'—'} · ${fmtARS(m.montoARS)}</span></span>
+        <span class="badge-pill ${pillClass}" style="margin-left:auto">${m.estado}</span></li>`;
+    }).join('')}</ul>` : `<div class="hint">Todavía no hay diagnósticos cruzados con datos de SIGI. Cargá el CUIT en cada diagnóstico e importá el Excel de créditos.</div>`;
+
+    body = `
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-value">${dash.total}</div><div class="stat-label">Diagnósticos totales</div></div>
+        <div class="stat-card"><div class="stat-value">${dash.aprobados}</div><div class="stat-label">Validados por CFI</div></div>
+        <div class="stat-card"><div class="stat-value">${fmtUSD(dash.montoTotalUSD)}</div><div class="stat-label">Monto total solicitado</div></div>
+        <div class="stat-card"><div class="stat-value">${dash.tiempoPromedioDias!=null?dash.tiempoPromedioDias+' días':'—'}</div><div class="stat-label">Tiempo promedio de aprobación</div></div>
+      </div>
+      <div class="section-card">
+        <div class="section-title"><i class="ti ti-stack-2"></i> Diagnósticos por etapa</div>
+        ${barsEstado}
+      </div>
+      <div class="section-card">
+        <div class="section-title"><i class="ti ti-sun"></i> Monto solicitado por tipo de inversión</div>
+        ${barsTipo}
+        ${dash.itemsSinCategorizar?`<div class="hint" style="margin-top:6px">${dash.itemsSinCategorizar} ítem(s) de presupuesto sin tipo de inversión asignado — completalo en la pestaña Propuesta de cada diagnóstico.</div>`:''}
+      </div>
+      <div class="section-card">
+        <div class="section-title"><i class="ti ti-map"></i> Distribución por localidad</div>
+        ${listLoc}
+      </div>
+      <div class="section-card">
+        <div class="section-title"><i class="ti ti-clock-exclamation"></i> Diagnósticos demorados <span class="hint" style="margin-left:4px">(más de ${dash.staleDays} días sin avanzar)</span></div>
+        ${listEstancados}
+      </div>
+      <div class="section-card">
+        <div class="section-title"><i class="ti ti-checklist"></i> % completado</div>
+        ${listIncompletos}
+      </div>
+      <div class="section-card">
+        <div class="section-title"><i class="ti ti-building-bank"></i> Cruce con créditos SIGI</div>
+        ${state.session.role==='cfi' ? `
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+          <input type="file" id="sigiImportInput" accept=".xlsx,.xls" style="display:none" onchange="importSigiExcel(this)">
+          <button class="btn-new" style="background:var(--clay)" onclick="document.getElementById('sigiImportInput').click()"><i class="ti ti-upload"></i> Importar Excel de créditos</button>
+          <span class="hint">${sigi.totalImportados} registro(s) importados hasta ahora.</span>
+        </div>` : ''}
+        <div class="stat-grid" style="padding:0 0 12px">
+          <div class="stat-card"><div class="stat-value">${sigi.desembolsados}</div><div class="stat-label">Desembolsados</div></div>
+          <div class="stat-card"><div class="stat-value">${sigi.enTramite}</div><div class="stat-label">En trámite</div></div>
+          <div class="stat-card"><div class="stat-value">${fmtARS(sigi.montoDesembolsadoARS)}</div><div class="stat-label">Monto desembolsado</div></div>
+          <div class="stat-card"><div class="stat-value">${fmtARS(sigi.montoEnTramiteARS)}</div><div class="stat-label">Monto en trámite</div></div>
+        </div>
+        ${listSigi}
+        ${sigi.sinCuit?`<div class="hint" style="margin-top:6px">${sigi.sinCuit} diagnóstico(s) sin CUIT cargado — completalo en la pestaña Establecimiento para poder cruzarlo.</div>`:''}
+      </div>`;
+  }
+  return `
+    <div class="detail-bar">
+      <button class="back" onclick="goHome()" aria-label="Volver"><i class="ti ti-arrow-left"></i></button>
+      <div style="flex:1"><div class="db-name">Panel del programa</div>
+      <div class="db-sub">Resumen agregado de todos los diagnósticos</div></div>
+      ${state.dashboardData ? `<button class="back" onclick="exportDashboardCSV()" aria-label="Exportar CSV" title="Exportar CSV"><i class="ti ti-download"></i></button>` : ''}
+    </div>
+    <div class="content">${body}</div>`;
+}
+function fmtARS(n) {
+  return '$ ' + Number(n || 0).toLocaleString('es-AR', { maximumFractionDigits: 0 });
+}
+async function importSigiExcel(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  const fd = new FormData();
+  fd.append('archivo', file);
+  try {
+    const r = await api('/creditos-sigi/import', { method: 'POST', body: fd });
+    showToast(`Importados ${r.importados} de ${r.totalFilas} registro(s)${r.sinCuit?` (${r.sinCuit} sin CUIT, se ignoraron)`:''}.`);
+    await openDashboard();
+  } catch (e) {
+    showToast(e.message || 'Error al importar el Excel', true);
+  }
+  input.value = '';
+}
+function csvEscape(v) {
+  const s = String(v == null ? '' : v);
+  return /[",\n;]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+function exportDashboardCSV() {
+  const dash = state.dashboardData;
+  if (!dash) return;
+  const rows = [];
+  const section = (title) => rows.push([title]);
+  const header = (...cols) => rows.push(cols);
+  const row = (...cols) => rows.push(cols);
+
+  section('Resumen general');
+  header('Indicador', 'Valor');
+  row('Diagnósticos totales', dash.total);
+  row('Validados por CFI', dash.aprobados);
+  row('Monto total solicitado (USD)', dash.montoTotalUSD);
+  row('Tiempo promedio de aprobación (días)', dash.tiempoPromedioDias != null ? dash.tiempoPromedioDias : '');
+  rows.push([]);
+
+  section('Diagnósticos por etapa');
+  header('Etapa', 'Cantidad');
+  dash.porEstado.forEach((e) => row(e.label, e.cantidad));
+  rows.push([]);
+
+  section('Monto por tipo de inversión');
+  header('Tipo', 'Monto (USD)');
+  dash.montoPorTipo.forEach((t) => row(t.tipo, t.monto));
+  rows.push([]);
+
+  section('Distribución por localidad');
+  header('Localidad', 'Cantidad', 'Monto (USD)', '% del total');
+  dash.porLocalidad.forEach((l) => row(l.localidad, l.cantidad, l.monto, l.pct));
+  rows.push([]);
+
+  section('Diagnósticos demorados (más de ' + dash.staleDays + ' días sin avanzar)');
+  header('ID', 'Nombre', 'Etapa', 'Días sin avanzar');
+  dash.estancados.forEach((e) => row(e.id, e.nombre, e.etapa, e.diasSinAvanzar));
+  rows.push([]);
+
+  section('Diagnósticos con datos incompletos');
+  header('ID', 'Nombre', 'Etapa', '% completo');
+  dash.incompletos.forEach((e) => row(e.id, e.nombre, e.etapa, e.pct));
+  rows.push([]);
+
+  section('Cruce con créditos SIGI');
+  header('Indicador', 'Valor');
+  row('Registros importados de SIGI', dash.creditosSigi.totalImportados);
+  row('Diagnósticos sin CUIT cargado', dash.creditosSigi.sinCuit);
+  row('Diagnósticos con CUIT sin match en SIGI', dash.creditosSigi.sinMatch);
+  row('En trámite', dash.creditosSigi.enTramite);
+  row('Desembolsados', dash.creditosSigi.desembolsados);
+  row('Monto desembolsado (ARS)', dash.creditosSigi.montoDesembolsadoARS);
+  row('Monto en trámite (ARS)', dash.creditosSigi.montoEnTramiteARS);
+  rows.push([]);
+
+  section('Detalle de diagnósticos cruzados con SIGI');
+  header('ID', 'Nombre', 'CUIT', 'Expediente', 'Estado', 'Monto (ARS)');
+  dash.creditosSigi.matches.forEach((m) => row(m.id, m.nombre, m.cuit, m.expediente, m.estado, m.montoARS));
+
+  const csv = rows.map((r) => r.map(csvEscape).join(',')).join('\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'panel-riego-' + new Date().toISOString().slice(0, 10) + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
 async function refreshCurrentDiag() {
   state.currentDiag = await api('/diagnosticos/' + state.currentId);
 }
@@ -274,7 +494,7 @@ function toggleArr(key, val) {
 function addCultivo() { if (!canEdit()) return; cur().data.cultivos.push({cultivo:'',variedad:'',destino:'',anio:'',marco:'',superficie:'',conduccion:'',rendimiento:''}); flushSave(); render(); }
 function removeCultivo(i) { if (!canEdit()) return; cur().data.cultivos.splice(i,1); flushSave(); render(); }
 function setCultivo(i, key, val) { if (!canEdit()) return; cur().data.cultivos[i][key] = val; scheduleSave(); }
-function addPresupuesto() { if (!canEdit()) return; cur().data.presupuesto.push({inversion:'',monto:''}); flushSave(); render(); }
+function addPresupuesto() { if (!canEdit()) return; cur().data.presupuesto.push({inversion:'',tipo:'',monto:'',montoUSD:''}); flushSave(); render(); }
 function removePresupuesto(i) { if (!canEdit()) return; cur().data.presupuesto.splice(i,1); flushSave(); render(); }
 function setPresupuesto(i, key, val) { if (!canEdit()) return; cur().data.presupuesto[i][key] = val; scheduleSave(); }
 
@@ -335,6 +555,12 @@ function renderTabContent(dg) {
       <div class="row2">
         <div class="field-group"><label>RENSPA / RUT</label><input type="text" value="${d.renspa}" ${dis} oninput="setField('renspa',this.value)"></div>
         <div class="field-group"><label>Localidad/Departamento <span class="req">*</span></label><input type="text" value="${d.localidad}" ${dis} oninput="setField('localidad',this.value)"></div>
+      </div>
+      <div class="row2">
+        <div class="field-group"><label>CUIT</label><input type="text" value="${d.cuit||''}" ${dis} placeholder="30-XXXXXXXX-X" oninput="setField('cuit',this.value)">
+          <div class="hint">Para cruzar este diagnóstico con la carga de provincia y el crédito en SIGI.</div>
+        </div>
+        <div class="field-group"><label>N.° de expediente SIGI</label><input type="text" value="${d.expedienteSigi||''}" ${dis} placeholder="2025-CR-MZ-002426 (si ya existe)" oninput="setField('expedienteSigi',this.value)"></div>
       </div>
       <div class="row2">
         <div class="field-group"><label>Superficie total (ha) <span class="req">*</span></label><input type="number" value="${d.superficieTotal}" ${dis} oninput="setField('superficieTotal',this.value)"></div>
@@ -457,11 +683,17 @@ function renderTabContent(dg) {
       <div class="field-group"><label>5. Cronograma y plazos</label><textarea ${dis} placeholder="Etapas: adquisición, instalación, calibración, capacitación" oninput="setField('cronogramaEtapas',this.value)">${d.cronogramaEtapas}</textarea></div>
       <div class="field-group"><label>Tiempo estimado total (meses) <span class="req">*</span></label><input type="number" value="${d.tiempoTotalMeses}" ${dis} oninput="setField('tiempoTotalMeses',this.value)"></div>
       <div class="subsection-title">6. Presupuesto estimado <span class="req">*</span></div>
+      <div class="hint" style="margin-bottom:8px">El "Monto (USD)" es un número simple, sin texto — se usa para el panel de totales del programa. El campo "Presupuesto estimado" queda libre para aclaraciones (IVA, moneda local, etc.).</div>
       <div class="table-scroll"><table class="dyn-table" style="min-width:100%">
-        <thead><tr><th>Inversión</th><th>Presupuesto estimado</th><th></th></tr></thead>
+        <thead><tr><th>Inversión</th><th>Tipo de inversión</th><th>Monto (USD)</th><th>Presupuesto estimado (texto)</th><th></th></tr></thead>
         <tbody>${d.presupuesto.map((p,i)=>`<tr>
           <td><input type="text" value="${p.inversion}" ${dis} onchange="setPresupuesto(${i},'inversion',this.value)"></td>
-          <td><input type="text" value="${p.monto}" ${dis} placeholder="USD" onchange="setPresupuesto(${i},'monto',this.value)"></td>
+          <td><select ${dis} onchange="setPresupuesto(${i},'tipo',this.value)" style="width:100%;min-width:150px;padding:6px 7px;border:1px solid var(--border);border-radius:6px;font-size:11.5px;font-family:inherit">
+            <option value="">Sin categorizar</option>
+            ${TIPOS_INVERSION.map(t=>`<option value="${t}" ${p.tipo===t?'selected':''}>${t}</option>`).join('')}
+          </select></td>
+          <td><input type="number" value="${p.montoUSD||''}" ${dis} placeholder="0" onchange="setPresupuesto(${i},'montoUSD',this.value)"></td>
+          <td><input type="text" value="${p.monto||''}" ${dis} placeholder="Ej: USD 5.000 + IVA" onchange="setPresupuesto(${i},'monto',this.value)"></td>
           <td class="row-remove">${canEdit()&&d.presupuesto.length>1?`<button onclick="removePresupuesto(${i})" aria-label="Quitar"><i class="ti ti-x"></i></button>`:''}</td>
         </tr>`).join('')}</tbody>
       </table></div>
