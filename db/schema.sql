@@ -11,6 +11,11 @@ CREATE TABLE IF NOT EXISTS users (
   email TEXT NOT NULL
 );
 
+-- Si la tabla users ya existía de antes (CREATE TABLE IF NOT EXISTS no la
+-- toca), forzamos que la restricción de roles incluya 'lector'.
+ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('tecnico','provincia','cfi','lector'));
+
 CREATE TABLE IF NOT EXISTS diagnosticos (
   id SERIAL PRIMARY KEY,
   data JSONB NOT NULL DEFAULT '{}'::jsonb,
