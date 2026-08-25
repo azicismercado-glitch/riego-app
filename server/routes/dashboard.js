@@ -79,8 +79,6 @@ async function buildDashboard() {
         const desembolso = (credito.desembolso || '').trim();
         const estado = !desembolso ? 'Sin dato' : /en\s*tr[aá]mite/i.test(desembolso) ? 'En trámite' : 'Desembolsado';
         const montoARS = Number(credito.monto_ars) || 0;
-        if (estado === 'Desembolsado') { sigiDesembolsados++; montoDesembolsadoARS += montoARS; }
-        else if (estado === 'En trámite') { sigiEnTramite++; montoEnTramiteARS += montoARS; }
         sigiMatches.push({
           id: d.id,
           nombre: nombreDiag(d.data, d.id),
@@ -118,6 +116,19 @@ async function buildDashboard() {
   }
   estancados.sort((a, b) => b.diasSinAvanzar - a.diasSinAvanzar);
   incompletos.sort((a, b) => a.pct - b.pct);
+
+  // Los montos y cantidades de "en trámite" / "desembolsado" se calculan sobre
+  // TODOS los créditos importados de SIGI (no solo los que además coinciden
+  // con un diagnóstico nuestro), para que reflejen la realidad del programa
+  // aunque todavía falte cargar el CUIT en los diagnósticos.
+  creditosRes.rows.forEach((credito) => {
+    const desembolso = (credito.desembolso || '').trim();
+    const enTramite = /en\s*tr[aá]mite/i.test(desembolso);
+    const estado = !desembolso ? 'Sin dato' : enTramite ? 'En trámite' : 'Desembolsado';
+    const montoARS = Number(credito.monto_ars) || 0;
+    if (estado === 'Desembolsado') { sigiDesembolsados++; montoDesembolsadoARS += montoARS; }
+    else if (estado === 'En trámite') { sigiEnTramite++; montoEnTramiteARS += montoARS; }
+  });
 
   // Embudo del programa: Consulta (provincia) -> Diagnóstico (nuestra app) ->
   // Crédito (SIGI), más cuántas quedaron desistidas o en trámite en el camino.

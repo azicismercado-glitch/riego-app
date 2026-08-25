@@ -296,6 +296,7 @@ function renderDashboardView() {
         </div>
         <div class="section-title" style="margin-top:8px"><i class="ti ti-map"></i> Por provincia</div>
         ${listProvincias}
+        <div class="hint" style="margin-top:6px">Solo aparecen las provincias cuyo listado de consultas ya importaste. Las demás van a sumarse cuando importes su Excel.</div>
       </div>
       <div class="section-card">
         <div class="section-title"><i class="ti ti-stack-2"></i> Diagnósticos por etapa</div>
