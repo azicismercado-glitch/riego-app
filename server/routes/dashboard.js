@@ -138,6 +138,15 @@ router.get('/', async (req, res) => {
     if (tieneCred) porProvinciaMap[prov].conCredito++;
   }
   const embudoPorProvincia = Object.values(porProvinciaMap).sort((a, b) => b.total - a.total);
+  const embudoDetalle = consultasRes.rows.map((c) => ({
+    cuit: c.cuit,
+    solicitante: c.solicitante,
+    provincia: c.provincia,
+    montoARS: Number(c.monto_credito_ars) || 0,
+    estado: c.estado_normalizado,
+    conDiagnostico: cuitsConDiagnostico.has(c.cuit),
+    conCredito: !!creditosPorCuit[c.cuit]
+  }));
 
   const aprobados = rows.filter((d) => d.doc_status === 'firmado_cfi');
   let tiempoPromedioDias = null;
@@ -183,7 +192,8 @@ router.get('/', async (req, res) => {
       desembolsadas: consultasDesembolsadas,
       conDiagnostico: consultasConDiagnostico,
       conCredito: consultasConCredito,
-      porProvincia: embudoPorProvincia
+      porProvincia: embudoPorProvincia,
+      detalle: embudoDetalle
     }
   });
 });

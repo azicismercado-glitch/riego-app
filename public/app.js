@@ -458,6 +458,11 @@ function exportDashboardCSV() {
   section('Embudo por provincia');
   header('Provincia', 'Total consultas', 'Con diagnóstico', 'Con crédito', 'Desistidos');
   dash.embudo.porProvincia.forEach((p) => row(p.provincia, p.total, p.conDiagnostico, p.conCredito, p.desistidos));
+  rows.push([]);
+
+  section('Detalle de consultas');
+  header('CUIT', 'Solicitante', 'Provincia', 'Monto crédito (ARS)', 'Estado', 'Con diagnóstico', 'Con crédito SIGI');
+  dash.embudo.detalle.forEach((c) => row(c.cuit, c.solicitante, c.provincia, c.montoARS, c.estado, c.conDiagnostico ? 'Sí' : 'No', c.conCredito ? 'Sí' : 'No'));
 
   const csv = rows.map((r) => r.map(csvEscape).join(',')).join('\n');
   const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
