@@ -147,7 +147,7 @@ function renderUserBadge() {
     <div class="user-badge">
       <div class="who"><i class="ti ti-user-circle"></i><div>${s.nombre}<span>${s.rolLabel} · ${s.username}</span></div></div>
       <div style="display:flex;gap:6px;align-items:center">
-        <button class="mail-btn" onclick="toggleMail()" aria-label="Notificaciones enviadas"><i class="ti ti-mail"></i>${state.unreadCount?`<span class="count">${state.unreadCount}</span>`:''}</button>
+        <button class="mail-btn" onclick="toggleMail()" aria-label="Notificaciones enviadas"><i class="ti ti-mail"></i> Mensajes${state.unreadCount?`<span class="count">${state.unreadCount}</span>`:''}</button>
         <button onclick="logout()">Cambiar de usuario</button>
       </div>
     </div>`;
@@ -341,7 +341,7 @@ function renderDashboardView() {
       <button class="back" onclick="goHome()" aria-label="Volver"><i class="ti ti-arrow-left"></i> Volver</button>
       <div style="flex:1"><div class="db-name">Panel del programa</div>
       <div class="db-sub">Resumen agregado de todos los diagnósticos</div></div>
-      ${state.dashboardData ? `<button class="back" onclick="exportDashboardCSV()" aria-label="Exportar CSV" title="Exportar CSV"><i class="ti ti-download"></i> Exportar CSV</button>` : ''}
+      ${state.dashboardData ? `<button class="back" onclick="exportDashboardExcel()" aria-label="Exportar Excel" title="Exportar Excel"><i class="ti ti-download"></i> Exportar Excel</button>` : ''}
     </div>
     <div class="content">${body}</div>`;
 }
@@ -384,96 +384,28 @@ async function importSigiExcel(input) {
   }
   input.value = '';
 }
-function csvEscape(v) {
-  const s = String(v == null ? '' : v);
-  return /[",\n;]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
-}
-function exportDashboardCSV() {
-  const dash = state.dashboardData;
-  if (!dash) return;
-  const rows = [];
-  const section = (title) => rows.push([title]);
-  const header = (...cols) => rows.push(cols);
-  const row = (...cols) => rows.push(cols);
-
-  section('Resumen general');
-  header('Indicador', 'Valor');
-  row('Diagnósticos totales', dash.total);
-  row('Validados por CFI', dash.aprobados);
-  row('Monto total solicitado (USD)', dash.montoTotalUSD);
-  row('Tiempo promedio de aprobación (días)', dash.tiempoPromedioDias != null ? dash.tiempoPromedioDias : '');
-  rows.push([]);
-
-  section('Diagnósticos por etapa');
-  header('Etapa', 'Cantidad');
-  dash.porEstado.forEach((e) => row(e.label, e.cantidad));
-  rows.push([]);
-
-  section('Monto por tipo de inversión');
-  header('Tipo', 'Monto (USD)');
-  dash.montoPorTipo.forEach((t) => row(t.tipo, t.monto));
-  rows.push([]);
-
-  section('Distribución por localidad');
-  header('Localidad', 'Cantidad', 'Monto (USD)', '% del total');
-  dash.porLocalidad.forEach((l) => row(l.localidad, l.cantidad, l.monto, l.pct));
-  rows.push([]);
-
-  section('Diagnósticos demorados (más de ' + dash.staleDays + ' días sin avanzar)');
-  header('ID', 'Nombre', 'Etapa', 'Días sin avanzar');
-  dash.estancados.forEach((e) => row(e.id, e.nombre, e.etapa, e.diasSinAvanzar));
-  rows.push([]);
-
-  section('Diagnósticos con datos incompletos');
-  header('ID', 'Nombre', 'Etapa', '% completo');
-  dash.incompletos.forEach((e) => row(e.id, e.nombre, e.etapa, e.pct));
-  rows.push([]);
-
-  section('Cruce con créditos SIGI');
-  header('Indicador', 'Valor');
-  row('Registros importados de SIGI', dash.creditosSigi.totalImportados);
-  row('Diagnósticos sin CUIT cargado', dash.creditosSigi.sinCuit);
-  row('Diagnósticos con CUIT sin match en SIGI', dash.creditosSigi.sinMatch);
-  row('En trámite', dash.creditosSigi.enTramite);
-  row('Desembolsados', dash.creditosSigi.desembolsados);
-  row('Monto desembolsado (ARS)', dash.creditosSigi.montoDesembolsadoARS);
-  row('Monto en trámite (ARS)', dash.creditosSigi.montoEnTramiteARS);
-  rows.push([]);
-
-  section('Detalle de diagnósticos cruzados con SIGI');
-  header('ID', 'Nombre', 'CUIT', 'Expediente', 'Estado', 'Monto (ARS)');
-  dash.creditosSigi.matches.forEach((m) => row(m.id, m.nombre, m.cuit, m.expediente, m.estado, m.montoARS));
-  rows.push([]);
-
-  section('Embudo del programa (consulta -> diagnóstico -> crédito)');
-  header('Indicador', 'Valor');
-  row('Consultas totales', dash.embudo.totalConsultas);
-  row('Con diagnóstico técnico', dash.embudo.conDiagnostico);
-  row('Con crédito (SIGI)', dash.embudo.conCredito);
-  row('En trámite', dash.embudo.enTramite);
-  row('Desembolsadas', dash.embudo.desembolsadas);
-  row('Desistidas', dash.embudo.desistidas);
-  rows.push([]);
-
-  section('Embudo por provincia');
-  header('Provincia', 'Total consultas', 'Con diagnóstico', 'Con crédito', 'Desistidos');
-  dash.embudo.porProvincia.forEach((p) => row(p.provincia, p.total, p.conDiagnostico, p.conCredito, p.desistidos));
-  rows.push([]);
-
-  section('Detalle de consultas');
-  header('CUIT', 'Solicitante', 'Provincia', 'Monto crédito (ARS)', 'Estado', 'Con diagnóstico', 'Con crédito SIGI');
-  dash.embudo.detalle.forEach((c) => row(c.cuit, c.solicitante, c.provincia, c.montoARS, c.estado, c.conDiagnostico ? 'Sí' : 'No', c.conCredito ? 'Sí' : 'No'));
-
-  const csv = rows.map((r) => r.map(csvEscape).join(',')).join('\n');
-  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'panel-riego-' + new Date().toISOString().slice(0, 10) + '.csv';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+async function exportDashboardExcel() {
+  try {
+    const res = await fetch('/api/dashboard/export', {
+      headers: state.token ? { Authorization: 'Bearer ' + state.token } : {}
+    });
+    if (!res.ok) {
+      let msg = 'Error al generar el Excel';
+      try { msg = (await res.json()).error || msg; } catch (e) { /* sin cuerpo */ }
+      throw new Error(msg);
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'panel-riego-' + new Date().toISOString().slice(0, 10) + '.xlsx';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    showToast(e.message || 'Error al exportar el Excel', true);
+  }
 }
 async function refreshCurrentDiag() {
   state.currentDiag = await api('/diagnosticos/' + state.currentId);

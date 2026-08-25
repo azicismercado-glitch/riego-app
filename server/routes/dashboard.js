@@ -1,4 +1,5 @@
 const express = require('express');
+const XLSX = require('xlsx');
 const db = require('../db');
 const { requireAuth, requireRole } = require('../auth');
 const { STAGES, STAGE_LABELS, completeness, normalizeCuit } = require('../constants');
@@ -14,11 +15,14 @@ function nombreDiag(data, id) {
   return data.finca || data.productor || ('Diagnóstico #' + id);
 }
 
-// Panel agregado del programa: pensado para que el área de créditos / gerencia
-// pueda ver de un vistazo cuántos diagnósticos hay en cada etapa, cuánto dinero
-// se está pidiendo, en qué tipo de inversión, en qué zonas, cuáles están
-// estancados sin avanzar, y cuáles tienen datos incompletos.
-router.get('/', async (req, res) => {
+// Arma todo el panel agregado del programa: pensado para que el área de
+// créditos / gerencia pueda ver de un vistazo cuántos diagnósticos hay en
+// cada etapa, cuánto dinero se está pidiendo, en qué tipo de inversión, en
+// qué zonas, cuáles están estancados sin avanzar, cuáles tienen datos
+// incompletos, y cómo viene el embudo consulta -> diagnóstico -> crédito.
+// La usan tanto GET / (para la vista del panel) como GET /export (para el
+// Excel descargable), así evitamos calcular todo dos veces con lógica duplicada.
+async function buildDashboard() {
   const { rows } = await db.query('SELECT id, data, doc_status, created_at, updated_at FROM diagnosticos');
   const fotosRes = await db.query('SELECT diagnostico_id, COUNT(*)::int AS cnt FROM fotos GROUP BY diagnostico_id');
   const fotosPorDiag = {};
@@ -163,7 +167,7 @@ router.get('/', async (req, res) => {
     return { localidad, cantidad, monto, pct };
   });
 
-  res.json({
+  return {
     total: rows.length,
     aprobados: aprobados.length,
     porEstado: porEstadoConLabel,
@@ -195,7 +199,109 @@ router.get('/', async (req, res) => {
       porProvincia: embudoPorProvincia,
       detalle: embudoDetalle
     }
+  };
+}
+
+router.get('/', async (req, res) => {
+  res.json(await buildDashboard());
+});
+
+// Excel descargable del panel: una hoja prolija por sección, en vez de un
+// único CSV con todo apilado, para que se pueda abrir y leer cómodamente.
+function autoWidth(rowsAoa) {
+  const widths = [];
+  rowsAoa.forEach((r) => {
+    r.forEach((cell, i) => {
+      const len = String(cell == null ? '' : cell).length;
+      widths[i] = Math.max(widths[i] || 8, Math.min(len + 2, 48));
+    });
   });
+  return widths.map((w) => ({ wch: w }));
+}
+function addSheet(wb, name, rowsAoa) {
+  const ws = XLSX.utils.aoa_to_sheet(rowsAoa);
+  ws['!cols'] = autoWidth(rowsAoa);
+  XLSX.utils.book_append_sheet(wb, ws, name.slice(0, 31));
+}
+
+router.get('/export', async (req, res) => {
+  try {
+    const dash = await buildDashboard();
+    const wb = XLSX.utils.book_new();
+
+    addSheet(wb, 'Resumen', [
+      ['Indicador', 'Valor'],
+      ['Diagnósticos totales', dash.total],
+      ['Validados por CFI', dash.aprobados],
+      ['Monto total solicitado (USD)', dash.montoTotalUSD],
+      ['Tiempo promedio de aprobación (días)', dash.tiempoPromedioDias != null ? dash.tiempoPromedioDias : '']
+    ]);
+
+    addSheet(wb, 'Por etapa', [
+      ['Etapa', 'Cantidad'],
+      ...dash.porEstado.map((e) => [e.label, e.cantidad])
+    ]);
+
+    addSheet(wb, 'Monto por tipo', [
+      ['Tipo de inversión', 'Monto (USD)'],
+      ...dash.montoPorTipo.map((t) => [t.tipo, t.monto])
+    ]);
+
+    addSheet(wb, 'Por localidad', [
+      ['Localidad', 'Cantidad', 'Monto (USD)', '% del total'],
+      ...dash.porLocalidad.map((l) => [l.localidad, l.cantidad, l.monto, l.pct])
+    ]);
+
+    addSheet(wb, 'Demorados', [
+      [`Diagnósticos demorados (más de ${dash.staleDays} días sin avanzar)`],
+      ['ID', 'Nombre', 'Etapa', 'Días sin avanzar'],
+      ...dash.estancados.map((e) => [e.id, e.nombre, e.etapa, e.diasSinAvanzar])
+    ]);
+
+    addSheet(wb, 'Datos incompletos', [
+      ['ID', 'Nombre', 'Etapa', '% completo'],
+      ...dash.incompletos.map((e) => [e.id, e.nombre, e.etapa, e.pct])
+    ]);
+
+    addSheet(wb, 'Créditos SIGI', [
+      ['Indicador', 'Valor'],
+      ['Registros importados de SIGI', dash.creditosSigi.totalImportados],
+      ['Diagnósticos sin CUIT cargado', dash.creditosSigi.sinCuit],
+      ['Diagnósticos con CUIT sin match en SIGI', dash.creditosSigi.sinMatch],
+      ['En trámite', dash.creditosSigi.enTramite],
+      ['Desembolsados', dash.creditosSigi.desembolsados],
+      ['Monto desembolsado (ARS)', dash.creditosSigi.montoDesembolsadoARS],
+      ['Monto en trámite (ARS)', dash.creditosSigi.montoEnTramiteARS],
+      [],
+      ['ID', 'Nombre', 'CUIT', 'Expediente', 'Estado', 'Monto (ARS)'],
+      ...dash.creditosSigi.matches.map((m) => [m.id, m.nombre, m.cuit, m.expediente, m.estado, m.montoARS])
+    ]);
+
+    addSheet(wb, 'Embudo', [
+      ['Indicador', 'Valor'],
+      ['Consultas totales', dash.embudo.totalConsultas],
+      ['Con diagnóstico técnico', dash.embudo.conDiagnostico],
+      ['Con crédito (SIGI)', dash.embudo.conCredito],
+      ['En trámite', dash.embudo.enTramite],
+      ['Desembolsadas', dash.embudo.desembolsadas],
+      ['Desistidas', dash.embudo.desistidas],
+      [],
+      ['Provincia', 'Total consultas', 'Con diagnóstico', 'Con crédito', 'Desistidos'],
+      ...dash.embudo.porProvincia.map((p) => [p.provincia, p.total, p.conDiagnostico, p.conCredito, p.desistidos])
+    ]);
+
+    addSheet(wb, 'Detalle consultas', [
+      ['CUIT', 'Solicitante', 'Provincia', 'Monto crédito (ARS)', 'Estado', 'Con diagnóstico', 'Con crédito SIGI'],
+      ...dash.embudo.detalle.map((c) => [c.cuit, c.solicitante, c.provincia, c.montoARS, c.estado, c.conDiagnostico ? 'Sí' : 'No', c.conCredito ? 'Sí' : 'No'])
+    ]);
+
+    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="panel-riego-${new Date().toISOString().slice(0, 10)}.xlsx"`);
+    res.send(buf);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 module.exports = router;
