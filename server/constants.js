@@ -29,7 +29,10 @@ function emptyCultivo() {
   return { cultivo: '', variedad: '', destino: '', anio: '', marco: '', superficie: '', conduccion: '', rendimiento: '' };
 }
 function emptyPresupuesto() {
-  return { inversion: '', tipo: '', monto: '', montoUSD: '' };
+  // codN1/codN2: categoría y subcategoría del nomenclador de inversiones CFI
+  // (ver public/app.js NOMENCLADOR). "tipo" guarda la etiqueta legible de la
+  // categoría elegida, para no tener que tocar la agregación del panel.
+  return { inversion: '', codN1: '', codN2: '', tipo: '', monto: '', montoUSD: '' };
 }
 function emptyData() {
   return {

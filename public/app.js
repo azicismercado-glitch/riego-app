@@ -7,7 +7,10 @@ const STAGE_LABELS = {borrador:'Borrador', firmado_tecnico:'Firmado por técnico
 const STAGE_ROLE = ['tecnico','provincia','cfi'];
 const DEMO_HINT = {tecnico:{username:'aperez', password:'1234'}, provincia:{username:'mgomez', password:'1234'}, cfi:{username:'lcosta', password:'1234'}, lector:{username:'invitado', password:'1234'}};
 const TABS = [['estab','Establec.'],['cultivos','Cultivos'],['suelo','Suelo'],['riego','Riego'],['propuesta','Propuesta'],['fotos','Fotos'],['resumen','Resumen'],['firmas','Firmas'],['historial','Historial']];
-const TIPOS_INVERSION = ['Riego presurizado (goteo)','Riego por aspersión','Paneles solares / energía','Cañería / tubería','Perforación de pozos','Reservorio / represa','Sistema antiheladas','Obra civil / cabezal de riego','Otro'];
+// Nomenclador de inversiones — Línea de Financiamiento Triple Impacto (CFI).
+// Nivel 1: 13 grandes categorías (A-M). Nivel 2: subcategorías dentro de cada
+// una. El nivel 2 se filtra según la categoría elegida en el nivel 1.
+const NOMENCLADOR = [{"n1":"A","label":"Captación y fuente de agua","items":[{"n2":"A01","label":"Perforación de pozo nuevo"},{"n2":"A02","label":"Readecuación / rehabilitación de pozo existente"},{"n2":"A03","label":"Equipo de bombeo de pozo"},{"n2":"A04","label":"Obra de toma superficial"},{"n2":"A05","label":"Conexión a red o sistema colectivo"},{"n2":"A06","label":"Bombeo de refuerzo / rebombeo (booster)"},{"n2":"A07","label":"Captación de fuentes no convencionales"}]},{"n1":"B","label":"Almacenamiento y regulación","items":[{"n2":"B01","label":"Reservorio / represa de tierra"},{"n2":"B02","label":"Impermeabilización de reservorios"},{"n2":"B03","label":"Cisternas y tanques de regulación"},{"n2":"B04","label":"Obras de seguridad y control del reservorio"}]},{"n1":"C","label":"Conducción y distribución intrapredial","items":[{"n2":"C01","label":"Red de conducción entubada a presión"},{"n2":"C02","label":"Entubado o impermeabilización de canales intraprediales"},{"n2":"C03","label":"Obras de arte y regulación en la red"},{"n2":"C04","label":"Vinculación entre sectores y flexibilización de la red"}]},{"n1":"D","label":"Aplicación – Riego presurizado","items":[{"n2":"D01","label":"Riego por goteo superficial"},{"n2":"D02","label":"Riego por goteo subsuperficial (SDI)"},{"n2":"D03","label":"Microaspersión / microjet"},{"n2":"D04","label":"Aspersión fija o semifija"},{"n2":"D05","label":"Cañón regador / enrollador"},{"n2":"D06","label":"Pivote central"},{"n2":"D07","label":"Avance frontal (lateral move)"},{"n2":"D08","label":"Reconversión / repotenciación de equipos existentes"},{"n2":"D09","label":"Riego de precisión variable (VRI)"}]},{"n1":"E","label":"Aplicación – Riego gravitacional tecnificado","items":[{"n2":"E01","label":"Nivelación y sistematización con control láser o GPS"},{"n2":"E02","label":"Riego por mangas multicompuerta"},{"n2":"E03","label":"Riego intermitente (surge flow)"},{"n2":"E04","label":"Recirculación de agua de cola"},{"n2":"E05","label":"Automatización del riego por superficie"}]},{"n1":"F","label":"Energía y eficiencia energética","items":[{"n2":"F01","label":"Bombeo solar fotovoltaico"},{"n2":"F02","label":"Generación fotovoltaica conectada a red (on-grid)"},{"n2":"F03","label":"Almacenamiento de energía"},{"n2":"F04","label":"Sustitución o repotenciación de fuente energética"},{"n2":"F05","label":"Eficiencia eléctrica del equipo de bombeo"},{"n2":"F06","label":"Infraestructura de conexión eléctrica"},{"n2":"F07","label":"Optimización hidráulica para ahorro energético"},{"n2":"F08","label":"Otras fuentes renovables e híbridas"}]},{"n1":"G","label":"Cabezal, filtrado, fertirriego y calidad de agua","items":[{"n2":"G01","label":"Cabezal de filtrado"},{"n2":"G02","label":"Equipamiento de fertirriego"},{"n2":"G03","label":"Tratamiento y acondicionamiento de agua de riego"},{"n2":"G04","label":"Válvulas, hidrantes y accesorios de comando"},{"n2":"G05","label":"Sala de cabezal e instalaciones asociadas"}]},{"n1":"H","label":"Automatización, monitoreo y agricultura digital","items":[{"n2":"H01","label":"Sensores de humedad y estado hídrico"},{"n2":"H02","label":"Estaciones meteorológicas y cálculo de ETc"},{"n2":"H03","label":"Telemetría, control remoto y automatización"},{"n2":"H04","label":"Medición volumétrica y macromedición"},{"n2":"H05","label":"Software y plataformas de gestión de riego"},{"n2":"H06","label":"Sensoramiento remoto y relevamientos aéreos"},{"n2":"H07","label":"Mapeo de suelos y zonas de manejo"}]},{"n1":"I","label":"Suelos, drenaje y salinidad","items":[{"n2":"I01","label":"Sistematización y acondicionamiento del terreno"},{"n2":"I02","label":"Drenaje superficial"},{"n2":"I03","label":"Drenaje subsuperficial"},{"n2":"I04","label":"Recuperación de suelos salinos y sódicos"},{"n2":"I05","label":"Protección del sistema y control de viento"}]},{"n1":"J","label":"Gestión del recurso hídrico y sistemas colectivos","items":[{"n2":"J01","label":"Modernización de redes de sistemas colectivos"},{"n2":"J02","label":"Medición y telemetría a nivel de red o consorcio"},{"n2":"J03","label":"Sistemas de gestión de turnos y distribución"},{"n2":"J04","label":"Monitoreo de acuíferos y aguas superficiales"},{"n2":"J05","label":"Recarga gestionada de acuíferos (MAR)"},{"n2":"J06","label":"Balance hídrico y planificación zonal"},{"n2":"J07","label":"Reúso de agua y economía circular del recurso"},{"n2":"J08","label":"Fortalecimiento institucional de organizaciones de regantes"}]},{"n1":"K","label":"Reconversión productiva asociada a la puesta bajo riego","items":[{"n2":"K01","label":"Implantación o reconversión de cultivos bajo riego"},{"n2":"K02","label":"Estructuras de sostén y protección de cultivo"},{"n2":"K03","label":"Cultivo protegido con riego tecnificado"},{"n2":"K04","label":"Intensificación forrajera bajo riego"},{"n2":"K05","label":"Capital de trabajo asociado a la puesta en riego"}]},{"n1":"L","label":"Estudios, proyectos y servicios técnicos","items":[{"n2":"L01","label":"Estudios hidrogeológicos y prospección"},{"n2":"L02","label":"Análisis de agua y suelo"},{"n2":"L03","label":"Proyecto ejecutivo y dirección de obra"},{"n2":"L04","label":"Evaluación y auditoría de sistemas en operación"},{"n2":"L05","label":"Capacitación y puesta en marcha"},{"n2":"L06","label":"Regularización de derechos de uso del agua y permisos"},{"n2":"L07","label":"Gestión ambiental y certificaciones"}]},{"n1":"M","label":"Infraestructura y equipamiento complementario","items":[{"n2":"M01","label":"Instalación, montaje y puesta en marcha"},{"n2":"M02","label":"Fletes, seguros y gastos de importación"},{"n2":"M03","label":"Caminos internos y accesos"},{"n2":"M04","label":"Depósito, taller y guarda de equipamiento"},{"n2":"M05","label":"Seguridad de las instalaciones"},{"n2":"M06","label":"Maquinaria y equipamiento de apoyo"}]}];
 
 let state = {
   token: localStorage.getItem('riego_token') || null,
@@ -504,9 +507,26 @@ function toggleArr(key, val) {
 function addCultivo() { if (!canEdit()) return; cur().data.cultivos.push({cultivo:'',variedad:'',destino:'',anio:'',marco:'',superficie:'',conduccion:'',rendimiento:''}); flushSave(); render(); }
 function removeCultivo(i) { if (!canEdit()) return; cur().data.cultivos.splice(i,1); flushSave(); render(); }
 function setCultivo(i, key, val) { if (!canEdit()) return; cur().data.cultivos[i][key] = val; scheduleSave(); }
-function addPresupuesto() { if (!canEdit()) return; cur().data.presupuesto.push({inversion:'',tipo:'',monto:'',montoUSD:''}); flushSave(); render(); }
+function addPresupuesto() { if (!canEdit()) return; cur().data.presupuesto.push({inversion:'',codN1:'',codN2:'',tipo:'',monto:'',montoUSD:''}); flushSave(); render(); }
 function removePresupuesto(i) { if (!canEdit()) return; cur().data.presupuesto.splice(i,1); flushSave(); render(); }
 function setPresupuesto(i, key, val) { if (!canEdit()) return; cur().data.presupuesto[i][key] = val; scheduleSave(); }
+// Categoría (nivel 1) del nomenclador CFI: al cambiarla, se resetea la
+// subcategoría (nivel 2, depende de la categoría) y se guarda una etiqueta
+// legible en "tipo" — así el panel sigue agrupando montos sin tocar su lógica.
+function setPresupuestoCat1(i, val) {
+  if (!canEdit()) return;
+  const p = cur().data.presupuesto[i];
+  const cat = NOMENCLADOR.find(c => c.n1 === val);
+  p.codN1 = val;
+  p.codN2 = '';
+  p.tipo = cat ? (cat.n1 + ' — ' + cat.label) : '';
+  flushSave(); render();
+}
+function setPresupuestoCat2(i, val) {
+  if (!canEdit()) return;
+  cur().data.presupuesto[i].codN2 = val;
+  flushSave();
+}
 
 /* ================= geolocalización real (best-effort) ================= */
 function getGeo() {
@@ -694,18 +714,30 @@ function renderTabContent(dg) {
       <div class="field-group"><label>Tiempo estimado total (meses) <span class="req">*</span></label><input type="number" value="${d.tiempoTotalMeses}" ${dis} oninput="setField('tiempoTotalMeses',this.value)"></div>
       <div class="subsection-title">6. Presupuesto estimado <span class="req">*</span></div>
       <div class="hint" style="margin-bottom:8px">El "Monto (USD)" es un número simple, sin texto — se usa para el panel de totales del programa. El campo "Presupuesto estimado" queda libre para aclaraciones (IVA, moneda local, etc.).</div>
+      <div class="hint" style="margin-bottom:8px">Categorías del nomenclador de inversiones CFI — Línea Triple Impacto. Elegí primero la categoría (nivel 1) y después la subcategoría específica (nivel 2).</div>
       <div class="table-scroll"><table class="dyn-table" style="min-width:100%">
-        <thead><tr><th>Inversión</th><th>Tipo de inversión</th><th>Monto (USD)</th><th>Presupuesto estimado (texto)</th><th></th></tr></thead>
-        <tbody>${d.presupuesto.map((p,i)=>`<tr>
+        <thead><tr><th>Inversión</th><th>Categoría (nivel 1)</th><th>Subcategoría (nivel 2)</th><th>Monto (USD)</th><th>Presupuesto estimado (texto)</th><th></th></tr></thead>
+        <tbody>${d.presupuesto.map((p,i)=>{
+          const cat = NOMENCLADOR.find(c=>c.n1===p.codN1);
+          const legacyLabel = (!p.codN1 && p.tipo) ? p.tipo : '';
+          const selStyle = 'width:100%;min-width:170px;padding:6px 7px;border:1px solid var(--border);border-radius:6px;font-size:11px;font-family:inherit';
+          return `<tr>
           <td><input type="text" value="${p.inversion}" ${dis} onchange="setPresupuesto(${i},'inversion',this.value)"></td>
-          <td><select ${dis} onchange="setPresupuesto(${i},'tipo',this.value)" style="width:100%;min-width:150px;padding:6px 7px;border:1px solid var(--border);border-radius:6px;font-size:11.5px;font-family:inherit">
+          <td>${legacyLabel && !canEdit() ? `<span style="font-size:11px">${legacyLabel}</span>` : `
+          <select ${dis} onchange="setPresupuestoCat1(${i},this.value)" style="${selStyle}">
             <option value="">Sin categorizar</option>
-            ${TIPOS_INVERSION.map(t=>`<option value="${t}" ${p.tipo===t?'selected':''}>${t}</option>`).join('')}
-          </select></td>
+            ${NOMENCLADOR.map(c=>`<option value="${c.n1}" ${p.codN1===c.n1?'selected':''}>${c.n1} — ${c.label}</option>`).join('')}
+          </select>`}</td>
+          <td>${p.codN1 ? `
+          <select ${dis} onchange="setPresupuestoCat2(${i},this.value)" style="${selStyle}">
+            <option value="">Elegir subcategoría…</option>
+            ${(cat?cat.items:[]).map(it=>`<option value="${it.n2}" ${p.codN2===it.n2?'selected':''}>${it.n2} — ${it.label}</option>`).join('')}
+          </select>` : `<span class="hint" style="font-size:10px">Elegí primero la categoría</span>`}</td>
           <td><input type="number" value="${p.montoUSD||''}" ${dis} placeholder="0" onchange="setPresupuesto(${i},'montoUSD',this.value)"></td>
           <td><input type="text" value="${p.monto||''}" ${dis} placeholder="Ej: USD 5.000 + IVA" onchange="setPresupuesto(${i},'monto',this.value)"></td>
           <td class="row-remove">${canEdit()&&d.presupuesto.length>1?`<button onclick="removePresupuesto(${i})" aria-label="Quitar"><i class="ti ti-x"></i></button>`:''}</td>
-        </tr>`).join('')}</tbody>
+        </tr>`;
+        }).join('')}</tbody>
       </table></div>
       <button class="add-row-btn" ${canEdit()?'':'disabled'} onclick="addPresupuesto()"><i class="ti ti-plus"></i> Agregar ítem</button>
       <div class="subsection-title">7. Estrategia de seguimiento y evaluación</div>
