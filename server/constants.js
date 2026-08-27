@@ -26,7 +26,7 @@ function stageIndex(s) {
 }
 
 function emptyCultivo() {
-  return { cultivo: '', variedad: '', destino: '', anio: '', marco: '', superficie: '', conduccion: '', rendimiento: '' };
+  return { cultivo: '', variedad: '', destino: '', anio: '', marco: '', superficie: '', rendimiento: '', rendimientoUnidad: '' };
 }
 function emptyPresupuesto() {
   // codN1/codN2: categoría y subcategoría del nomenclador de inversiones CFI
@@ -37,10 +37,12 @@ function emptyPresupuesto() {
 function emptyData() {
   return {
     productor: '', finca: '', renspa: '', localidad: '', cuit: '', expedienteSigi: '',
-    superficieTotal: '', superficieCultivada: '', superficieInculta: '', superficieDerecho: '',
+    superficieTotal: '', superficieCultivada: '', superficieInculta: '', superficieDerecho: '', fuenteRiegoDerecho: '',
     ccpp: '', pozos: '', obsGenerales: '',
     cultivos: [emptyCultivo()], obsCultivos: '',
-    analisisSuelo: null, textura: '', problemasSuelo: '', obsSuelo: '',
+    tipoProduccion: null, ganaderiaAnimalTipo: '', ganaderiaActividad: null, ganaderiaCabezas: '', ganaderiaCategorias: [],
+    analisisSuelo: null, analisisSueloArchivo: null, textura: '', problemasSuelo: '', obsSuelo: '',
+    requiereAnalisisPrevio: null, requiereAnalisisPrevioQue: [],
     sistemasPresentes: [], otroSistemaTexto: '',
     rsFuente: null, rsSuperficie: '', rsCaudal: '', rsFrecTurnado: '', rsDuracionTurnado: '', rsCantTurnos: '', rsInfraestructura: '', rsProblemas: '', rsObservaciones: '',
     rpFuente: null, rpSuperficie: '', rpCaudal: '', rpFrecuencia: '', rpDuracion: '', rpProblemas: '', rpObservaciones: '',
@@ -65,7 +67,7 @@ function completeness(data, fotosCount) {
   const secs = {
     estab: { label: 'Establecimiento', req: [has(d.productor), has(d.finca), has(d.localidad), has(d.renspa), has(d.superficieTotal), has(d.superficieCultivada)] },
     cultivos: { label: 'Cultivos', req: [(d.cultivos || []).some((c) => has(c.cultivo) && has(c.superficie))] },
-    suelo: { label: 'Suelo', req: [has(d.analisisSuelo) || has(d.textura)] },
+    suelo: { label: 'Suelo', req: [has(d.analisisSuelo), has(d.textura)] },
     riego: { label: 'Sistema de riego', req: [(d.sistemasPresentes || []).length > 0, has(d.rsSuperficie) || has(d.rpSuperficie)] },
     propuesta: { label: 'Propuesta de mejora', req: [has(d.descripcionMejora), has(d.materialesMejora), has(d.indicadoresMejora), has(d.tiempoTotalMeses), (d.presupuesto || []).some((p) => has(p.inversion) && has(p.monto))] },
     fotos: { label: 'Fotos', req: [(fotosCount || 0) > 0] }
@@ -89,6 +91,7 @@ function missingForSign(data) {
   if (!has(d.finca)) faltan.push('Nombre de la finca');
   if (!has(d.localidad)) faltan.push('Localidad/Departamento');
   if (!has(d.superficieTotal)) faltan.push('Superficie total');
+  if (!has(d.textura)) faltan.push('Textura del suelo');
   if (!(d.cultivos || []).some((c) => has(c.cultivo))) faltan.push('Al menos un cultivo');
   if ((d.sistemasPresentes || []).length === 0) faltan.push('Sistema de riego presente');
   if (!has(d.descripcionMejora)) faltan.push('Descripción de la mejora propuesta');

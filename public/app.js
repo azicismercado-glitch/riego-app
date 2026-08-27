@@ -7,6 +7,13 @@ const STAGE_LABELS = {borrador:'Borrador', firmado_tecnico:'Firmado por técnico
 const STAGE_ROLE = ['tecnico','provincia','cfi'];
 const DEMO_HINT = {tecnico:{username:'aperez', password:'1234'}, provincia:{username:'mgomez', password:'1234'}, cfi:{username:'lcosta', password:'1234'}, lector:{username:'invitado', password:'1234'}};
 const TABS = [['estab','Establec.'],['cultivos','Cultivos'],['suelo','Suelo'],['riego','Riego'],['propuesta','Propuesta'],['fotos','Fotos'],['resumen','Resumen'],['firmas','Firmas'],['historial','Historial']];
+const FUENTES_RIEGO_DERECHO = ['Superficial','Subterránea','Mixta'];
+const DESTINOS_CULTIVO = ['Industria','Consumo','Oleaginosa','Cereal','Otro'];
+const RENDIMIENTO_UNIDADES = ['Kg/ha','Materia seca/ha','Otros'];
+const ACTIVIDAD_GANADERA = ['Cría','Invernada','Ciclo completo'];
+const CATEGORIAS_GANADERAS = ['Terneros/as','Vaquillonas','Novillos','Novillitos','Vacas','Toros','Cabritos','Corderos','Otros'];
+const TEXTURAS_SUELO = ['Arenoso','Areno francoso','Franco arenoso','Franco','Franco limoso','Limoso','Franco arcillo arenoso','Franco arcilloso','Franco arcillo limoso','Arcillo arenoso','Arcillo limoso','Arcilloso'];
+const ANALISIS_PREVIO_ITEMS = ['Salinidad','Textura','Profundidad','Materia orgánica','pH','Otro'];
 // Nomenclador de inversiones — Línea de Financiamiento Triple Impacto (CFI).
 // Nivel 1: 13 grandes categorías (A-M). Nivel 2: subcategorías dentro de cada
 // una. El nivel 2 se filtra según la categoría elegida en el nivel 1.
@@ -504,7 +511,7 @@ function toggleArr(key, val) {
   if (i>=0) arr.splice(i,1); else arr.push(val);
   flushSave(); render();
 }
-function addCultivo() { if (!canEdit()) return; cur().data.cultivos.push({cultivo:'',variedad:'',destino:'',anio:'',marco:'',superficie:'',conduccion:'',rendimiento:''}); flushSave(); render(); }
+function addCultivo() { if (!canEdit()) return; cur().data.cultivos.push({cultivo:'',variedad:'',destino:'',anio:'',marco:'',superficie:'',rendimiento:'',rendimientoUnidad:''}); flushSave(); render(); }
 function removeCultivo(i) { if (!canEdit()) return; cur().data.cultivos.splice(i,1); flushSave(); render(); }
 function setCultivo(i, key, val) { if (!canEdit()) return; cur().data.cultivos[i][key] = val; scheduleSave(); }
 function addPresupuesto() { if (!canEdit()) return; cur().data.presupuesto.push({inversion:'',codN1:'',codN2:'',tipo:'',monto:'',montoUSD:''}); flushSave(); render(); }
@@ -572,6 +579,30 @@ async function removePhoto(slotIndex, ev) {
   render();
 }
 
+/* ================= documento de análisis de suelo (subida real) ================= */
+async function onSueloDocSelected(input) {
+  const file = input.files && input.files[0];
+  if (!file || !canEdit()) return;
+  const fd = new FormData();
+  fd.append('archivo', file);
+  try {
+    await api(`/diagnosticos/${state.currentId}/documento-suelo`, { method: 'POST', body: fd });
+    await refreshCurrentDiag();
+    showToast('Análisis de suelo cargado');
+  } catch (e) {
+    showToast(e.message || 'Error al subir el archivo', true);
+  }
+  render();
+}
+async function removeSueloDoc() {
+  if (!canEdit()) return;
+  try {
+    await api(`/diagnosticos/${state.currentId}/documento-suelo`, { method: 'DELETE' });
+    await refreshCurrentDiag();
+  } catch (e) { showToast(e.message || 'Error al borrar el archivo', true); }
+  render();
+}
+
 function renderTabContent(dg) {
   const t = state.activeTab; const d = dg.data;
   const dis = canEdit() ? '' : 'disabled';
@@ -600,45 +631,109 @@ function renderTabContent(dg) {
         <div class="field-group"><label>Superficie inculta (ha)</label><input type="number" value="${d.superficieInculta}" ${dis} oninput="setField('superficieInculta',this.value)"></div>
         <div class="field-group"><label>Sup. con derecho de riego (ha)</label><input type="number" value="${d.superficieDerecho}" ${dis} oninput="setField('superficieDerecho',this.value)"></div>
       </div>
-      <div class="field-group"><label>CCPP</label><input type="text" value="${d.ccpp}" ${dis} placeholder="Ej: Fracción 1) PP 9900 CC 247: 34,6 ha" oninput="setField('ccpp',this.value)"></div>
+      <div class="field-group"><label>Fuente de agua de la superficie con derecho de riego</label>
+        <select ${dis} onchange="setField('fuenteRiegoDerecho',this.value)" style="width:100%;max-width:280px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:12.5px;font-family:inherit">
+          <option value="">Sin especificar</option>
+          ${FUENTES_RIEGO_DERECHO.map(f=>`<option value="${f}" ${d.fuenteRiegoDerecho===f?'selected':''}>${f}</option>`).join('')}
+        </select></div>
+      <div class="field-group"><label>Identificación del padrón</label><input type="text" value="${d.ccpp}" ${dis} placeholder="Ej: Fracción 1) PP 9900 CC 247: 34,6 ha" oninput="setField('ccpp',this.value)"></div>
       <div class="field-group"><label>Identificación de pozos</label><input type="text" value="${d.pozos}" ${dis} placeholder="Ej: 2 pozos: 14.392 y 14.390" oninput="setField('pozos',this.value)"></div>
       <div class="field-group"><label>Observaciones</label><textarea ${dis} oninput="setField('obsGenerales',this.value)">${d.obsGenerales}</textarea></div>
     </div>${navRow()}`;
 
-  if (t === 'cultivos') return `
+  if (t === 'cultivos') { const selStyleCv = 'width:100%;min-width:130px;padding:6px 7px;border:1px solid var(--border);border-radius:6px;font-size:11.5px;font-family:inherit'; return `
     ${lockedBanner(dg)}
     <div class="section-title" style="margin-bottom:10px"><i class="ti ti-plant-2"></i> Datos del cultivo</div>
     <div class="table-scroll"><table class="dyn-table">
-      <thead><tr><th>Cultivo</th><th>Variedad</th><th>Destino</th><th>Año plant.</th><th>Marco (m)</th><th>Sup. (ha)</th><th>Conducción</th><th>Rend. (kg/ha)</th><th></th></tr></thead>
+      <thead><tr><th>Cultivo</th><th>Variedad</th><th>Destino</th><th>Año Plant./Siembra</th><th>Marco de plantación/Densidad de siembra</th><th>Sup. (ha)</th><th>Rendimiento</th><th></th></tr></thead>
       <tbody>${d.cultivos.map((cv,i)=>`<tr>
         <td><input type="text" value="${cv.cultivo}" ${dis} onchange="setCultivo(${i},'cultivo',this.value)"></td>
         <td><input type="text" value="${cv.variedad}" ${dis} onchange="setCultivo(${i},'variedad',this.value)"></td>
-        <td><input type="text" value="${cv.destino}" ${dis} onchange="setCultivo(${i},'destino',this.value)"></td>
+        <td><select ${dis} onchange="setCultivo(${i},'destino',this.value)" style="${selStyleCv}">
+          <option value="">Elegir…</option>
+          ${DESTINOS_CULTIVO.map(o=>`<option value="${o}" ${cv.destino===o?'selected':''}>${o}</option>`).join('')}
+        </select></td>
         <td><input type="text" value="${cv.anio}" ${dis} onchange="setCultivo(${i},'anio',this.value)"></td>
         <td><input type="text" value="${cv.marco}" ${dis} onchange="setCultivo(${i},'marco',this.value)"></td>
         <td><input type="text" value="${cv.superficie}" ${dis} onchange="setCultivo(${i},'superficie',this.value)"></td>
-        <td><input type="text" value="${cv.conduccion}" ${dis} onchange="setCultivo(${i},'conduccion',this.value)"></td>
-        <td><input type="text" value="${cv.rendimiento}" ${dis} onchange="setCultivo(${i},'rendimiento',this.value)"></td>
+        <td style="display:flex;gap:4px;flex-wrap:wrap">
+          <input type="number" value="${cv.rendimiento}" ${dis} placeholder="Valor" style="width:70px" onchange="setCultivo(${i},'rendimiento',this.value)">
+          <select ${dis} onchange="setCultivo(${i},'rendimientoUnidad',this.value)" style="${selStyleCv};min-width:100px">
+            <option value="">Unidad…</option>
+            ${RENDIMIENTO_UNIDADES.map(u=>`<option value="${u}" ${cv.rendimientoUnidad===u?'selected':''}>${u}</option>`).join('')}
+          </select>
+        </td>
         <td class="row-remove">${canEdit()&&d.cultivos.length>1?`<button onclick="removeCultivo(${i})" aria-label="Quitar"><i class="ti ti-x"></i></button>`:''}</td>
       </tr>`).join('')}</tbody>
     </table></div>
     <button class="add-row-btn" ${canEdit()?'':'disabled'} onclick="addCultivo()"><i class="ti ti-plus"></i> Agregar cultivo</button>
     <div class="field-group"><label>Observaciones</label><textarea ${dis} oninput="setField('obsCultivos',this.value)">${d.obsCultivos}</textarea></div>
-    ${navRow()}`;
 
-  if (t === 'suelo') return `
+    <div class="section-title" style="margin:18px 0 10px"><i class="ti ti-tractor"></i> Producción</div>
+    <div class="field-group"><label>Tipo de producción</label>
+      <div class="chip-group">${chip(d.tipoProduccion,'Agricultura','Agricultura','tipoProduccion')}${chip(d.tipoProduccion,'Ganadería','Ganadería','tipoProduccion')}</div></div>
+    ${d.tipoProduccion==='Ganadería'?`
+    <div class="row2">
+      <div class="field-group"><label>Animales (tipo)</label><input type="text" value="${d.ganaderiaAnimalTipo||''}" ${dis} placeholder="Ej: Bovinos, caprinos" oninput="setField('ganaderiaAnimalTipo',this.value)"></div>
+      <div class="field-group"><label>Cantidad de cabezas</label><input type="number" value="${d.ganaderiaCabezas||''}" ${dis} oninput="setField('ganaderiaCabezas',this.value)"></div>
+    </div>
+    <div class="field-group"><label>Actividad</label>
+      <div class="chip-group">${ACTIVIDAD_GANADERA.map(a=>chip(d.ganaderiaActividad,a,a,'ganaderiaActividad')).join('')}</div></div>
+    <div class="field-group"><label>Categorías</label>
+      <div class="chip-group">${CATEGORIAS_GANADERAS.map(c=>`<div class="chip ${(d.ganaderiaCategorias||[]).includes(c)?'selected':''} ${canEdit()?'':'disabled'}" ${canEdit()?`onclick="toggleArr('ganaderiaCategorias','${c}')"`:''}>${c}</div>`).join('')}</div></div>
+    `:''}
+    ${navRow()}`; }
+
+  if (t === 'suelo') { const archivo = d.analisisSueloArchivo; return `
     ${lockedBanner(dg)}
     <div class="section-card">
       <div class="section-title"><i class="ti ti-mountain"></i> Datos del suelo</div>
       <div class="field-group"><label>Análisis del suelo</label>
         <div class="chip-group">${chip(d.analisisSuelo,'Posee','Posee','analisisSuelo')}${chip(d.analisisSuelo,'No posee','No posee','analisisSuelo')}</div></div>
-      <div class="field-group"><label>Textura (si no posee análisis, estimada)</label>
-        <input type="text" value="${d.textura}" ${dis} placeholder="Ej: Franco limoso" oninput="setField('textura',this.value)"></div>
+
+      ${d.analisisSuelo==='Posee'?`
+      <div class="field-group"><label>Documento del análisis</label>
+        ${archivo?`
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <a href="${archivo.url}" target="_blank" rel="noopener"><i class="ti ti-file-text"></i> ${archivo.originalName||'Ver archivo'}</a>
+          ${canEdit()?`<button class="mail-btn" onclick="removeSueloDoc()" type="button">Quitar</button>`:''}
+        </div>` : `
+        <input type="file" accept="image/*,.pdf" ${dis} onchange="onSueloDocSelected(this)">
+        <div class="hint">Subí el PDF o la foto del análisis de laboratorio.</div>`}
+      </div>` : ''}
+
+      <div class="field-group"><label>Textura ${d.analisisSuelo!=='Posee'?'(estimada)':''} <span class="req">*</span></label>
+        <select ${dis} onchange="setField('textura',this.value)" style="width:100%;max-width:320px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:12.5px;font-family:inherit">
+          <option value="">Elegir textura…</option>
+          ${TEXTURAS_SUELO.map(t2=>`<option value="${t2}" ${d.textura===t2?'selected':''}>${t2}</option>`).join('')}
+        </select>
+      </div>
+
+      ${d.analisisSuelo==='No posee'?`
+      <div class="rejection-banner" style="background:var(--clay-light);border-color:var(--clay);color:var(--ink)">
+        <strong><i class="ti ti-bulb"></i> Recomendación</strong>
+        Sin un análisis de laboratorio conviene: 1) tomar muestras representativas del lote antes de definir el sistema de riego; 2) medir como mínimo textura, salinidad (CE) y materia orgánica; 3) confirmar la textura estimada a campo con un análisis, ya que condiciona el diseño del riego; 4) recurrir a un laboratorio acreditado de la zona.
+      </div>` : ''}
+
       <div class="field-group"><label>Principales problemas de suelo observados</label>
         <textarea ${dis} oninput="setField('problemasSuelo',this.value)">${d.problemasSuelo}</textarea></div>
       <div class="field-group"><label>Otras observaciones del suelo</label>
         <textarea ${dis} oninput="setField('obsSuelo',this.value)">${d.obsSuelo}</textarea></div>
-    </div>${navRow()}`;
+
+      <div class="subsection-title">¿Requiere análisis previo?</div>
+      <div class="field-group"><label>&nbsp;</label>
+        <div class="chip-group">${chip(d.requiereAnalisisPrevio,'Sí','Sí','requiereAnalisisPrevio')}${chip(d.requiereAnalisisPrevio,'No','No','requiereAnalisisPrevio')}</div></div>
+      ${d.requiereAnalisisPrevio==='Sí'?`
+      <div class="field-group"><label>¿De qué?</label>
+        <div class="chip-group">${ANALISIS_PREVIO_ITEMS.map(it=>`<div class="chip ${(d.requiereAnalisisPrevioQue||[]).includes(it)?'selected':''} ${canEdit()?'':'disabled'}" ${canEdit()?`onclick="toggleArr('requiereAnalisisPrevioQue','${it}')"`:''}>${it}</div>`).join('')}</div></div>
+      ${(d.requiereAnalisisPrevioQue||[]).length?`
+      <div class="rejection-banner" style="background:var(--clay-light);border-color:var(--clay);color:var(--ink)">
+        <strong><i class="ti ti-alert-triangle"></i> Recomendación</strong>
+        Se sugiere completar un análisis de ${(d.requiereAnalisisPrevioQue||[]).join(', ').toLowerCase()} antes de avanzar con el diagnóstico, para no comprometer el diseño de la propuesta de mejora.
+      </div>`:''}
+      `: d.requiereAnalisisPrevio==='No' ? `
+      <div class="hint">No se identificó la necesidad de un análisis previo adicional — se puede avanzar con el diagnóstico.</div>` : ''}
+    </div>${navRow()}`; }
 
   if (t === 'riego') {
     const showSuperficial = d.sistemasPresentes.some(s => ['Surcos','Melgas'].includes(s));

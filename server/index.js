@@ -11,6 +11,7 @@ const dashboardRoutes = require('./routes/dashboard');
 const creditosSigiRoutes = require('./routes/creditosSigi');
 const adminRoutes = require('./routes/admin');
 const consultasRoutes = require('./routes/consultas');
+const documentoSueloRoutes = require('./routes/documentoSuelo');
 
 const app = express();
 app.use(cors());
@@ -26,6 +27,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/creditos-sigi', creditosSigiRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/consultas', consultasRoutes);
+app.use('/api/diagnosticos', documentoSueloRoutes);
 
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
