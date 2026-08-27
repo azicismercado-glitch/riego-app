@@ -505,8 +505,23 @@ function chip(cv, value, label, key) {
 }
 function setChip(key, val) { if (!canEdit()) return; cur().data[key] = val; flushSave(); render(); }
 function setField(key, val) { if (!canEdit()) return; cur().data[key] = val; scheduleSave(); }
+// Al elegir Gravitacional/Presurizado, los sistemas presentes que ya no
+// corresponden a esa familia se sacan de la selección (ej: si tenía "Surcos"
+// marcado y pasa a Presurizado, "Surcos" deja de estar disponible).
+function setTipoRiegoGeneral(val) {
+  if (!canEdit()) return;
+  const d = cur().data;
+  d.tipoRiegoGeneral = val;
+  const permitidos = val === 'Gravitacional' ? ['Surcos', 'Melgas', 'Otro'] : ['Goteo', 'Aspersión', 'Otro'];
+  d.sistemasPresentes = (d.sistemasPresentes || []).filter(s => permitidos.includes(s));
+  flushSave(); render();
+}
 function toggleArr(key, val) {
   if (!canEdit()) return;
+  // Diagnósticos creados antes de agregar un campo nuevo no tienen esa clave
+  // en su "data" guardada — sin este resguardo, tocar el chip no hacía nada
+  // (el .indexOf de un array undefined tira error y corta el click en silencio).
+  if (!Array.isArray(cur().data[key])) cur().data[key] = [];
   const arr = cur().data[key]; const i = arr.indexOf(val);
   if (i>=0) arr.splice(i,1); else arr.push(val);
   flushSave(); render();
@@ -742,10 +757,19 @@ function renderTabContent(dg) {
     ${lockedBanner(dg)}
     <div class="section-card">
       <div class="section-title"><i class="ti ti-droplet-filled"></i> Sistema de riego</div>
+      <div class="subsection-title">Tipo de riego</div>
+      <div class="field-group"><label>¿El riego es gravitacional o presurizado?</label>
+        <div class="chip-group">
+          <div class="chip ${d.tipoRiegoGeneral==='Gravitacional'?'selected':''} ${canEdit()?'':'disabled'}" ${canEdit()?`onclick="setTipoRiegoGeneral('Gravitacional')"`:''}>Gravitacional</div>
+          <div class="chip ${d.tipoRiegoGeneral==='Presurizado'?'selected':''} ${canEdit()?'':'disabled'}" ${canEdit()?`onclick="setTipoRiegoGeneral('Presurizado')"`:''}>Presurizado</div>
+        </div></div>
+
+      ${d.tipoRiegoGeneral || (d.sistemasPresentes||[]).length ? `
       <div class="subsection-title">Sistemas presentes en la finca</div>
-      <div class="chip-group">${['Surcos','Melgas','Goteo','Aspersión','Otro'].map(v=>`<div class="chip ${d.sistemasPresentes.includes(v)?'selected':''} ${canEdit()?'':'disabled'}" ${canEdit()?`onclick="toggleArr('sistemasPresentes','${v}')"`:''}>${v}</div>`).join('')}</div>
+      <div class="chip-group">${(d.tipoRiegoGeneral==='Gravitacional'?['Surcos','Melgas','Otro']:d.tipoRiegoGeneral==='Presurizado'?['Goteo','Aspersión','Otro']:['Surcos','Melgas','Goteo','Aspersión','Otro']).map(v=>`<div class="chip ${d.sistemasPresentes.includes(v)?'selected':''} ${canEdit()?'':'disabled'}" ${canEdit()?`onclick="toggleArr('sistemasPresentes','${v}')"`:''}>${v}</div>`).join('')}</div>
       ${d.sistemasPresentes.includes('Otro')?`<div class="field-group"><label>Detalle "Otro"</label><input type="text" value="${d.otroSistemaTexto}" ${dis} oninput="setField('otroSistemaTexto',this.value)"></div>`:''}
-      ${(!showSuperficial && !showPresurizado)?`<div class="hint" style="margin:4px 0 2px">Marcá al menos un sistema arriba (Surcos, Melgas, Goteo o Aspersión) para ver sus campos de detalle.</div>`:''}
+      ${(!showSuperficial && !showPresurizado)?`<div class="hint" style="margin:4px 0 2px">Marcá al menos un sistema arriba para ver sus campos de detalle.</div>`:''}
+      ` : `<div class="hint" style="margin:4px 0 2px">Elegí primero si el riego es gravitacional o presurizado.</div>`}
 
       ${showSuperficial?`
       <div class="subsection-title">Riego superficial (surcos/melgas)</div>

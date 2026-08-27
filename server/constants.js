@@ -43,7 +43,7 @@ function emptyData() {
     tipoProduccion: null, ganaderiaAnimalTipo: '', ganaderiaActividad: null, ganaderiaCabezas: '', ganaderiaCategorias: [],
     analisisSuelo: null, analisisSueloArchivo: null, textura: '', problemasSuelo: '', obsSuelo: '',
     requiereAnalisisPrevio: null, requiereAnalisisPrevioQue: [],
-    sistemasPresentes: [], otroSistemaTexto: '',
+    tipoRiegoGeneral: null, sistemasPresentes: [], otroSistemaTexto: '',
     rsFuente: null, rsSuperficie: '', rsCaudal: '', rsFrecTurnado: '', rsDuracionTurnado: '', rsCantTurnos: '', rsInfraestructura: '', rsProblemas: '', rsObservaciones: '',
     rpFuente: null, rpSuperficie: '', rpCaudal: '', rpFrecuencia: '', rpDuracion: '', rpProblemas: '', rpObservaciones: '',
     represa: null, volumenRepresa: '', medicionCaudales: null, metodoMedicion: '', asistenciaTecnica: null, personalRiego: [], obsRiego: '',
