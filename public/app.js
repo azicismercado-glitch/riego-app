@@ -219,7 +219,7 @@ async function openDashboard() {
   render();
 }
 function fmtUSD(n) {
-  return 'USD ' + Number(n || 0).toLocaleString('es-AR', { maximumFractionDigits: 0 });
+  return '$ ' + Number(n || 0).toLocaleString('es-AR', { maximumFractionDigits: 0 });
 }
 function renderDashboardView() {
   const dash = state.dashboardData;
@@ -233,7 +233,7 @@ function renderDashboardView() {
       <div class="bar-row">
         <div class="bar-top"><span>${t.tipo}</span><span>${fmtUSD(t.monto)}</span></div>
         <div class="bar-track"><div class="bar-fill" style="width:${Math.round((t.monto/maxTipo)*100)}%"></div></div>
-      </div>`).join('') : `<div class="hint">Todavía no hay montos en USD cargados en ningún presupuesto.</div>`;
+      </div>`).join('') : `<div class="hint">Todavía no hay montos cargados en ningún presupuesto.</div>`;
     const barsEstado = dash.porEstado.map((e) => `
       <div class="bar-row">
         <div class="bar-top"><span>${e.label}</span><span>${e.cantidad}</span></div>
@@ -832,10 +832,10 @@ function renderTabContent(dg) {
       <div class="field-group"><label>5. Cronograma y plazos</label><textarea ${dis} placeholder="Etapas: adquisición, instalación, calibración, capacitación" oninput="setField('cronogramaEtapas',this.value)">${d.cronogramaEtapas}</textarea></div>
       <div class="field-group"><label>Tiempo estimado total (meses) <span class="req">*</span></label><input type="number" value="${d.tiempoTotalMeses}" ${dis} oninput="setField('tiempoTotalMeses',this.value)"></div>
       <div class="subsection-title">6. Presupuesto estimado <span class="req">*</span></div>
-      <div class="hint" style="margin-bottom:8px">El "Monto (USD)" es un número simple, sin texto — se usa para el panel de totales del programa. El campo "Presupuesto estimado" queda libre para aclaraciones (IVA, moneda local, etc.).</div>
+      <div class="hint" style="margin-bottom:8px">El "Monto ($)" es un número simple, sin texto — se usa para el panel de totales del programa. El campo "Presupuesto estimado" queda libre para aclaraciones (IVA, moneda local, etc.).</div>
       <div class="hint" style="margin-bottom:8px">Categorías del nomenclador de inversiones CFI — Línea Triple Impacto. Elegí primero la categoría (nivel 1) y después la subcategoría específica (nivel 2).</div>
       <div class="table-scroll"><table class="dyn-table" style="min-width:100%">
-        <thead><tr><th>Inversión</th><th>Categoría (nivel 1)</th><th>Subcategoría (nivel 2)</th><th>Monto (USD)</th><th>Presupuesto estimado (texto)</th><th></th></tr></thead>
+        <thead><tr><th>Inversión</th><th>Categoría (nivel 1)</th><th>Subcategoría (nivel 2)</th><th>Monto ($)</th><th>Presupuesto estimado (texto)</th><th></th></tr></thead>
         <tbody>${d.presupuesto.map((p,i)=>{
           const cat = NOMENCLADOR.find(c=>c.n1===p.codN1);
           const legacyLabel = (!p.codN1 && p.tipo) ? p.tipo : '';
@@ -853,7 +853,7 @@ function renderTabContent(dg) {
             ${(cat?cat.items:[]).map(it=>`<option value="${it.n2}" ${p.codN2===it.n2?'selected':''}>${it.n2} — ${it.label}</option>`).join('')}
           </select>` : `<span class="hint" style="font-size:10px">Elegí primero la categoría</span>`}</td>
           <td><input type="number" value="${p.montoUSD||''}" ${dis} placeholder="0" onchange="setPresupuesto(${i},'montoUSD',this.value)"></td>
-          <td><input type="text" value="${p.monto||''}" ${dis} placeholder="Ej: USD 5.000 + IVA" onchange="setPresupuesto(${i},'monto',this.value)"></td>
+          <td><input type="text" value="${p.monto||''}" ${dis} placeholder="Ej: $ 5.000 + IVA" onchange="setPresupuesto(${i},'monto',this.value)"></td>
           <td class="row-remove">${canEdit()&&d.presupuesto.length>1?`<button onclick="removePresupuesto(${i})" aria-label="Quitar"><i class="ti ti-x"></i></button>`:''}</td>
         </tr>`;
         }).join('')}</tbody>
