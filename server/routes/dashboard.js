@@ -262,7 +262,7 @@ router.get('/export', async (req, res) => {
       ['Indicador', 'Valor'],
       ['Diagnósticos totales', dash.total],
       ['Validados por CFI', dash.aprobados],
-      ['Monto total solicitado (USD)', dash.montoTotalUSD],
+      ['Monto total solicitado ($)', dash.montoTotalUSD],
       ['Tiempo promedio de aprobación (días)', dash.tiempoPromedioDias != null ? dash.tiempoPromedioDias : '']
     ]);
 
@@ -272,12 +272,12 @@ router.get('/export', async (req, res) => {
     ]);
 
     addSheet(wb, 'Monto por tipo', [
-      ['Tipo de inversión', 'Monto (USD)'],
+      ['Tipo de inversión', 'Monto ($)'],
       ...dash.montoPorTipo.map((t) => [t.tipo, t.monto])
     ]);
 
     addSheet(wb, 'Por localidad', [
-      ['Localidad', 'Cantidad', 'Monto (USD)', '% del total'],
+      ['Localidad', 'Cantidad', 'Monto ($)', '% del total'],
       ...dash.porLocalidad.map((l) => [l.localidad, l.cantidad, l.monto, l.pct])
     ]);
 
