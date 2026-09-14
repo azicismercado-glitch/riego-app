@@ -8,13 +8,19 @@ CREATE TABLE IF NOT EXISTS users (
   role TEXT NOT NULL CHECK (role IN ('tecnico','provincia','cfi','lector')),
   nombre TEXT NOT NULL,
   rol_label TEXT NOT NULL,
-  email TEXT NOT NULL
+  email TEXT NOT NULL,
+  provincia TEXT
 );
 
 -- Si la tabla users ya existía de antes (CREATE TABLE IF NOT EXISTS no la
 -- toca), forzamos que la restricción de roles incluya 'lector'.
 ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
 ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('tecnico','provincia','cfi','lector'));
+
+-- Cada técnico (y cada responsable provincial) atiende una sola provincia —
+-- por eso la provincia de un diagnóstico se deduce de quién lo creó, no se
+-- carga a mano en cada formulario. Columna nueva para bases ya existentes.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS provincia TEXT;
 
 CREATE TABLE IF NOT EXISTS diagnosticos (
   id SERIAL PRIMARY KEY,

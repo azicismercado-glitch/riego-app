@@ -3,15 +3,19 @@ const bcrypt = require('bcryptjs');
 const db = require('./db');
 const { emptyData } = require('./constants');
 
+// Cada técnico y cada responsable provincial atiende UNA sola provincia —
+// por eso la provincia de un diagnóstico se deduce de quién lo creó (ver
+// dashboard.js), no se carga a mano en cada formulario. Roles nacionales
+// (cfi, lector) quedan sin provincia.
 const DEMO_USERS = [
-  { username: 'aperez', password: '1234', role: 'tecnico', nombre: 'Ana Pérez', rol_label: 'Técnico de campo', email: 'aperez@dgi.mendoza.gov.ar' },
-  { username: 'mgomez', password: '1234', role: 'provincia', nombre: 'Mario Gómez', rol_label: 'Responsable provincial', email: 'mgomez@mendoza.gov.ar' },
-  { username: 'lcosta', password: '1234', role: 'cfi', nombre: 'Lucas Costa', rol_label: 'Técnico CFI', email: 'lcosta@cfi.org.ar' },
+  { username: 'aperez', password: '1234', role: 'tecnico', nombre: 'Ana Pérez', rol_label: 'Técnico de campo', email: 'aperez@dgi.mendoza.gov.ar', provincia: 'Mendoza' },
+  { username: 'mgomez', password: '1234', role: 'provincia', nombre: 'Mario Gómez', rol_label: 'Responsable provincial', email: 'mgomez@mendoza.gov.ar', provincia: 'Mendoza' },
+  { username: 'lcosta', password: '1234', role: 'cfi', nombre: 'Lucas Costa', rol_label: 'Técnico CFI', email: 'lcosta@cfi.org.ar', provincia: null },
   // Usuarios de solo lectura: pueden ver el listado, cada diagnóstico y el panel,
   // pero no pueden crear, editar ni firmar nada (queda bloqueado automáticamente
   // porque esos permisos están atados a los roles tecnico/provincia/cfi).
-  { username: 'invitado', password: '1234', role: 'lector', nombre: 'Invitado', rol_label: 'Solo lectura', email: 'invitado@cfi.org.ar' },
-  { username: 'creditos', password: '1234', role: 'lector', nombre: 'Área de Créditos', rol_label: 'Solo lectura', email: 'creditos@cfi.org.ar' }
+  { username: 'invitado', password: '1234', role: 'lector', nombre: 'Invitado', rol_label: 'Solo lectura', email: 'invitado@cfi.org.ar', provincia: null },
+  { username: 'creditos', password: '1234', role: 'lector', nombre: 'Área de Créditos', rol_label: 'Solo lectura', email: 'creditos@cfi.org.ar', provincia: null }
 ];
 
 async function seedUsers() {
@@ -19,11 +23,11 @@ async function seedUsers() {
   for (const u of DEMO_USERS) {
     const hash = await bcrypt.hash(u.password, 10);
     const { rows } = await db.query(
-      `INSERT INTO users (username, password_hash, role, nombre, rol_label, email)
-       VALUES ($1,$2,$3,$4,$5,$6)
-       ON CONFLICT (username) DO UPDATE SET password_hash = EXCLUDED.password_hash
+      `INSERT INTO users (username, password_hash, role, nombre, rol_label, email, provincia)
+       VALUES ($1,$2,$3,$4,$5,$6,$7)
+       ON CONFLICT (username) DO UPDATE SET password_hash = EXCLUDED.password_hash, provincia = EXCLUDED.provincia
        RETURNING id, role`,
-      [u.username, hash, u.role, u.nombre, u.rol_label, u.email]
+      [u.username, hash, u.role, u.nombre, u.rol_label, u.email, u.provincia]
     );
     ids[u.role] = rows[0].id;
   }

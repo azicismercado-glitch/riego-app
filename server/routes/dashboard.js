@@ -34,10 +34,17 @@ function parseSuperficie(v) {
 // La usan tanto GET / (para la vista del panel) como GET /export (para el
 // Excel descargable), así evitamos calcular todo dos veces con lógica duplicada.
 async function buildDashboard() {
-  const { rows } = await db.query('SELECT id, data, doc_status, created_at, updated_at FROM diagnosticos');
+  const { rows } = await db.query('SELECT id, data, doc_status, created_by, created_at, updated_at FROM diagnosticos');
   const fotosRes = await db.query('SELECT diagnostico_id, COUNT(*)::int AS cnt FROM fotos GROUP BY diagnostico_id');
   const fotosPorDiag = {};
   fotosRes.rows.forEach((r) => { fotosPorDiag[r.diagnostico_id] = r.cnt; });
+
+  // La provincia de un diagnóstico no se carga a mano: se deduce de quién lo
+  // creó, porque cada técnico (y cada responsable provincial) atiende una
+  // sola provincia (ver server/seed.js).
+  const usersRes = await db.query('SELECT id, provincia FROM users');
+  const provinciaPorUserId = {};
+  usersRes.rows.forEach((u) => { provinciaPorUserId[u.id] = u.provincia; });
 
   // SIGI y consultas provinciales son datos opcionales que se importan por
   // Excel: si esas tablas todavía no existen (base recién migrada) o la
@@ -77,18 +84,26 @@ async function buildDashboard() {
 
   let superficieRegadaHa = 0, superficieSuperficialHa = 0, superficiePresurizadaHa = 0;
   let diagnosticosSuperficieSinDato = 0;
+  const superficiePorProvincia = {};
+  const superficiePorLocalidad = {};
 
   for (const d of rows) {
     porEstado[d.doc_status] = (porEstado[d.doc_status] || 0) + 1;
 
+    const loc = (d.data.localidad || '').trim() || 'Sin especificar';
+    porLocalidad[loc] = (porLocalidad[loc] || 0) + 1;
+
+    const provinciaDiag = (provinciaPorUserId[d.created_by] || '').trim() || 'Sin especificar';
     const rsHa = parseSuperficie(d.data.rsSuperficie);
     const rpHa = parseSuperficie(d.data.rpSuperficie);
+    const supDiagHa = (rsHa || 0) + (rpHa || 0);
     if (rsHa != null) { superficieSuperficialHa += rsHa; superficieRegadaHa += rsHa; }
     if (rpHa != null) { superficiePresurizadaHa += rpHa; superficieRegadaHa += rpHa; }
     if ((d.data.sistemasPresentes || []).length > 0 && rsHa == null && rpHa == null) diagnosticosSuperficieSinDato++;
-
-    const loc = (d.data.localidad || '').trim() || 'Sin especificar';
-    porLocalidad[loc] = (porLocalidad[loc] || 0) + 1;
+    if (rsHa != null || rpHa != null) {
+      superficiePorProvincia[provinciaDiag] = (superficiePorProvincia[provinciaDiag] || 0) + supDiagHa;
+      superficiePorLocalidad[loc] = (superficiePorLocalidad[loc] || 0) + supDiagHa;
+    }
 
     for (const p of d.data.presupuesto || []) {
       const monto = Number(p.montoUSD) || 0;
@@ -208,8 +223,15 @@ async function buildDashboard() {
   const porLocalidadArr = Object.entries(porLocalidad).sort((a, b) => b[1] - a[1]).map(([localidad, cantidad]) => {
     const monto = montoPorLocalidad[localidad] || 0;
     const pct = montoTotalUSD > 0 ? +((monto / montoTotalUSD) * 100).toFixed(1) : 0;
-    return { localidad, cantidad, monto, pct };
+    const superficieHa = +((superficiePorLocalidad[localidad] || 0).toFixed(1));
+    return { localidad, cantidad, monto, pct, superficieHa };
   });
+  const superficiePorProvinciaArr = Object.entries(superficiePorProvincia)
+    .sort((a, b) => b[1] - a[1])
+    .map(([provincia, superficieHa]) => ({ provincia, superficieHa: +superficieHa.toFixed(1) }));
+  const superficiePorLocalidadArr = Object.entries(superficiePorLocalidad)
+    .sort((a, b) => b[1] - a[1])
+    .map(([localidad, superficieHa]) => ({ localidad, superficieHa: +superficieHa.toFixed(1) }));
 
   return {
     total: rows.length,
@@ -223,6 +245,8 @@ async function buildDashboard() {
     superficieRegadaHa: +superficieRegadaHa.toFixed(1),
     superficieSuperficialHa: +superficieSuperficialHa.toFixed(1),
     superficiePresurizadaHa: +superficiePresurizadaHa.toFixed(1),
+    superficiePorProvincia: superficiePorProvinciaArr,
+    superficiePorLocalidad: superficiePorLocalidadArr,
     diagnosticosSuperficieSinDato,
     staleDays: STALE_DAYS,
     estancados,
@@ -305,8 +329,13 @@ router.get('/export', async (req, res) => {
     ]);
 
     addSheet(wb, 'Por localidad', [
-      ['Localidad', 'Cantidad', 'Monto ($)', '% del total'],
-      ...dash.porLocalidad.map((l) => [l.localidad, l.cantidad, l.monto, l.pct])
+      ['Localidad', 'Cantidad', 'Monto ($)', '% del total', 'Superficie regada (ha)'],
+      ...dash.porLocalidad.map((l) => [l.localidad, l.cantidad, l.monto, l.pct, l.superficieHa])
+    ]);
+
+    addSheet(wb, 'Superficie por provincia', [
+      ['Provincia', 'Superficie regada (ha)'],
+      ...dash.superficiePorProvincia.map((p) => [p.provincia, p.superficieHa])
     ]);
 
     addSheet(wb, 'Demorados', [

@@ -58,4 +58,27 @@ router.get('/seed-lectores', async (req, res) => {
   }
 });
 
+// Asigna la provincia de los usuarios existentes (técnico y responsable
+// provincial) sin tocar diagnósticos ni ningún otro dato — a diferencia de
+// "npm run seed", esta ruta no borra nada. Pensada para el día que se migra
+// el campo "provincia" a la tabla users y hay que completarlo en usuarios
+// que ya existían.
+router.get('/set-provincias', async (req, res) => {
+  if (!checkKey(req, res)) return;
+  try {
+    const ASIGNACIONES = [
+      { username: 'aperez', provincia: 'Mendoza' },
+      { username: 'mgomez', provincia: 'Mendoza' }
+    ];
+    const actualizados = [];
+    for (const a of ASIGNACIONES) {
+      const { rowCount } = await db.query('UPDATE users SET provincia = $1 WHERE username = $2', [a.provincia, a.username]);
+      if (rowCount) actualizados.push(`${a.username} → ${a.provincia}`);
+    }
+    res.json({ ok: true, actualizados, mensaje: 'Provincias asignadas. Ya podés cerrar esta pestaña.' });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 module.exports = router;

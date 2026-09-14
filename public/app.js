@@ -261,8 +261,13 @@ function renderDashboardView() {
       </div>`).join('');
     const listLoc = dash.porLocalidad.length ? `<ul class="check-list">${dash.porLocalidad.map((l) => `
       <li><i class="ti ti-map-pin" style="color:var(--clay)"></i>
-        <span>${l.localidad}<br><span style="color:var(--lock);font-size:10.5px">${l.cantidad} diagnóstico(s) · ${fmtUSD(l.monto)}</span></span>
+        <span>${l.localidad}<br><span style="color:var(--lock);font-size:10.5px">${l.cantidad} diagnóstico(s) · ${fmtUSD(l.monto)} · ${l.superficieHa} ha regadas</span></span>
         <span class="badge-pill" style="margin-left:auto;background:var(--clay-light);color:var(--clay)">${l.pct}%</span></li>`).join('')}</ul>` : `<div class="hint">Sin datos de localidad todavía.</div>`;
+
+    const listSupProvincia = dash.superficiePorProvincia.length ? `<ul class="check-list">${dash.superficiePorProvincia.map((p) => `
+      <li><i class="ti ti-map-2" style="color:var(--clay)"></i>
+        <span>${p.provincia}</span>
+        <span class="badge-pill" style="margin-left:auto;background:var(--clay-light);color:var(--clay)">${p.superficieHa} ha</span></li>`).join('')}</ul>` : `<div class="hint">Sin datos todavía.</div>`;
 
     const listEstancados = dash.estancados.length ? `<ul class="check-list">${dash.estancados.map((e) => `
       <li class="clickable" onclick="openDiag(${e.id})"><i class="ti ti-clock-exclamation" style="color:var(--danger)"></i>
@@ -316,6 +321,9 @@ function renderDashboardView() {
           <div class="stat-card"><div class="stat-value">${dash.superficieSuperficialHa} ha</div><div class="stat-label">Riego superficial (surcos/melgas)</div></div>
           <div class="stat-card"><div class="stat-value">${dash.superficiePresurizadaHa} ha</div><div class="stat-label">Riego presurizado (goteo/aspersión)</div></div>
         </div>
+        <div class="section-title" style="margin-top:10px;font-size:12px"><i class="ti ti-map-2"></i> Por provincia</div>
+        ${listSupProvincia}
+        <div class="hint" style="margin-top:6px">La provincia se toma del técnico que cargó cada diagnóstico (cada uno atiende una sola provincia), no es un dato que se carga a mano. El detalle por localidad está más abajo, en "Distribución por localidad".</div>
         ${dash.diagnosticosSuperficieSinDato?`<div class="hint" style="margin-top:6px">${dash.diagnosticosSuperficieSinDato} diagnóstico(s) declaran sistema de riego pero sin un número de hectáreas cargado (ej. "toda la superficie de X") — no están sumados acá. Completá "Superficie regada (ha)" en la pestaña Riego de cada uno para que entren en el total.</div>`:''}
       </div>
       <div class="section-card">
