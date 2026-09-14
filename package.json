@@ -8,7 +8,9 @@
     "dev": "nodemon server/index.js",
     "migrate": "node server/migrate.js",
     "seed": "node server/seed.js",
-    "seed:lectores": "node server/seed-lectores.js"
+    "seed:lectores": "node server/seed-lectores.js",
+    "backup": "node server/backup.js",
+    "restore": "node server/restore.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
