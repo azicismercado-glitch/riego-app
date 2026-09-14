@@ -1,4 +1,6 @@
 const express = require('express');
+const fs = require('fs');
+const path = require('path');
 const db = require('../db');
 const { requireAuth, requireRole } = require('../auth');
 const { STAGES, STAGE_LABELS, STAGE_ROLE, stageIndex, completeness, missingForSign } = require('../constants');
@@ -7,6 +9,8 @@ const { sendEmailNotif } = require('../mailer');
 
 const router = express.Router();
 router.use(requireAuth);
+
+const UPLOAD_ROOT = path.join(__dirname, '..', 'uploads');
 
 function simpleHash(str) {
   let h = 0;
@@ -93,6 +97,55 @@ router.post('/', requireRole('tecnico'), async (req, res) => {
     [diag.id, req.user.username, 'Diagnóstico creado', '', 'ok']
   );
   res.status(201).json(await fullPayload(diag));
+});
+
+// ---------- importar diagnóstico cargado sin conexión (public/offline/diagnostico-offline.html) ----------
+// El formulario offline genera un .json con { data, fotos: [{slotIndex, dataUrl, mimetype, lat, lng}] }.
+// Las fotos vienen en base64 (dataUrl) porque se sacaron sin conexión al servidor;
+// acá se decodifican y se guardan igual que si se hubiesen subido una por una.
+router.post('/import', requireRole('tecnico'), async (req, res, next) => {
+  try {
+    const payload = req.body || {};
+    const data = payload.data;
+    if (!data || typeof data !== 'object') return res.status(400).json({ error: 'Archivo inválido: falta "data".' });
+
+    const { rows } = await db.query(
+      `INSERT INTO diagnosticos (data, doc_status, created_by) VALUES ($1,'borrador',$2) RETURNING *`,
+      [data, req.user.id]
+    );
+    const diag = rows[0];
+
+    await db.query(
+      `INSERT INTO historial (diagnostico_id, usuario, evento, detalle, tipo) VALUES ($1,$2,$3,$4,$5)`,
+      [diag.id, req.user.username, 'Diagnóstico creado', 'Importado desde carga offline', 'ok']
+    );
+
+    const fotos = Array.isArray(payload.fotos) ? payload.fotos : [];
+    for (const f of fotos) {
+      if (!f || !f.dataUrl || f.slotIndex == null) continue;
+      const m = /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/.exec(f.dataUrl);
+      if (!m) continue;
+      const mimetype = m[1];
+      const buffer = Buffer.from(m[2], 'base64');
+      const ext = mimetype.split('/')[1] === 'jpeg' ? 'jpg' : mimetype.split('/')[1];
+      const dir = path.join(UPLOAD_ROOT, String(diag.id));
+      fs.mkdirSync(dir, { recursive: true });
+      const filename = `slot-${f.slotIndex}-${Date.now()}.${ext}`;
+      fs.writeFileSync(path.join(dir, filename), buffer);
+      await db.query(
+        `INSERT INTO fotos (diagnostico_id, slot_index, filename, mimetype, lat, lng)
+         VALUES ($1,$2,$3,$4,$5,$6)
+         ON CONFLICT (diagnostico_id, slot_index) DO UPDATE SET
+           filename = EXCLUDED.filename, mimetype = EXCLUDED.mimetype, lat = EXCLUDED.lat, lng = EXCLUDED.lng, created_at = now()`,
+        [diag.id, f.slotIndex, filename, mimetype, f.lat != null ? Number(f.lat) : null, f.lng != null ? Number(f.lng) : null]
+      );
+    }
+
+    const full = await loadDiag(diag.id);
+    res.status(201).json(await fullPayload(full));
+  } catch (e) {
+    next(e);
+  }
 });
 
 // ---------- detalle ----------

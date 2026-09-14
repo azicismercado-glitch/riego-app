@@ -185,11 +185,15 @@ function renderHome() {
   const canCreate = state.session.role === 'tecnico';
   return `
     <div class="home-head"><h2>Diagnósticos</h2>
-    <div style="display:flex;gap:6px">
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
     <button class="btn-new" style="background:var(--clay)" onclick="openDashboard()"><i class="ti ti-chart-bar"></i> Panel</button>
-    ${canCreate?`<button class="btn-new" onclick="createDiag()"><i class="ti ti-plus"></i> Nuevo</button>`:''}
+    ${canCreate?`
+    <input type="file" id="importDiagInput" accept=".json" style="display:none" onchange="importDiagnosticoOffline(this)">
+    <button class="btn-new" style="background:var(--green-mid)" onclick="document.getElementById('importDiagInput').click()"><i class="ti ti-upload"></i> Importar diagnóstico</button>
+    <button class="btn-new" onclick="createDiag()"><i class="ti ti-plus"></i> Nuevo</button>`:''}
     </div>
     </div>
+    ${canCreate?`<div class="hint" style="padding:0 18px 10px">¿Cargaste un diagnóstico sin conexión? Importá el archivo .json que generó el <a href="/offline/diagnostico-offline.html" target="_blank" rel="noopener">formulario offline</a>.</div>`:''}
     <div class="diag-list">${cards}</div>`;
 }
 async function createDiag() {
@@ -198,6 +202,22 @@ async function createDiag() {
     state.currentId = diag.id; state.currentDiag = diag; state.view = 'detail'; state.activeTab = 'estab';
     render();
   } catch (e) { handleAuthError(e); }
+}
+async function importDiagnosticoOffline(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    let payload;
+    try { payload = JSON.parse(text); } catch (e) { throw new Error('El archivo no es un JSON válido.'); }
+    const diag = await api('/diagnosticos/import', { method: 'POST', body: JSON.stringify(payload) });
+    showToast('Diagnóstico importado: ' + (diag.data.finca || diag.data.productor || ('#' + diag.id)));
+    state.currentId = diag.id; state.currentDiag = diag; state.view = 'detail'; state.activeTab = 'estab';
+    render();
+  } catch (e) {
+    showToast(e.message || 'Error al importar el diagnóstico', true);
+  }
+  input.value = '';
 }
 async function openDiag(id) {
   try {

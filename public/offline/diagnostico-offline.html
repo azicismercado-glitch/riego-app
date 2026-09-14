@@ -1,0 +1,607 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diagnóstico de Riego — Carga sin conexión</title>
+<style>
+:root{
+  --paper:#F7F5EE; --card:#FFFFFF; --ink:#1F2A1C;
+  --green:#2F5238; --green-dark:#16261B; --green-mid:#3E6B4A; --green-light:#E3ECDF;
+  --clay:#9C6B42; --clay-light:#F2E7D9;
+  --border:#DCD6C6; --hair:#E9E4D6;
+  --success:#3F7D4F; --success-bg:#E4F0E3;
+  --warn:#B0762B; --warn-bg:#F7ECD8;
+  --danger:#A34A2E; --danger-bg:#F6E4DC;
+  --lock:#8B8578; --lock-bg:#EFEDE6;
+  --serif:Georgia,'Times New Roman',serif;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:var(--paper); color:var(--ink); font-size:14px;}
+button{font-family:inherit; cursor:pointer;}
+input,select,textarea{font-family:inherit; font-size:13px;}
+.app{max-width:520px; margin:0 auto; min-height:100vh; background:var(--card); box-shadow:0 0 28px rgba(31,42,28,0.08); display:flex; flex-direction:column; padding-bottom:24px;}
+.topbar{background:var(--green-dark); color:#fff; padding:14px 18px 12px; position:sticky; top:0; z-index:5;}
+.topbar .brand{display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin-bottom:8px;}
+.topbar h1{font-family:var(--serif); font-size:16px; font-weight:700; margin:0;}
+.topbar .prog{font-size:9px; color:#A9BCA4; text-transform:uppercase; letter-spacing:.7px; font-weight:700; display:block; margin-top:1px;}
+.topbar .btn-nuevo{background:none; border:1px solid rgba(255,255,255,0.3); color:#fff; font-size:10px; font-weight:700; padding:6px 10px; border-radius:7px; white-space:nowrap;}
+.offline-note{font-size:10.5px; color:#C9D6C4; line-height:1.4;}
+.savebadge{font-size:9.5px; color:#A9BCA4; margin-top:4px;}
+.tabs{display:flex; overflow-x:auto; gap:2px; background:var(--green); padding:0 8px;}
+.tabs button{flex:0 0 auto; background:none; border:none; color:#D9E4D5; font-size:11px; font-weight:700; padding:10px 11px; border-bottom:3px solid transparent; white-space:nowrap;}
+.tabs button.active{color:#fff; border-bottom-color:var(--clay-light);}
+.content{padding:14px 16px 30px;}
+.section-card{background:var(--card); border:1px solid var(--border); border-radius:13px; padding:14px 14px 16px; margin-bottom:14px;}
+.section-title{font-family:var(--serif); font-weight:700; color:var(--green-dark); font-size:14px; margin:0 0 10px;}
+.subsection-title{font-weight:700; color:var(--clay); font-size:11.5px; text-transform:uppercase; letter-spacing:.4px; margin:16px 0 8px;}
+.field-group{margin-bottom:11px;}
+.field-group label{display:block; font-size:11px; font-weight:600; color:var(--ink); margin-bottom:4px;}
+.field-group .req{color:var(--danger);}
+.field-group input[type=text],.field-group input[type=number],.field-group select,.field-group textarea{
+  width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:8px; background:#fff; color:var(--ink);
+}
+.field-group textarea{min-height:64px; resize:vertical;}
+.hint{font-size:10.5px; color:var(--lock); margin-top:3px; line-height:1.4;}
+.row2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+@media (max-width:420px){ .row2{grid-template-columns:1fr;} }
+.chip-group{display:flex; flex-wrap:wrap; gap:6px;}
+.chip{border:1px solid var(--border); border-radius:20px; padding:6px 12px; font-size:11px; font-weight:600; color:var(--ink); background:#fff; user-select:none;}
+.chip.selected{background:var(--green); border-color:var(--green); color:#fff;}
+.table-scroll{overflow-x:auto; margin-bottom:8px;}
+.dyn-table{border-collapse:collapse; width:100%; min-width:640px;}
+.dyn-table th{font-size:10px; text-transform:uppercase; letter-spacing:.3px; color:var(--lock); text-align:left; padding:0 6px 6px; border-bottom:1px solid var(--border);}
+.dyn-table td{padding:4px 6px; vertical-align:top; border-bottom:1px solid var(--hair);}
+.dyn-table input,.dyn-table select{padding:6px 7px; font-size:11px; border:1px solid var(--border); border-radius:6px; width:100%;}
+.row-remove button{background:var(--danger-bg); color:var(--danger); border:none; border-radius:6px; width:26px; height:26px; font-weight:700;}
+.add-row-btn{background:var(--clay-light); color:var(--clay); border:none; border-radius:8px; padding:8px 12px; font-size:11px; font-weight:700; margin-bottom:6px;}
+.photo-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:8px;}
+.photo-slot{position:relative; aspect-ratio:1; border:2px dashed var(--border); border-radius:10px; display:flex; align-items:center; justify-content:center; overflow:hidden; background:var(--paper); font-size:22px; color:var(--lock);}
+.photo-slot input{position:absolute; inset:0; opacity:0; cursor:pointer;}
+.photo-slot img{width:100%; height:100%; object-fit:cover;}
+.photo-slot .rm{position:absolute; top:4px; right:4px; background:rgba(20,20,20,0.65); color:#fff; border:none; border-radius:6px; width:22px; height:22px; font-size:12px; line-height:1;}
+.photo-slot .st{position:absolute; bottom:3px; left:3px; right:3px; font-size:8.5px; color:#fff; background:rgba(20,20,20,0.55); border-radius:4px; padding:2px 4px; text-align:center;}
+.nav-row{display:flex; justify-content:space-between; margin-top:6px;}
+.nav-btn{background:var(--clay-light); color:var(--clay); border:none; border-radius:9px; padding:9px 14px; font-size:11.5px; font-weight:700;}
+.nav-btn.primary{background:var(--green); color:#fff;}
+.stat-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px;}
+.stat-card{border:1px solid var(--border); border-radius:12px; padding:12px; background:var(--paper);}
+.stat-value{font-family:var(--serif); font-size:22px; font-weight:700; color:var(--green-dark);}
+.stat-label{font-size:10px; color:var(--lock); margin-top:2px;}
+.check-list{list-style:none; margin:0; padding:0;}
+.check-list li{display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid var(--hair); font-size:11.5px;}
+.check-list li:last-child{border-bottom:none;}
+.dot{width:8px; height:8px; border-radius:50%; flex:0 0 auto;}
+.dot.ok{background:var(--success);}
+.dot.part{background:var(--warn);}
+.dot.no{background:var(--lock);}
+.export-btn{width:100%; background:var(--green); color:#fff; border:none; border-radius:11px; padding:15px; font-size:13.5px; font-weight:700; margin-top:6px;}
+.export-btn:disabled{opacity:.5;}
+.toast{position:fixed; left:50%; bottom:18px; transform:translateX(-50%); background:var(--green-dark); color:#fff; padding:10px 16px; border-radius:10px; font-size:12px; box-shadow:0 6px 18px rgba(0,0,0,.25); opacity:0; pointer-events:none; transition:opacity .2s; z-index:20; max-width:90%; text-align:center;}
+.toast.show{opacity:1;}
+.footer-note{text-align:center; font-size:9.5px; color:var(--lock); padding:14px 20px 4px;}
+.intro-banner{background:var(--clay-light); border:1px solid var(--clay); color:var(--ink); border-radius:10px; padding:10px 12px; font-size:11px; line-height:1.5; margin:12px 16px 0;}
+.badge-count{background:rgba(255,255,255,0.16); color:#fff; font-size:9px; font-weight:700; border-radius:10px; padding:1px 6px; margin-left:5px;}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================================
+   Diagnóstico Técnico de Riego — formulario OFFLINE (sin conexión)
+   No hace ningún pedido de red. Todo corre local en el navegador.
+   Al terminar, genera un archivo .json para importar en la app cuando haya
+   conexión (botón "Importar diagnóstico" en el listado de la app).
+   ========================================================================= */
+
+const FUENTES_RIEGO_DERECHO = ['Superficial','Subterránea','Mixta'];
+const DESTINOS_CULTIVO = ['Industria','Consumo','Oleaginosa','Cereal','Otro'];
+const RENDIMIENTO_UNIDADES = ['Kg/ha','Materia seca/ha','Otros'];
+const ACTIVIDAD_GANADERA = ['Cría','Invernada','Ciclo completo'];
+const CATEGORIAS_GANADERAS = ['Terneros/as','Vaquillonas','Novillos','Novillitos','Vacas','Toros','Cabritos','Corderos','Otros'];
+const TEXTURAS_SUELO = ['Arenoso','Areno francoso','Franco arenoso','Franco','Franco limoso','Limoso','Franco arcillo arenoso','Franco arcilloso','Franco arcillo limoso','Arcillo arenoso','Arcillo limoso','Arcilloso'];
+const ANALISIS_PREVIO_ITEMS = ['Salinidad','Textura','Profundidad','Materia orgánica','pH','Otro'];
+const NOMENCLADOR = [{"n1":"A","label":"Captación y fuente de agua","items":[{"n2":"A01","label":"Perforación de pozo nuevo"},{"n2":"A02","label":"Readecuación / rehabilitación de pozo existente"},{"n2":"A03","label":"Equipo de bombeo de pozo"},{"n2":"A04","label":"Obra de toma superficial"},{"n2":"A05","label":"Conexión a red o sistema colectivo"},{"n2":"A06","label":"Bombeo de refuerzo / rebombeo (booster)"},{"n2":"A07","label":"Captación de fuentes no convencionales"}]},{"n1":"B","label":"Almacenamiento y regulación","items":[{"n2":"B01","label":"Reservorio / represa de tierra"},{"n2":"B02","label":"Impermeabilización de reservorios"},{"n2":"B03","label":"Cisternas y tanques de regulación"},{"n2":"B04","label":"Obras de seguridad y control del reservorio"}]},{"n1":"C","label":"Conducción y distribución intrapredial","items":[{"n2":"C01","label":"Red de conducción entubada a presión"},{"n2":"C02","label":"Entubado o impermeabilización de canales intraprediales"},{"n2":"C03","label":"Obras de arte y regulación en la red"},{"n2":"C04","label":"Vinculación entre sectores y flexibilización de la red"}]},{"n1":"D","label":"Aplicación – Riego presurizado","items":[{"n2":"D01","label":"Riego por goteo superficial"},{"n2":"D02","label":"Riego por goteo subsuperficial (SDI)"},{"n2":"D03","label":"Microaspersión / microjet"},{"n2":"D04","label":"Aspersión fija o semifija"},{"n2":"D05","label":"Cañón regador / enrollador"},{"n2":"D06","label":"Pivote central"},{"n2":"D07","label":"Avance frontal (lateral move)"},{"n2":"D08","label":"Reconversión / repotenciación de equipos existentes"},{"n2":"D09","label":"Riego de precisión variable (VRI)"}]},{"n1":"E","label":"Aplicación – Riego gravitacional tecnificado","items":[{"n2":"E01","label":"Nivelación y sistematización con control láser o GPS"},{"n2":"E02","label":"Riego por mangas multicompuerta"},{"n2":"E03","label":"Riego intermitente (surge flow)"},{"n2":"E04","label":"Recirculación de agua de cola"},{"n2":"E05","label":"Automatización del riego por superficie"}]},{"n1":"F","label":"Energía y eficiencia energética","items":[{"n2":"F01","label":"Bombeo solar fotovoltaico"},{"n2":"F02","label":"Generación fotovoltaica conectada a red (on-grid)"},{"n2":"F03","label":"Almacenamiento de energía"},{"n2":"F04","label":"Sustitución o repotenciación de fuente energética"},{"n2":"F05","label":"Eficiencia eléctrica del equipo de bombeo"},{"n2":"F06","label":"Infraestructura de conexión eléctrica"},{"n2":"F07","label":"Optimización hidráulica para ahorro energético"},{"n2":"F08","label":"Otras fuentes renovables e híbridas"}]},{"n1":"G","label":"Cabezal, filtrado, fertirriego y calidad de agua","items":[{"n2":"G01","label":"Cabezal de filtrado"},{"n2":"G02","label":"Equipamiento de fertirriego"},{"n2":"G03","label":"Tratamiento y acondicionamiento de agua de riego"},{"n2":"G04","label":"Válvulas, hidrantes y accesorios de comando"},{"n2":"G05","label":"Sala de cabezal e instalaciones asociadas"}]},{"n1":"H","label":"Automatización, monitoreo y agricultura digital","items":[{"n2":"H01","label":"Sensores de humedad y estado hídrico"},{"n2":"H02","label":"Estaciones meteorológicas y cálculo de ETc"},{"n2":"H03","label":"Telemetría, control remoto y automatización"},{"n2":"H04","label":"Medición volumétrica y macromedición"},{"n2":"H05","label":"Software y plataformas de gestión de riego"},{"n2":"H06","label":"Sensoramiento remoto y relevamientos aéreos"},{"n2":"H07","label":"Mapeo de suelos y zonas de manejo"}]},{"n1":"I","label":"Suelos, drenaje y salinidad","items":[{"n2":"I01","label":"Sistematización y acondicionamiento del terreno"},{"n2":"I02","label":"Drenaje superficial"},{"n2":"I03","label":"Drenaje subsuperficial"},{"n2":"I04","label":"Recuperación de suelos salinos y sódicos"},{"n2":"I05","label":"Protección del sistema y control de viento"}]},{"n1":"J","label":"Gestión del recurso hídrico y sistemas colectivos","items":[{"n2":"J01","label":"Modernización de redes de sistemas colectivos"},{"n2":"J02","label":"Medición y telemetría a nivel de red o consorcio"},{"n2":"J03","label":"Sistemas de gestión de turnos y distribución"},{"n2":"J04","label":"Monitoreo de acuíferos y aguas superficiales"},{"n2":"J05","label":"Recarga gestionada de acuíferos (MAR)"},{"n2":"J06","label":"Balance hídrico y planificación zonal"},{"n2":"J07","label":"Reúso de agua y economía circular del recurso"},{"n2":"J08","label":"Fortalecimiento institucional de organizaciones de regantes"}]},{"n1":"K","label":"Reconversión productiva asociada a la puesta bajo riego","items":[{"n2":"K01","label":"Implantación o reconversión de cultivos bajo riego"},{"n2":"K02","label":"Estructuras de sostén y protección de cultivo"},{"n2":"K03","label":"Cultivo protegido con riego tecnificado"},{"n2":"K04","label":"Intensificación forrajera bajo riego"},{"n2":"K05","label":"Capital de trabajo asociado a la puesta en riego"}]},{"n1":"L","label":"Estudios, proyectos y servicios técnicos","items":[{"n2":"L01","label":"Estudios hidrogeológicos y prospección"},{"n2":"L02","label":"Análisis de agua y suelo"},{"n2":"L03","label":"Proyecto ejecutivo y dirección de obra"},{"n2":"L04","label":"Evaluación y auditoría de sistemas en operación"},{"n2":"L05","label":"Capacitación y puesta en marcha"},{"n2":"L06","label":"Regularización de derechos de uso del agua y permisos"},{"n2":"L07","label":"Gestión ambiental y certificaciones"}]},{"n1":"M","label":"Infraestructura y equipamiento complementario","items":[{"n2":"M01","label":"Instalación, montaje y puesta en marcha"},{"n2":"M02","label":"Fletes, seguros y gastos de importación"},{"n2":"M03","label":"Caminos internos y accesos"},{"n2":"M04","label":"Depósito, taller y guarda de equipamiento"},{"n2":"M05","label":"Seguridad de las instalaciones"},{"n2":"M06","label":"Maquinaria y equipamiento de apoyo"}]}];
+
+const TABS = [['estab','Establec.'],['cultivos','Cultivos'],['suelo','Suelo'],['riego','Riego'],['propuesta','Propuesta'],['fotos','Fotos'],['exportar','Exportar']];
+
+function emptyCultivo(){ return {cultivo:'',variedad:'',destino:'',anio:'',marco:'',superficie:'',rendimiento:'',rendimientoUnidad:''}; }
+function emptyPresupuesto(){ return {inversion:'',codN1:'',codN2:'',tipo:'',monto:'',montoUSD:''}; }
+function emptyData(){
+  return {
+    productor:'',finca:'',renspa:'',localidad:'',cuit:'',expedienteSigi:'',
+    superficieTotal:'',superficieCultivada:'',superficieInculta:'',superficieDerecho:'',fuenteRiegoDerecho:'',
+    ccpp:'',pozos:'',obsGenerales:'',
+    cultivos:[emptyCultivo()],obsCultivos:'',
+    tipoProduccion:null,ganaderiaAnimalTipo:'',ganaderiaActividad:null,ganaderiaCabezas:'',ganaderiaCategorias:[],
+    analisisSuelo:null,analisisSueloArchivo:null,textura:'',problemasSuelo:'',obsSuelo:'',
+    requiereAnalisisPrevio:null,requiereAnalisisPrevioQue:[],
+    tipoRiegoGeneral:null,sistemasPresentes:[],otroSistemaTexto:'',
+    rsFuente:null,rsSuperficie:'',rsCaudal:'',rsFrecTurnado:'',rsDuracionTurnado:'',rsCantTurnos:'',rsInfraestructura:'',rsProblemas:'',rsObservaciones:'',
+    rpFuente:null,rpSuperficie:'',rpCaudal:'',rpFrecuencia:'',rpDuracion:'',rpProblemas:'',rpObservaciones:'',
+    represa:null,volumenRepresa:'',medicionCaudales:null,metodoMedicion:'',asistenciaTecnica:null,personalRiego:[],obsRiego:'',
+    descripcionMejora:'',objetivosMejora:'',materialesMejora:'',indicadoresMejora:'',cronogramaEtapas:'',tiempoTotalMeses:'',
+    presupuesto:[emptyPresupuesto()],responsableSeguimiento:'',metodosControl:'',periodicidad:''
+  };
+}
+function has(v){ return v!==null && v!==undefined && String(v).trim()!==''; }
+
+/* ================= borrador local (funciona sin conexión) ================= */
+const DRAFT_KEY = 'riego_offline_draft_v1';
+function loadDraft(){
+  try { const raw = localStorage.getItem(DRAFT_KEY); return raw ? JSON.parse(raw) : null; }
+  catch(e){ return null; }
+}
+let saveTimer = null;
+let lastSaveOk = true;
+function scheduleSave(){ clearTimeout(saveTimer); saveTimer = setTimeout(saveDraft, 450); }
+function saveDraft(){
+  try {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({ data: state.data, fotos: state.fotos }));
+    lastSaveOk = true;
+  } catch(e) {
+    // Almacenamiento lleno o no disponible (modo privado, etc.) — no se
+    // interrumpe la carga, solo se pierde el autoguardado. El técnico igual
+    // puede generar el archivo en cualquier momento con lo que tenga cargado.
+    lastSaveOk = false;
+  }
+  updateSaveBadge();
+}
+function updateSaveBadge(){
+  const el = document.getElementById('saveBadge');
+  if (!el) return;
+  el.textContent = lastSaveOk ? 'Guardado en este dispositivo' : 'No se pudo autoguardar (espacio lleno) — generá el archivo seguido';
+}
+
+const draft = loadDraft();
+let state = {
+  tab: 'estab',
+  data: (draft && draft.data) || emptyData(),
+  fotos: (draft && draft.fotos) || {}
+};
+
+/* ================= helpers de estado ================= */
+function d(){ return state.data; }
+function setField(key,val){ state.data[key]=val; scheduleSave(); }
+function setFieldR(key,val){ state.data[key]=val; scheduleSave(); render(); }
+function toggleArr(key,val){
+  if (!Array.isArray(state.data[key])) state.data[key]=[];
+  const arr = state.data[key]; const i = arr.indexOf(val);
+  if (i>=0) arr.splice(i,1); else arr.push(val);
+  scheduleSave(); render();
+}
+function setTipoRiegoGeneral(val){
+  state.data.tipoRiegoGeneral = val;
+  const permitidos = val==='Gravitacional' ? ['Surcos','Melgas','Otro'] : ['Goteo','Aspersión','Otro'];
+  state.data.sistemasPresentes = (state.data.sistemasPresentes||[]).filter(s=>permitidos.includes(s));
+  scheduleSave(); render();
+}
+function addCultivo(){ state.data.cultivos.push(emptyCultivo()); scheduleSave(); render(); }
+function removeCultivo(i){ state.data.cultivos.splice(i,1); scheduleSave(); render(); }
+function setCultivo(i,key,val){ state.data.cultivos[i][key]=val; scheduleSave(); }
+function setCultivoR(i,key,val){ state.data.cultivos[i][key]=val; scheduleSave(); render(); }
+function addPresupuesto(){ state.data.presupuesto.push(emptyPresupuesto()); scheduleSave(); render(); }
+function removePresupuesto(i){ state.data.presupuesto.splice(i,1); scheduleSave(); render(); }
+function setPresupuesto(i,key,val){ state.data.presupuesto[i][key]=val; scheduleSave(); }
+function setPresupuestoCat1(i,val){
+  const p = state.data.presupuesto[i];
+  const cat = NOMENCLADOR.find(c=>c.n1===val);
+  p.codN1 = val; p.codN2=''; p.tipo = cat ? (cat.n1+' — '+cat.label) : '';
+  scheduleSave(); render();
+}
+function setPresupuestoCat2(i,val){ state.data.presupuesto[i].codN2 = val; scheduleSave(); }
+
+function setTab(t){ state.tab=t; render(); window.scrollTo(0,0); }
+function navTo(offset){
+  const ids = TABS.map(t=>t[0]); const i = ids.indexOf(state.tab); const next = ids[i+offset];
+  if (next){ state.tab = next; render(); window.scrollTo(0,0); }
+}
+function navRow(){
+  const ids = TABS.map(t=>t[0]); const i = ids.indexOf(state.tab);
+  const prev = i>0 ? `<button class="nav-btn" onclick="navTo(-1)">‹ ${TABS[i-1][1]}</button>` : '<span></span>';
+  const next = i<ids.length-1 ? `<button class="nav-btn primary" onclick="navTo(1)">${TABS[i+1][1]} ›</button>` : '<span></span>';
+  return `<div class="nav-row">${prev}${next}</div>`;
+}
+
+function nuevoDiagnostico(){
+  if (!confirm('¿Empezar un diagnóstico nuevo? Se borra el formulario actual de este dispositivo.\n\nSi ya generaste el archivo de este diagnóstico, no se pierde nada — quedó guardado en tus Descargas.')) return;
+  state.data = emptyData(); state.fotos = {}; state.tab = 'estab';
+  try { localStorage.removeItem(DRAFT_KEY); } catch(e){}
+  render();
+}
+
+/* ================= fotos: compresión local + geolocalización best-effort ================= */
+function fileToCompressedDataUrl(file, maxDim, quality){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) { height = Math.round(height * maxDim / width); width = maxDim; }
+          else { width = Math.round(width * maxDim / height); height = maxDim; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = () => reject(new Error('No se pudo leer la imagen'));
+      img.src = reader.result;
+    };
+    reader.onerror = () => reject(new Error('No se pudo leer el archivo'));
+    reader.readAsDataURL(file);
+  });
+}
+function getGeo(){
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) return resolve({ str:'Sin geolocalización (no soportada)', lat:null, lng:null });
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve({ str:`Lat ${pos.coords.latitude.toFixed(4)}, Long ${pos.coords.longitude.toFixed(4)}`, lat:pos.coords.latitude, lng:pos.coords.longitude }),
+      () => resolve({ str:'Sin geolocalización (permiso denegado o sin señal GPS)', lat:null, lng:null }),
+      { timeout: 8000 }
+    );
+  });
+}
+async function onFotoSelected(slotIndex, input){
+  const file = input.files && input.files[0];
+  if (!file) return;
+  showToast('Procesando foto…');
+  try {
+    const dataUrl = await fileToCompressedDataUrl(file, 1600, 0.72);
+    const geo = await getGeo();
+    state.fotos[slotIndex] = { dataUrl, mimetype:'image/jpeg', lat:geo.lat, lng:geo.lng, geoStr:geo.str };
+    scheduleSave();
+    showToast('Foto cargada');
+  } catch(e) {
+    showToast('No se pudo procesar la foto: ' + (e.message||e), true);
+  }
+  input.value = '';
+  render();
+}
+function removeFoto(slotIndex){ delete state.fotos[slotIndex]; scheduleSave(); render(); }
+
+/* ================= completitud (misma lógica que usa la app real) ================= */
+function completeness(data, fotosCount){
+  const dd = data;
+  const secs = {
+    estab: { label:'Establecimiento', req:[has(dd.productor),has(dd.finca),has(dd.localidad),has(dd.renspa),has(dd.superficieTotal),has(dd.superficieCultivada)] },
+    cultivos: { label:'Cultivos', req:[(dd.cultivos||[]).some(c=>has(c.cultivo)&&has(c.superficie))] },
+    suelo: { label:'Suelo', req:[has(dd.analisisSuelo),has(dd.textura)] },
+    riego: { label:'Sistema de riego', req:[(dd.sistemasPresentes||[]).length>0, has(dd.rsSuperficie)||has(dd.rpSuperficie)] },
+    propuesta: { label:'Propuesta de mejora', req:[has(dd.descripcionMejora),has(dd.materialesMejora),has(dd.indicadoresMejora),has(dd.tiempoTotalMeses),(dd.presupuesto||[]).some(p=>has(p.inversion)&&has(p.monto))] },
+    fotos: { label:'Fotos', req:[(fotosCount||0)>0] }
+  };
+  let done=0, total=0; const detail=[];
+  for (const k in secs){
+    const ok = secs[k].req.filter(Boolean).length;
+    const t = secs[k].req.length;
+    const state2 = ok===t ? 'ok' : ok>0 ? 'part' : 'no';
+    detail.push({ label:secs[k].label, ok, total:t, state:state2 });
+    done+=ok; total+=t;
+  }
+  return { pct: total ? Math.round(done/total*100) : 0, detail };
+}
+
+/* ================= exportar archivo para importar ================= */
+function slug(s){
+  return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/(^-+|-+$)/g,'');
+}
+function exportarArchivo(){
+  const payload = {
+    formVersion: 1,
+    exportedAt: new Date().toISOString(),
+    data: state.data,
+    fotos: Object.keys(state.fotos).map((slotIndex) => ({
+      slotIndex: Number(slotIndex),
+      dataUrl: state.fotos[slotIndex].dataUrl,
+      mimetype: state.fotos[slotIndex].mimetype,
+      lat: state.fotos[slotIndex].lat,
+      lng: state.fotos[slotIndex].lng
+    }))
+  };
+  const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const base = slug(state.data.finca || state.data.productor) || 'sin-nombre';
+  const stamp = new Date().toISOString().replace(/[:T]/g,'-').slice(0,16);
+  a.href = url;
+  a.download = `diagnostico_${base}_${stamp}.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Archivo generado. Buscalo en Descargas.');
+}
+
+/* ================= toast ================= */
+let toastTimer = null;
+function showToast(msg, isError){
+  const t = document.getElementById('toast');
+  if (!t) return;
+  t.textContent = msg || '';
+  t.style.background = isError ? 'var(--danger)' : 'var(--green-dark)';
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+/* ================= render ================= */
+function chip(curVal, value, label, key){
+  const sel = curVal===value;
+  return `<div class="chip ${sel?'selected':''}" onclick="setFieldR('${key}','${value.replace(/'/g,"\\'")}')">${label}</div>`;
+}
+function chipMulti(arr, value, label, key){
+  const sel = (arr||[]).includes(value);
+  return `<div class="chip ${sel?'selected':''}" onclick="toggleArr('${key}','${value.replace(/'/g,"\\'")}')">${label}</div>`;
+}
+
+function render(){
+  const app = document.getElementById('app');
+  const tabBtns = TABS.map(([id,l]) => `<button class="${state.tab===id?'active':''}" onclick="setTab('${id}')">${l}</button>`).join('');
+  app.innerHTML = `
+    <div class="topbar">
+      <div class="brand">
+        <div><h1>Diagnóstico de Riego</h1><span class="prog">Carga sin conexión</span></div>
+        <button class="btn-nuevo" onclick="nuevoDiagnostico()">+ Nuevo</button>
+      </div>
+      <div class="savebadge" id="saveBadge">Guardado en este dispositivo</div>
+    </div>
+    <div class="tabs">${tabBtns}</div>
+    <div class="content">${renderTab()}</div>
+    <div class="footer-note">Formulario offline v1 — Programa de Apoyo para la Tecnificación del Riego (CFI/DGI).<br>No envía nada por internet. Generá el archivo y llevalo a la app para importarlo.</div>
+  `;
+  updateSaveBadge();
+}
+
+function renderTab(){
+  const dd = d();
+  const t = state.tab;
+
+  if (t==='estab') return `
+    <div class="intro-banner">Completá este formulario aunque no tengas señal. Se guarda solo en este dispositivo. Al terminar, andá a la pestaña <b>Exportar</b> para generar el archivo.</div>
+    <div class="section-card">
+      <div class="section-title">Datos generales del productor y la finca</div>
+      <div class="field-group"><label>Nombre y apellido del productor <span class="req">*</span></label><input type="text" value="${dd.productor}" oninput="setField('productor',this.value)"></div>
+      <div class="field-group"><label>Nombre de la finca <span class="req">*</span></label><input type="text" value="${dd.finca}" oninput="setField('finca',this.value)"></div>
+      <div class="row2">
+        <div class="field-group"><label>RENSPA / RUT</label><input type="text" value="${dd.renspa}" oninput="setField('renspa',this.value)"></div>
+        <div class="field-group"><label>Localidad/Departamento <span class="req">*</span></label><input type="text" value="${dd.localidad}" oninput="setField('localidad',this.value)"></div>
+      </div>
+      <div class="row2">
+        <div class="field-group"><label>CUIT</label><input type="text" value="${dd.cuit||''}" placeholder="30-XXXXXXXX-X" oninput="setField('cuit',this.value)"></div>
+        <div class="field-group"><label>N.° de expediente SIGI</label><input type="text" value="${dd.expedienteSigi||''}" oninput="setField('expedienteSigi',this.value)"></div>
+      </div>
+      <div class="row2">
+        <div class="field-group"><label>Superficie total (ha) <span class="req">*</span></label><input type="number" value="${dd.superficieTotal}" oninput="setField('superficieTotal',this.value)"></div>
+        <div class="field-group"><label>Superficie cultivada (ha)</label><input type="number" value="${dd.superficieCultivada}" oninput="setField('superficieCultivada',this.value)"></div>
+      </div>
+      <div class="row2">
+        <div class="field-group"><label>Superficie inculta (ha)</label><input type="number" value="${dd.superficieInculta}" oninput="setField('superficieInculta',this.value)"></div>
+        <div class="field-group"><label>Sup. con derecho de riego (ha)</label><input type="number" value="${dd.superficieDerecho}" oninput="setField('superficieDerecho',this.value)"></div>
+      </div>
+      <div class="field-group"><label>Fuente de agua de la superficie con derecho de riego</label>
+        <select onchange="setFieldR('fuenteRiegoDerecho',this.value)">
+          <option value="">Sin especificar</option>
+          ${FUENTES_RIEGO_DERECHO.map(f=>`<option value="${f}" ${dd.fuenteRiegoDerecho===f?'selected':''}>${f}</option>`).join('')}
+        </select></div>
+      <div class="field-group"><label>Identificación del padrón</label><input type="text" value="${dd.ccpp}" placeholder="Ej: Fracción 1) PP 9900 CC 247: 34,6 ha" oninput="setField('ccpp',this.value)"></div>
+      <div class="field-group"><label>Identificación de pozos</label><input type="text" value="${dd.pozos}" placeholder="Ej: 2 pozos: 14.392 y 14.390" oninput="setField('pozos',this.value)"></div>
+      <div class="field-group"><label>Observaciones</label><textarea oninput="setField('obsGenerales',this.value)">${dd.obsGenerales}</textarea></div>
+    </div>${navRow()}`;
+
+  if (t==='cultivos') { const selStyle='width:100%;min-width:120px;'; return `
+    <div class="section-card">
+    <div class="section-title">Datos del cultivo</div>
+    <div class="table-scroll"><table class="dyn-table">
+      <thead><tr><th>Cultivo</th><th>Variedad</th><th>Destino</th><th>Año</th><th>Marco/densidad</th><th>Sup.(ha)</th><th>Rendimiento</th><th></th></tr></thead>
+      <tbody>${dd.cultivos.map((cv,i)=>`<tr>
+        <td><input type="text" value="${cv.cultivo}" onchange="setCultivo(${i},'cultivo',this.value)"></td>
+        <td><input type="text" value="${cv.variedad}" onchange="setCultivo(${i},'variedad',this.value)"></td>
+        <td><select onchange="setCultivo(${i},'destino',this.value)" style="${selStyle}">
+          <option value="">Elegir…</option>
+          ${DESTINOS_CULTIVO.map(o=>`<option value="${o}" ${cv.destino===o?'selected':''}>${o}</option>`).join('')}
+        </select></td>
+        <td><input type="text" value="${cv.anio}" onchange="setCultivo(${i},'anio',this.value)"></td>
+        <td><input type="text" value="${cv.marco}" onchange="setCultivo(${i},'marco',this.value)"></td>
+        <td><input type="text" value="${cv.superficie}" onchange="setCultivo(${i},'superficie',this.value)"></td>
+        <td style="display:flex;gap:3px;flex-wrap:wrap">
+          <input type="number" value="${cv.rendimiento}" placeholder="Valor" style="width:64px" onchange="setCultivo(${i},'rendimiento',this.value)">
+          <select onchange="setCultivo(${i},'rendimientoUnidad',this.value)" style="${selStyle};min-width:90px">
+            <option value="">Unidad…</option>
+            ${RENDIMIENTO_UNIDADES.map(u=>`<option value="${u}" ${cv.rendimientoUnidad===u?'selected':''}>${u}</option>`).join('')}
+          </select>
+        </td>
+        <td class="row-remove">${dd.cultivos.length>1?`<button onclick="removeCultivo(${i})">×</button>`:''}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>
+    <button class="add-row-btn" onclick="addCultivo()">+ Agregar cultivo</button>
+    <div class="field-group"><label>Observaciones</label><textarea oninput="setField('obsCultivos',this.value)">${dd.obsCultivos}</textarea></div>
+
+    <div class="subsection-title">Producción</div>
+    <div class="field-group"><label>Tipo de producción</label>
+      <div class="chip-group">${chip(dd.tipoProduccion,'Agricultura','Agricultura','tipoProduccion')}${chip(dd.tipoProduccion,'Ganadería','Ganadería','tipoProduccion')}</div></div>
+    ${dd.tipoProduccion==='Ganadería'?`
+    <div class="row2">
+      <div class="field-group"><label>Animales (tipo)</label><input type="text" value="${dd.ganaderiaAnimalTipo||''}" placeholder="Ej: Bovinos, caprinos" oninput="setField('ganaderiaAnimalTipo',this.value)"></div>
+      <div class="field-group"><label>Cantidad de cabezas</label><input type="number" value="${dd.ganaderiaCabezas||''}" oninput="setField('ganaderiaCabezas',this.value)"></div>
+    </div>
+    <div class="field-group"><label>Actividad</label>
+      <div class="chip-group">${ACTIVIDAD_GANADERA.map(a=>chip(dd.ganaderiaActividad,a,a,'ganaderiaActividad')).join('')}</div></div>
+    <div class="field-group"><label>Categorías</label>
+      <div class="chip-group">${CATEGORIAS_GANADERAS.map(c=>chipMulti(dd.ganaderiaCategorias,c,c,'ganaderiaCategorias')).join('')}</div></div>
+    `:''}
+    </div>${navRow()}`; }
+
+  if (t==='suelo') return `
+    <div class="section-card">
+      <div class="section-title">Datos del suelo</div>
+      <div class="field-group"><label>Análisis del suelo</label>
+        <div class="chip-group">${chip(dd.analisisSuelo,'Posee','Posee','analisisSuelo')}${chip(dd.analisisSuelo,'No posee','No posee','analisisSuelo')}</div></div>
+      <div class="field-group"><label>Textura ${dd.analisisSuelo!=='Posee'?'(estimada)':''} <span class="req">*</span></label>
+        <select onchange="setFieldR('textura',this.value)">
+          <option value="">Elegir textura…</option>
+          ${TEXTURAS_SUELO.map(t2=>`<option value="${t2}" ${dd.textura===t2?'selected':''}>${t2}</option>`).join('')}
+        </select></div>
+      <div class="field-group"><label>Principales problemas de suelo observados</label><textarea oninput="setField('problemasSuelo',this.value)">${dd.problemasSuelo}</textarea></div>
+      <div class="field-group"><label>Otras observaciones del suelo</label><textarea oninput="setField('obsSuelo',this.value)">${dd.obsSuelo}</textarea></div>
+      <div class="subsection-title">¿Requiere análisis previo?</div>
+      <div class="field-group"><div class="chip-group">${chip(dd.requiereAnalisisPrevio,'Sí','Sí','requiereAnalisisPrevio')}${chip(dd.requiereAnalisisPrevio,'No','No','requiereAnalisisPrevio')}</div></div>
+      ${dd.requiereAnalisisPrevio==='Sí'?`
+      <div class="field-group"><label>¿De qué?</label>
+        <div class="chip-group">${ANALISIS_PREVIO_ITEMS.map(it=>chipMulti(dd.requiereAnalisisPrevioQue,it,it,'requiereAnalisisPrevioQue')).join('')}</div></div>`:''}
+      <div class="hint">El documento del análisis (PDF/foto) se puede adjuntar más adelante desde la app, una vez importado el diagnóstico.</div>
+    </div>${navRow()}`;
+
+  if (t==='riego') {
+    const showSuperficial = (dd.sistemasPresentes||[]).some(s=>['Surcos','Melgas'].includes(s));
+    const showPresurizado = (dd.sistemasPresentes||[]).some(s=>['Goteo','Aspersión'].includes(s));
+    const opciones = dd.tipoRiegoGeneral==='Gravitacional' ? ['Surcos','Melgas','Otro'] : dd.tipoRiegoGeneral==='Presurizado' ? ['Goteo','Aspersión','Otro'] : ['Surcos','Melgas','Goteo','Aspersión','Otro'];
+    return `
+    <div class="section-card">
+      <div class="section-title">Sistema de riego</div>
+      <div class="subsection-title">Tipo de riego</div>
+      <div class="field-group"><label>¿El riego es gravitacional o presurizado?</label>
+        <div class="chip-group">
+          <div class="chip ${dd.tipoRiegoGeneral==='Gravitacional'?'selected':''}" onclick="setTipoRiegoGeneral('Gravitacional')">Gravitacional</div>
+          <div class="chip ${dd.tipoRiegoGeneral==='Presurizado'?'selected':''}" onclick="setTipoRiegoGeneral('Presurizado')">Presurizado</div>
+        </div></div>
+      <div class="subsection-title">Sistemas presentes en la finca</div>
+      <div class="chip-group">${opciones.map(v=>chipMulti(dd.sistemasPresentes,v,v,'sistemasPresentes')).join('')}</div>
+      ${(dd.sistemasPresentes||[]).includes('Otro')?`<div class="field-group" style="margin-top:8px"><label>Detalle "Otro"</label><input type="text" value="${dd.otroSistemaTexto}" oninput="setField('otroSistemaTexto',this.value)"></div>`:''}
+
+      ${showSuperficial?`
+      <div class="subsection-title">Riego superficial (surcos/melgas)</div>
+      <div class="field-group"><label>Fuente de agua</label><div class="chip-group">${chip(dd.rsFuente,'Turno','Turno','rsFuente')}${chip(dd.rsFuente,'Pozo','Pozo','rsFuente')}</div></div>
+      <div class="row2">
+        <div class="field-group"><label>Superficie regada (ha)</label><input type="text" value="${dd.rsSuperficie}" oninput="setField('rsSuperficie',this.value)"></div>
+        <div class="field-group"><label>Caudal medio (l/s)</label><input type="text" value="${dd.rsCaudal}" oninput="setField('rsCaudal',this.value)"></div>
+      </div>
+      <div class="row2">
+        <div class="field-group"><label>Frecuencia turnado (días)</label><input type="text" value="${dd.rsFrecTurnado}" oninput="setField('rsFrecTurnado',this.value)"></div>
+        <div class="field-group"><label>Duración turnado (hs)</label><input type="text" value="${dd.rsDuracionTurnado}" oninput="setField('rsDuracionTurnado',this.value)"></div>
+      </div>
+      <div class="field-group"><label>Turnos por temporada</label><input type="text" value="${dd.rsCantTurnos}" oninput="setField('rsCantTurnos',this.value)"></div>
+      <div class="field-group"><label>Infraestructura de riego</label><textarea oninput="setField('rsInfraestructura',this.value)">${dd.rsInfraestructura}</textarea></div>
+      <div class="field-group"><label>Principales problemas y limitantes</label><textarea oninput="setField('rsProblemas',this.value)">${dd.rsProblemas}</textarea></div>
+      <div class="field-group"><label>Observaciones</label><textarea oninput="setField('rsObservaciones',this.value)">${dd.rsObservaciones}</textarea></div>
+      `:''}
+
+      ${showPresurizado?`
+      <div class="subsection-title">Riego presurizado (goteo/aspersión)</div>
+      <div class="field-group"><label>Fuente de agua</label><div class="chip-group">${chip(dd.rpFuente,'Turno','Turno','rpFuente')}${chip(dd.rpFuente,'Pozo','Pozo','rpFuente')}</div></div>
+      <div class="row2">
+        <div class="field-group"><label>Superficie regada (ha)</label><input type="text" value="${dd.rpSuperficie}" oninput="setField('rpSuperficie',this.value)"></div>
+        <div class="field-group"><label>Caudal medio (l/h)</label><input type="text" value="${dd.rpCaudal}" oninput="setField('rpCaudal',this.value)"></div>
+      </div>
+      <div class="row2">
+        <div class="field-group"><label>Frecuencia por operación (días)</label><input type="text" value="${dd.rpFrecuencia}" oninput="setField('rpFrecuencia',this.value)"></div>
+        <div class="field-group"><label>Duración por operación (hs)</label><input type="text" value="${dd.rpDuracion}" oninput="setField('rpDuracion',this.value)"></div>
+      </div>
+      <div class="field-group"><label>Principales problemas y limitantes</label><textarea oninput="setField('rpProblemas',this.value)">${dd.rpProblemas}</textarea></div>
+      <div class="field-group"><label>Observaciones</label><textarea oninput="setField('rpObservaciones',this.value)">${dd.rpObservaciones}</textarea></div>
+      `:''}
+
+      <div class="subsection-title">Infraestructura y manejo</div>
+      <div class="field-group"><label>Represa</label><div class="chip-group">${chip(dd.represa,'Posee','Posee','represa')}${chip(dd.represa,'No posee','No posee','represa')}</div></div>
+      ${dd.represa==='Posee'?`<div class="field-group"><label>Volumen (m³)</label><input type="text" value="${dd.volumenRepresa}" oninput="setField('volumenRepresa',this.value)"></div>`:''}
+      <div class="field-group"><label>Medición de caudales</label><div class="chip-group">${chip(dd.medicionCaudales,'Realiza','Realiza','medicionCaudales')}${chip(dd.medicionCaudales,'No realiza','No realiza','medicionCaudales')}</div></div>
+      ${dd.medicionCaudales==='Realiza'?`<div class="field-group"><label>Método</label><input type="text" value="${dd.metodoMedicion}" placeholder="Ej: caudalímetro" oninput="setField('metodoMedicion',this.value)"></div>`:''}
+      <div class="field-group"><label>Asistencia técnica agronómica</label><div class="chip-group">${chip(dd.asistenciaTecnica,'Posee','Posee','asistenciaTecnica')}${chip(dd.asistenciaTecnica,'No posee','No posee','asistenciaTecnica')}</div></div>
+      <div class="field-group"><label>Personal dedicado a tareas de riego</label>
+        <div class="chip-group">${['Empleado','Operario al día/jornalero','Contratista o chacarero','Propietario/familiar'].map(v=>chipMulti(dd.personalRiego,v,v,'personalRiego')).join('')}</div></div>
+      <div class="field-group"><label>Otras observaciones del riego</label><textarea oninput="setField('obsRiego',this.value)">${dd.obsRiego}</textarea></div>
+    </div>${navRow()}`;
+  }
+
+  if (t==='propuesta') return `
+    <div class="section-card">
+      <div class="section-title">Propuesta de mejora</div>
+      <div class="field-group"><label>1. Descripción técnica de la mejora <span class="req">*</span></label><textarea oninput="setField('descripcionMejora',this.value)">${dd.descripcionMejora}</textarea></div>
+      <div class="field-group"><label>2. Objetivos específicos</label><textarea oninput="setField('objetivosMejora',this.value)">${dd.objetivosMejora}</textarea></div>
+      <div class="field-group"><label>3. Materiales e insumos requeridos <span class="req">*</span></label><textarea placeholder="Un ítem por línea" oninput="setField('materialesMejora',this.value)">${dd.materialesMejora}</textarea>
+        <div class="hint">Un ítem por línea — se usan como viñetas en la Conformidad Técnica.</div></div>
+      <div class="field-group"><label>4. Indicadores de mejora <span class="req">*</span></label><textarea placeholder="Un indicador por línea" oninput="setField('indicadoresMejora',this.value)">${dd.indicadoresMejora}</textarea></div>
+      <div class="field-group"><label>5. Cronograma y plazos</label><textarea placeholder="Etapas: adquisición, instalación, calibración, capacitación" oninput="setField('cronogramaEtapas',this.value)">${dd.cronogramaEtapas}</textarea></div>
+      <div class="field-group"><label>Tiempo estimado total (meses) <span class="req">*</span></label><input type="number" value="${dd.tiempoTotalMeses}" oninput="setField('tiempoTotalMeses',this.value)"></div>
+
+      <div class="subsection-title">6. Presupuesto estimado <span class="req">*</span></div>
+      <div class="hint" style="margin-bottom:8px">El "Monto ($)" es un número simple en pesos, sin texto — se usa para el panel de totales del programa. El campo "Presupuesto estimado" queda libre para aclaraciones (IVA, cotización, etc.).</div>
+      <div class="hint" style="margin-bottom:8px">Categorías del nomenclador de inversiones CFI. Elegí primero la categoría (nivel 1) y después la subcategoría (nivel 2).</div>
+      <div class="table-scroll"><table class="dyn-table" style="min-width:720px">
+        <thead><tr><th>Inversión</th><th>Categoría</th><th>Subcategoría</th><th>Monto ($)</th><th>Presupuesto (texto)</th><th></th></tr></thead>
+        <tbody>${dd.presupuesto.map((p,i)=>{
+          const cat = NOMENCLADOR.find(c=>c.n1===p.codN1);
+          return `<tr>
+          <td><input type="text" value="${p.inversion}" onchange="setPresupuesto(${i},'inversion',this.value)"></td>
+          <td><select onchange="setPresupuestoCat1(${i},this.value)" style="min-width:170px">
+            <option value="">Sin categorizar</option>
+            ${NOMENCLADOR.map(c=>`<option value="${c.n1}" ${p.codN1===c.n1?'selected':''}>${c.n1} — ${c.label}</option>`).join('')}
+          </select></td>
+          <td>${p.codN1?`
+          <select onchange="setPresupuestoCat2(${i},this.value)" style="min-width:170px">
+            <option value="">Elegir subcategoría…</option>
+            ${(cat?cat.items:[]).map(it=>`<option value="${it.n2}" ${p.codN2===it.n2?'selected':''}>${it.n2} — ${it.label}</option>`).join('')}
+          </select>`:`<span class="hint">Elegí primero la categoría</span>`}</td>
+          <td><input type="number" value="${p.montoUSD||''}" placeholder="0" onchange="setPresupuesto(${i},'montoUSD',this.value)"></td>
+          <td><input type="text" value="${p.monto||''}" placeholder="Ej: $ 5.000.000 + IVA" onchange="setPresupuesto(${i},'monto',this.value)"></td>
+          <td class="row-remove">${dd.presupuesto.length>1?`<button onclick="removePresupuesto(${i})">×</button>`:''}</td>
+        </tr>`;
+        }).join('')}</tbody>
+      </table></div>
+      <button class="add-row-btn" onclick="addPresupuesto()">+ Agregar ítem</button>
+
+      <div class="subsection-title">7. Estrategia de seguimiento y evaluación</div>
+      <div class="field-group"><label>Responsable técnico</label><input type="text" value="${dd.responsableSeguimiento}" oninput="setField('responsableSeguimiento',this.value)"></div>
+      <div class="field-group"><label>Métodos de control</label><textarea oninput="setField('metodosControl',this.value)">${dd.metodosControl}</textarea></div>
+      <div class="field-group"><label>Periodicidad</label><input type="text" value="${dd.periodicidad}" placeholder="Ej: 3 visitas anuales" oninput="setField('periodicidad',this.value)"></div>
+    </div>${navRow()}`;
+
+  if (t==='fotos') {
+    const slots = [0,1,2,3,4,5].map(i => {
+      const f = state.fotos[i];
+      if (f) return `<div class="photo-slot"><img src="${f.dataUrl}"><button class="rm" onclick="removeFoto(${i})">×</button><div class="st">${f.lat?'Con ubicación':'Sin ubicación'}</div></div>`;
+      return `<label class="photo-slot">📷<input type="file" accept="image/*" capture="environment" onchange="onFotoSelected(${i},this)"></label>`;
+    }).join('');
+    const count = Object.keys(state.fotos).length;
+    return `
+    <div class="section-card">
+      <div class="section-title">Registro fotográfico (${count}/6)</div>
+      <div class="photo-grid">${slots}</div>
+      <div class="hint" style="margin-top:12px">Las fotos se achican automáticamente para que el archivo final no sea pesado. Se intenta guardar la ubicación GPS si el dispositivo la tiene disponible (funciona sin datos móviles, solo necesita señal de satélite).</div>
+    </div>${navRow()}`;
+  }
+
+  if (t==='exportar') {
+    const fotosCount = Object.keys(state.fotos).length;
+    const c = completeness(dd, fotosCount);
+    const checks = c.detail.map(s => `<li><span class="dot ${s.state}"></span>${s.label}<span style="margin-left:auto;color:var(--lock);font-size:10.5px">${s.ok}/${s.total}</span></li>`).join('');
+    return `
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-value">${c.pct}%</div><div class="stat-label">Completitud</div></div>
+      <div class="stat-card"><div class="stat-value">${fotosCount}/6</div><div class="stat-label">Fotos cargadas</div></div>
+    </div>
+    <div class="section-card">
+      <div class="section-title">Completitud por sección</div>
+      <ul class="check-list">${checks}</ul>
+    </div>
+    <div class="section-card">
+      <div class="section-title">Generar archivo para importar</div>
+      <div class="hint" style="margin-bottom:10px">Se genera un archivo <b>.json</b> con todo lo cargado (datos + fotos). Guardalo, y cuando tengas conexión entrá a la app → botón <b>"Importar diagnóstico"</b> → elegí este archivo.</div>
+      <div class="field-group"><label>Vista previa</label>
+        <div class="hint"><b>${dd.productor||'(sin productor)'}</b> — ${dd.finca||'(sin finca)'} · ${dd.localidad||'(sin localidad)'}</div>
+      </div>
+      <button class="export-btn" onclick="exportarArchivo()">Generar y descargar archivo (.json)</button>
+    </div>
+    ${navRow()}`;
+  }
+
+  return '';
+}
+
+render();
+</script>
+</body>
+</html>

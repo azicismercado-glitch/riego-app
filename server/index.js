@@ -15,7 +15,9 @@ const documentoSueloRoutes = require('./routes/documentoSuelo');
 
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: '5mb' }));
+// 20mb: el import de diagnósticos cargados offline puede traer hasta 6 fotos
+// embebidas en base64 (public/offline/diagnostico-offline.html).
+app.use(express.json({ limit: '20mb' }));
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
