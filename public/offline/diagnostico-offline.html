@@ -72,6 +72,15 @@ input,select,textarea{font-family:inherit; font-size:13px;}
 .check-list{list-style:none; margin:0; padding:0;}
 .check-list li{display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid var(--hair); font-size:11.5px;}
 .check-list li:last-child{border-bottom:none;}
+details summary{cursor:pointer; font-weight:700; font-size:12.5px; color:var(--green); list-style:none; display:flex; align-items:center; gap:6px;}
+details summary::-webkit-details-marker{display:none;}
+details summary::before{content:"▸"; font-size:10px;}
+details[open] summary::before{content:"▾";}
+details summary:focus-visible{outline:2px solid var(--green); outline-offset:3px; border-radius:4px;}
+.resumen-completo{margin-top:12px; max-height:340px; overflow-y:auto; border-top:1px solid var(--hair); padding-top:6px;}
+.kv-row{font-size:11.5px; line-height:1.5; padding:5px 0; border-bottom:1px solid var(--hair);}
+.kv-row:last-child{border-bottom:none;}
+.kv-row b{color:var(--green-dark);}
 .dot{width:8px; height:8px; border-radius:50%; flex:0 0 auto;}
 .dot.ok{background:var(--success);}
 .dot.part{background:var(--warn);}
@@ -285,6 +294,80 @@ function completeness(data, fotosCount){
     done+=ok; total+=t;
   }
   return { pct: total ? Math.round(done/total*100) : 0, detail };
+}
+
+/* ================= resumen legible (revisión antes de exportar) ================= */
+function kv(label, value){
+  if (value===null || value===undefined || String(value).trim()==='') return '';
+  return `<div class="kv-row"><b>${label}:</b> ${String(value).replace(/\n/g,'<br>')}</div>`;
+}
+function renderResumenCompleto(dd, fotosCount){
+  let html = '';
+
+  html += `<div class="subsection-title" style="margin-top:4px">Establecimiento</div>`;
+  html += kv('Productor', dd.productor) + kv('Finca', dd.finca) + kv('RENSPA', dd.renspa) + kv('Localidad', dd.localidad)
+        + kv('CUIT', dd.cuit) + kv('Expediente SIGI', dd.expedienteSigi)
+        + kv('Superficie total', dd.superficieTotal && dd.superficieTotal + ' ha') + kv('Superficie cultivada', dd.superficieCultivada && dd.superficieCultivada + ' ha')
+        + kv('Superficie inculta', dd.superficieInculta && dd.superficieInculta + ' ha') + kv('Sup. con derecho de riego', dd.superficieDerecho && dd.superficieDerecho + ' ha')
+        + kv('Fuente de agua (derecho)', dd.fuenteRiegoDerecho) + kv('Padrón (CCPP)', dd.ccpp) + kv('Pozos', dd.pozos) + kv('Observaciones', dd.obsGenerales);
+
+  const cultivosStr = (dd.cultivos || []).filter(c => c.cultivo).map(c =>
+    `${c.cultivo}${c.variedad ? ' (' + c.variedad + ')' : ''}${c.superficie ? ' — ' + c.superficie + ' ha' : ''}${c.destino ? ' · ' + c.destino : ''}`
+  ).join('<br>');
+  if (cultivosStr || dd.obsCultivos) {
+    html += `<div class="subsection-title">Cultivos</div>`;
+    html += cultivosStr ? `<div class="kv-row"><b>Cargados:</b><br>${cultivosStr}</div>` : '';
+    html += kv('Observaciones', dd.obsCultivos);
+  }
+  if (dd.tipoProduccion) {
+    html += `<div class="subsection-title">Producción</div>`;
+    html += kv('Tipo', dd.tipoProduccion);
+    if (dd.tipoProduccion === 'Ganadería') {
+      html += kv('Animales', dd.ganaderiaAnimalTipo) + kv('Cabezas', dd.ganaderiaCabezas) + kv('Actividad', dd.ganaderiaActividad) + kv('Categorías', (dd.ganaderiaCategorias || []).join(', '));
+    }
+  }
+
+  const hayDatosSuelo = has(dd.analisisSuelo) || has(dd.textura) || has(dd.problemasSuelo) || has(dd.obsSuelo) || has(dd.requiereAnalisisPrevio);
+  if (hayDatosSuelo) {
+    html += `<div class="subsection-title">Suelo</div>`;
+    html += kv('Análisis de suelo', dd.analisisSuelo) + kv('Textura', dd.textura) + kv('Problemas observados', dd.problemasSuelo) + kv('Observaciones', dd.obsSuelo);
+    if (dd.requiereAnalisisPrevio) html += kv('¿Requiere análisis previo?', dd.requiereAnalisisPrevio) + kv('¿De qué?', (dd.requiereAnalisisPrevioQue || []).join(', '));
+  }
+
+  const hayDatosRiego = (dd.sistemasPresentes || []).length > 0 || has(dd.tipoRiegoGeneral) || has(dd.represa) || has(dd.medicionCaudales) || has(dd.asistenciaTecnica);
+  if (hayDatosRiego) {
+    html += `<div class="subsection-title">Sistema de riego</div>`;
+    html += kv('Tipo general', dd.tipoRiegoGeneral) + kv('Sistemas presentes', (dd.sistemasPresentes || []).join(', ')) + kv('Detalle "Otro"', dd.otroSistemaTexto);
+    if ((dd.sistemasPresentes || []).some(s => ['Surcos', 'Melgas'].includes(s))) {
+      html += kv('Riego superficial — fuente', dd.rsFuente) + kv('Superficie regada', dd.rsSuperficie && dd.rsSuperficie + ' ha') + kv('Caudal medio', dd.rsCaudal && dd.rsCaudal + ' l/s')
+            + kv('Frecuencia de turnado', dd.rsFrecTurnado && dd.rsFrecTurnado + ' días') + kv('Duración de turnado', dd.rsDuracionTurnado && dd.rsDuracionTurnado + ' hs') + kv('Turnos por temporada', dd.rsCantTurnos)
+            + kv('Infraestructura', dd.rsInfraestructura) + kv('Problemas', dd.rsProblemas) + kv('Observaciones', dd.rsObservaciones);
+    }
+    if ((dd.sistemasPresentes || []).some(s => ['Goteo', 'Aspersión'].includes(s))) {
+      html += kv('Riego presurizado — fuente', dd.rpFuente) + kv('Superficie regada', dd.rpSuperficie && dd.rpSuperficie + ' ha') + kv('Caudal medio', dd.rpCaudal && dd.rpCaudal + ' l/h')
+            + kv('Frecuencia por operación', dd.rpFrecuencia && dd.rpFrecuencia + ' días') + kv('Duración por operación', dd.rpDuracion && dd.rpDuracion + ' hs')
+            + kv('Problemas', dd.rpProblemas) + kv('Observaciones', dd.rpObservaciones);
+    }
+    html += kv('Represa', dd.represa) + kv('Volumen represa', dd.volumenRepresa && dd.volumenRepresa + ' m³') + kv('Medición de caudales', dd.medicionCaudales) + kv('Método', dd.metodoMedicion)
+          + kv('Asistencia técnica', dd.asistenciaTecnica) + kv('Personal de riego', (dd.personalRiego || []).join(', ')) + kv('Otras observaciones', dd.obsRiego);
+  }
+
+  const hayPropuesta = has(dd.descripcionMejora) || has(dd.objetivosMejora) || has(dd.materialesMejora) || has(dd.indicadoresMejora) || has(dd.tiempoTotalMeses);
+  if (hayPropuesta) {
+    html += `<div class="subsection-title">Propuesta de mejora</div>`;
+    html += kv('Descripción', dd.descripcionMejora) + kv('Objetivos', dd.objetivosMejora) + kv('Materiales', dd.materialesMejora) + kv('Indicadores', dd.indicadoresMejora)
+          + kv('Cronograma', dd.cronogramaEtapas) + kv('Plazo estimado', dd.tiempoTotalMeses && dd.tiempoTotalMeses + ' meses');
+    const presupuestoStr = (dd.presupuesto || []).filter(p => p.inversion || p.monto || p.montoUSD).map(p =>
+      `${p.inversion || '(sin nombre)'}${p.tipo ? ' — ' + p.tipo : ''}${p.montoUSD ? ' — $ ' + Number(p.montoUSD).toLocaleString('es-AR') : ''}${p.monto ? ' (' + p.monto + ')' : ''}`
+    ).join('<br>');
+    if (presupuestoStr) html += `<div class="kv-row"><b>Presupuesto:</b><br>${presupuestoStr}</div>`;
+    html += kv('Responsable de seguimiento', dd.responsableSeguimiento) + kv('Métodos de control', dd.metodosControl) + kv('Periodicidad', dd.periodicidad);
+  }
+
+  html += `<div class="subsection-title">Fotos</div>`;
+  html += `<div class="kv-row"><b>Cargadas:</b> ${fotosCount}/6</div>`;
+
+  return html || '<p class="hint">Todavía no cargaste ningún dato.</p>';
 }
 
 /* ================= exportar archivo para importar ================= */
@@ -586,6 +669,12 @@ function renderTab(){
     <div class="section-card">
       <div class="section-title">Completitud por sección</div>
       <ul class="check-list">${checks}</ul>
+    </div>
+    <div class="section-card">
+      <details>
+        <summary>Revisar todo lo cargado</summary>
+        <div class="resumen-completo">${renderResumenCompleto(dd, fotosCount)}</div>
+      </details>
     </div>
     <div class="section-card">
       <div class="section-title">Generar archivo para importar</div>
