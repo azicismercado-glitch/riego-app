@@ -310,6 +310,15 @@ function renderDashboardView() {
         <div class="stat-card"><div class="stat-value">${dash.tiempoPromedioDias!=null?dash.tiempoPromedioDias+' días':'—'}</div><div class="stat-label">Tiempo promedio de aprobación</div></div>
       </div>
       <div class="section-card">
+        <div class="section-title"><i class="ti ti-droplet-filled"></i> Superficie bajo riego del programa</div>
+        <div class="stat-grid" style="padding:0 0 4px">
+          <div class="stat-card"><div class="stat-value">${dash.superficieRegadaHa} ha</div><div class="stat-label">Superficie regada (total)</div></div>
+          <div class="stat-card"><div class="stat-value">${dash.superficieSuperficialHa} ha</div><div class="stat-label">Riego superficial (surcos/melgas)</div></div>
+          <div class="stat-card"><div class="stat-value">${dash.superficiePresurizadaHa} ha</div><div class="stat-label">Riego presurizado (goteo/aspersión)</div></div>
+        </div>
+        ${dash.diagnosticosSuperficieSinDato?`<div class="hint" style="margin-top:6px">${dash.diagnosticosSuperficieSinDato} diagnóstico(s) declaran sistema de riego pero sin un número de hectáreas cargado (ej. "toda la superficie de X") — no están sumados acá. Completá "Superficie regada (ha)" en la pestaña Riego de cada uno para que entren en el total.</div>`:''}
+      </div>
+      <div class="section-card">
         <div class="section-title"><i class="ti ti-filter"></i> Embudo del programa <span class="hint" style="margin-left:4px">consulta → diagnóstico → crédito</span></div>
         ${state.session.role==='cfi' ? `
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">

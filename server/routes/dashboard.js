@@ -15,6 +15,17 @@ function nombreDiag(data, id) {
   return data.finca || data.productor || ('Diagnóstico #' + id);
 }
 
+// "Superficie regada" (rsSuperficie / rpSuperficie, pestaña Riego) es texto
+// libre en el formulario — a veces el técnico escribe una descripción en vez
+// de un número (ej. "Toda la superficie de durazno y ajo"). Se extrae el
+// primer número que aparezca; si no hay ninguno, el diagnóstico queda afuera
+// de la suma y se cuenta aparte para no informar un total falsamente exacto.
+function parseSuperficie(v) {
+  if (v == null) return null;
+  const m = String(v).replace(',', '.').match(/\d+(\.\d+)?/);
+  return m ? parseFloat(m[0]) : null;
+}
+
 // Arma todo el panel agregado del programa: pensado para que el área de
 // créditos / gerencia pueda ver de un vistazo cuántos diagnósticos hay en
 // cada etapa, cuánto dinero se está pidiendo, en qué tipo de inversión, en
@@ -64,8 +75,17 @@ async function buildDashboard() {
   let sigiSinCuit = 0, sigiSinMatch = 0, sigiEnTramite = 0, sigiDesembolsados = 0;
   let montoDesembolsadoARS = 0, montoEnTramiteARS = 0;
 
+  let superficieRegadaHa = 0, superficieSuperficialHa = 0, superficiePresurizadaHa = 0;
+  let diagnosticosSuperficieSinDato = 0;
+
   for (const d of rows) {
     porEstado[d.doc_status] = (porEstado[d.doc_status] || 0) + 1;
+
+    const rsHa = parseSuperficie(d.data.rsSuperficie);
+    const rpHa = parseSuperficie(d.data.rpSuperficie);
+    if (rsHa != null) { superficieSuperficialHa += rsHa; superficieRegadaHa += rsHa; }
+    if (rpHa != null) { superficiePresurizadaHa += rpHa; superficieRegadaHa += rpHa; }
+    if ((d.data.sistemasPresentes || []).length > 0 && rsHa == null && rpHa == null) diagnosticosSuperficieSinDato++;
 
     const loc = (d.data.localidad || '').trim() || 'Sin especificar';
     porLocalidad[loc] = (porLocalidad[loc] || 0) + 1;
@@ -200,6 +220,10 @@ async function buildDashboard() {
     porLocalidad: porLocalidadArr,
     tiempoPromedioDias,
     itemsSinCategorizar,
+    superficieRegadaHa: +superficieRegadaHa.toFixed(1),
+    superficieSuperficialHa: +superficieSuperficialHa.toFixed(1),
+    superficiePresurizadaHa: +superficiePresurizadaHa.toFixed(1),
+    diagnosticosSuperficieSinDato,
     staleDays: STALE_DAYS,
     estancados,
     incompletos,
@@ -263,7 +287,11 @@ router.get('/export', async (req, res) => {
       ['Diagnósticos totales', dash.total],
       ['Validados por CFI', dash.aprobados],
       ['Monto total solicitado ($)', dash.montoTotalUSD],
-      ['Tiempo promedio de aprobación (días)', dash.tiempoPromedioDias != null ? dash.tiempoPromedioDias : '']
+      ['Tiempo promedio de aprobación (días)', dash.tiempoPromedioDias != null ? dash.tiempoPromedioDias : ''],
+      ['Superficie regada total (ha)', dash.superficieRegadaHa],
+      ['  · superficial (surcos/melgas) (ha)', dash.superficieSuperficialHa],
+      ['  · presurizada (goteo/aspersión) (ha)', dash.superficiePresurizadaHa],
+      ['Diagnósticos con sistema de riego pero sin superficie numérica cargada', dash.diagnosticosSuperficieSinDato]
     ]);
 
     addSheet(wb, 'Por etapa', [
