@@ -81,4 +81,39 @@ router.get('/set-provincias', async (req, res) => {
   }
 });
 
+const ROL_LABELS = { tecnico: 'Técnico de campo', provincia: 'Responsable provincial', cfi: 'Técnico CFI', lector: 'Solo lectura' };
+const ROLES_VALIDOS = Object.keys(ROL_LABELS);
+
+// Crea (o actualiza) un usuario puntual — para sumar el técnico/responsable
+// provincial de una provincia nueva sin tocar seed.js ni redeployar, y sin
+// borrar diagnósticos (a diferencia de correr el seed completo). Segura de
+// llamar más de una vez: si el username ya existe, actualiza sus datos en
+// vez de duplicarlo.
+//
+// Uso: /admin/crear-usuario?key=...&username=...&password=...&role=tecnico
+//      &nombre=...&email=...&provincia=Río Negro
+router.get('/crear-usuario', async (req, res) => {
+  if (!checkKey(req, res)) return;
+  try {
+    const { username, password, role, nombre, email, provincia, rolLabel } = req.query;
+    const faltantes = ['username', 'password', 'role', 'nombre', 'email'].filter((k) => !req.query[k]);
+    if (faltantes.length) return res.status(400).json({ error: `Faltan parámetros: ${faltantes.join(', ')}` });
+    if (!ROLES_VALIDOS.includes(role)) return res.status(400).json({ error: `Rol inválido "${role}". Tiene que ser uno de: ${ROLES_VALIDOS.join(', ')}` });
+
+    const hash = await bcrypt.hash(password, 10);
+    const { rows } = await db.query(
+      `INSERT INTO users (username, password_hash, role, nombre, rol_label, email, provincia)
+       VALUES ($1,$2,$3,$4,$5,$6,$7)
+       ON CONFLICT (username) DO UPDATE SET
+         password_hash = EXCLUDED.password_hash, role = EXCLUDED.role, nombre = EXCLUDED.nombre,
+         rol_label = EXCLUDED.rol_label, email = EXCLUDED.email, provincia = EXCLUDED.provincia
+       RETURNING id, username, role, nombre, email, provincia`,
+      [username, hash, role, nombre, rolLabel || ROL_LABELS[role], email, provincia || null]
+    );
+    res.json({ ok: true, usuario: rows[0], mensaje: 'Usuario creado/actualizado. Ya podés cerrar esta pestaña.' });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 module.exports = router;
