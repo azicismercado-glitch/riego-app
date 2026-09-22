@@ -636,7 +636,7 @@ function setIndicador(i, key, val) { if (!canEdit()) return; cur().data.indicado
 /* ---- Presupuesto detallado (cantidad × precio unitario = subtotal) ---- */
 function addPresupuestoDet() { if (!canEdit()) return; cur().data.presupuestoDetallado.push({item:'',cantidad:'',unidad:'',precioUnitario:''}); flushSave(); render(); }
 function removePresupuestoDet(i) { if (!canEdit()) return; cur().data.presupuestoDetallado.splice(i,1); flushSave(); render(); }
-function setPresupuestoDet(i, key, val) { if (!canEdit()) return; cur().data.presupuestoDetallado[i][key] = val; scheduleSave(); render(); }
+function setPresupuestoDet(i, key, val) { if (!canEdit()) return; cur().data.presupuestoDetallado[i][key] = val; scheduleSave(); }
 
 /* ---- Cronograma (etapas fijas, rango de meses) ---- */
 function setCronograma(etapa, campo, val) {
