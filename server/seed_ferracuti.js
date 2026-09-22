@@ -1,5 +1,11 @@
+// Carga puntual (una vez) de un diagnóstico histórico ya completo y firmado:
+// Chacra C75 — Walter Ferracuti (Viedma, IDEVI, Río Negro). A diferencia de
+// server/seed.js, este script NO borra nada — solo agrega este diagnóstico
+// si todavía no existe (lo identifica por RENSPA), así que es seguro de
+// volver a correr sin duplicar.
 require('dotenv').config();
 const db = require('./db');
+const { emptyData } = require('./constants');
 
 function simpleHash(str) {
   let h = 0;
@@ -9,30 +15,36 @@ function simpleHash(str) {
 
 const SIG_PLACEHOLDER_SVG = `<svg viewBox="0 0 200 60" xmlns="http://www.w3.org/2000/svg"><path d="M10 40 Q 30 10, 50 35 T 90 30 Q 110 45, 130 20 T 190 25" fill="none" stroke="#2F5238" stroke-width="2" stroke-linecap="round"/></svg>`;
 
+// Montos originales en USD, convertidos a pesos a la misma cotización usada
+// para los otros diagnósticos (1 USD = 1535 ARS). El detalle en USD queda
+// como aclaración en el campo de texto libre "monto".
+const USD_ARS = 1535;
+const usd = (n) => Math.round(n * USD_ARS);
+
+const RENSPA = '15.001.0.01075/00';
+
 const data = {
+  ...emptyData(),
   productor: 'Walter Ferracuti (Walter Ferracuti, Nora Contín y Lorena Ferracuti S.H. — CUIT 30-70817816-7)',
   finca: 'Chacra C75',
-  renspa: '15.001.0.01075/00',
+  renspa: RENSPA,
   localidad: 'Viedma - IDEVI (Paraje El Juncal, Dpto. Adolfo Alsina, Río Negro)',
-  superficieTotal: '20', superficieCultivada: '14.45', superficieInculta: '', superficieDerecho: '',
+  superficieTotal: '20', superficieCultivada: '14.45', superficieInculta: '5.55', superficieDerecho: '',
   ccpp: '', pozos: '',
   obsGenerales: 'Establecimiento en plena producción y funcionamiento. Cuenta con derecho y disponibilidad de agua de riego integrada al sistema de canales del IDEVI.',
   cultivos: [
-    { cultivo: 'Avellano', variedad: 'Tonda Di Giffoni', destino: '', anio: '2005-2013-2018', marco: '5 m x 4 m', superficie: '14.45', conduccion: 'Acequias', rendimiento: '2000' }
+    { cultivo: 'Avellano', variedad: 'Tonda Di Giffoni', destino: '', anio: '2005-2013-2018', marco: '5 m x 4 m', superficie: '14.45', rendimiento: '2000', rendimientoUnidad: 'Kg/ha' }
   ],
-  obsCultivos: '13 ha implantadas (8-25 años); resto en preparación para nuevas plantas.',
+  obsCultivos: '13 ha implantadas (8-25 años); resto en preparación para nuevas plantas. Conducción: acequias.',
   analisisSuelo: 'No posee',
   textura: 'Franco / Franco-limoso (característico de los valles aluviales del IDEVI)',
-  problemasSuelo: 'Sin limitaciones severas actuales; salinidad normal; suelo profundo, apto para el anclaje radicular de frutales secos.',
-  obsSuelo: 'Perfil típico del valle inferior del Río Negro, apto para labranza y con buena respuesta a la fertilización controlada.',
+  problemasSuelo: 'Sin limitaciones severas actuales; salinidad normal; suelo profundo, apto para el anclaje radicular de frutales secos. Perfil típico del valle inferior del Río Negro, apto para labranza y con buena respuesta a la fertilización controlada.',
   sistemasPresentes: ['Surcos', 'Melgas'], otroSistemaTexto: '',
   rsFuente: null, rsSuperficie: '14.45', rsCaudal: '40',
   rsFrecTurnado: 'Diaria (sin riego en época de mantenimiento del canal principal, mayo-agosto)',
   rsDuracionTurnado: '192', rsCantTurnos: '12',
   rsInfraestructura: 'Fuente: Canal Secundario IDEVI. Derecho y disponibilidad de agua integrada al sistema de canales del IDEVI. Sistema de riego por surco/melga instalado en 1950.',
-  rsProblemas: 'Uniformidad de aplicación 30%, superficie mojada 50%, pérdidas por escurrimiento 20%. Eficiencia de aplicación estimada en 30%.',
-  rsObservaciones: 'Método de decisión de riego: observación visual, medición de humedad con higrómetro y recomendación profesional (balance hídrico). Se realiza medición de caudal (40 L/s).',
-  rpFuente: null, rpSuperficie: '', rpCaudal: '', rpFrecuencia: '', rpDuracion: '', rpProblemas: '', rpObservaciones: '',
+  rsProblemas: 'Uniformidad de aplicación 30%, superficie mojada 50%, pérdidas por escurrimiento 20%. Eficiencia de aplicación estimada en 30%. Método de decisión de riego: observación visual, medición de humedad con higrómetro y recomendación profesional (balance hídrico). Se realiza medición de caudal (40 L/s).',
   represa: 'No posee', volumenRepresa: '',
   medicionCaudales: 'Realiza', metodoMedicion: 'Higrómetro y observación visual con criterios de balance hídrico',
   asistenciaTecnica: 'Posee', personalRiego: [],
@@ -43,21 +55,22 @@ const data = {
   indicadoresMejora: 'Reducción de pérdidas por heladas tardías: del 40% a menos del 10% en años con eventos de intensidad moderada\nIncremento de la producción comercial: de 2.000 a 2.800 kg/ha\nEstabilidad de los rendimientos: de Baja a Alta\nEficiencia de aplicación de agua: del 30% a valores cercanos al 90%\nMejora de la eficiencia operativa: infraestructura preparada para incorporar fertirrigación',
   cronogramaEtapas: 'Etapa 1 — Gestión, evaluación jurídica y aprobación del financiamiento ante el CFI: 30 días\nEtapa 2 — Adquisición y acopio de materiales: 10 días\nEtapa 3 — Obras de infraestructura: 30 días\nEtapa 4 — Zanjeo, conexiones de tuberías, cabezal de filtrado, bombeo y líneas de aspersión: 20 días\nEtapa 5 — Pruebas de presión, lavado de tuberías, calibración de emisores y puesta en marcha: 3 días',
   tiempoTotalMeses: '3',
+  // Cofinanciamiento 80% CFI / 20% productor (no hay campo propio para esto en
+  // el esquema actual — queda documentado acá y en metodosControl).
   presupuesto: [
-    { inversion: 'Tuberías', monto: 'USD 31.122,41 + IVA' },
-    { inversion: 'Válvulas de campo', monto: 'USD 578,57 + IVA' },
-    { inversion: 'Aspersores + conexiones', monto: 'USD 8.096,06 + IVA' },
-    { inversion: 'Manifold', monto: 'USD 6.066,41 + IVA' },
-    { inversion: 'Programación', monto: 'USD 5.699,91 + IVA' },
-    { inversion: 'Inyección de fertilizantes', monto: 'USD 5.663,56 + IVA' },
-    { inversion: 'Bombeo', monto: 'USD 50.087,25 + IVA' },
-    { inversion: 'Instalación', monto: 'USD 12.812,00 + IVA' },
-    { inversion: 'Proyecto', monto: 'USD 625,00 + IVA' },
-    { inversion: 'Reservorio', monto: 'USD 29.865,00 + IVA' },
-    { inversion: 'TOTAL (80% CFI / 20% productor)', monto: 'USD 150.616,17 + IVA (≈ $227.430.416,7 ARS + IVA)' }
+    { inversion: 'Tuberías', codN1: 'C', codN2: 'C01', tipo: 'C — Conducción y distribución intrapredial', monto: 'USD 31.122,41 + IVA', montoUSD: usd(31122.41) },
+    { inversion: 'Válvulas de campo', codN1: 'G', codN2: 'G04', tipo: 'G — Cabezal, filtrado, fertirriego y calidad de agua', monto: 'USD 578,57 + IVA', montoUSD: usd(578.57) },
+    { inversion: 'Aspersores + conexiones', codN1: 'D', codN2: 'D04', tipo: 'D — Aplicación – Riego presurizado', monto: 'USD 8.096,06 + IVA', montoUSD: usd(8096.06) },
+    { inversion: 'Manifold', codN1: 'C', codN2: 'C01', tipo: 'C — Conducción y distribución intrapredial', monto: 'USD 6.066,41 + IVA', montoUSD: usd(6066.41) },
+    { inversion: 'Programación', codN1: 'H', codN2: 'H03', tipo: 'H — Automatización, monitoreo y agricultura digital', monto: 'USD 5.699,91 + IVA', montoUSD: usd(5699.91) },
+    { inversion: 'Inyección de fertilizantes', codN1: 'G', codN2: 'G02', tipo: 'G — Cabezal, filtrado, fertirriego y calidad de agua', monto: 'USD 5.663,56 + IVA', montoUSD: usd(5663.56) },
+    { inversion: 'Bombeo (bomba centrífuga, tablero eléctrico, sala de bombeo)', codN1: 'G', codN2: 'G05', tipo: 'G — Cabezal, filtrado, fertirriego y calidad de agua', monto: 'USD 50.087,25 + IVA', montoUSD: usd(50087.25) },
+    { inversion: 'Instalación', codN1: 'M', codN2: 'M01', tipo: 'M — Infraestructura y equipamiento complementario', monto: 'USD 12.812,00 + IVA', montoUSD: usd(12812.00) },
+    { inversion: 'Proyecto', codN1: 'L', codN2: 'L03', tipo: 'L — Estudios, proyectos y servicios técnicos', monto: 'USD 625,00 + IVA', montoUSD: usd(625.00) },
+    { inversion: 'Reservorio (12.200 m³)', codN1: 'B', codN2: 'B01', tipo: 'B — Almacenamiento y regulación', monto: 'USD 29.865,00 + IVA', montoUSD: usd(29865.00) }
   ],
   responsableSeguimiento: 'Secretaría de Agricultura de la Provincia de Río Negro (Ing. Fernando Arborelo / Mg. Ing. Agr. Lucio Reinoso)',
-  metodosControl: 'Inspecciones visuales del avance de las obras civiles. Inspecciones visuales del avance de la instalación del sistema de riego (bombeo y filtrado).',
+  metodosControl: 'Inspecciones visuales del avance de las obras civiles. Inspecciones visuales del avance de la instalación del sistema de riego (bombeo y filtrado). Cofinanciamiento: 80% CFI / 20% productor.',
   periodicidad: 'Seguimiento mensual durante la ejecución.'
 };
 
@@ -92,9 +105,16 @@ Ing. Agr. Lucas Costa
 Equipo Técnico – Programa de Apoyo para la Tecnificación del Riego – CFI`;
 
 async function main() {
-  const { rows: urows } = await db.query('SELECT id FROM users WHERE username = $1', ['aperez']);
-  if (!urows[0]) throw new Error('No existe el usuario aperez. Corré primero npm run seed.');
-  const tecnicoId = urows[0].id;
+  const { rows: existentes } = await db.query(`SELECT id FROM diagnosticos WHERE data->>'renspa' = $1`, [RENSPA]);
+  if (existentes[0]) {
+    console.log('Ya existe un diagnóstico con este RENSPA (id =', existentes[0].id, ') — no se vuelve a cargar.');
+    await db.pool.end();
+    return;
+  }
+
+  const { rows: turows } = await db.query('SELECT id FROM users WHERE username = $1', ['tecnicorn']);
+  if (!turows[0]) throw new Error('No existe el usuario "tecnicorn". Creá primero el técnico de Río Negro con /api/admin/crear-usuario.');
+  const tecnicoId = turows[0].id;
 
   const { rows } = await db.query(
     `INSERT INTO diagnosticos (data, doc_status, informe_conformidad, created_by, created_at, updated_at)
@@ -104,7 +124,7 @@ async function main() {
   const id = rows[0].id;
 
   const firmas = [
-    ['tecnico', 'aperez', '2026-07-02 10:00:00-03', 'Paraje El Juncal, Dpto. Adolfo Alsina, Viedma, Río Negro (Lat -40.8166, Long -63.0709)', false, '', null],
+    ['tecnico', 'tecnicorn', '2026-07-02 10:00:00-03', 'Paraje El Juncal, Dpto. Adolfo Alsina, Viedma, Río Negro (Lat -40.8166, Long -63.0709)', false, '', null],
     ['provincia', 'lreinoso', '2026-07-21 09:00:00-03', 'Secretaría de Agricultura de la Provincia de Río Negro (oficina)', false, '', null],
     ['cfi', 'lcosta', '2026-07-30 14:00:00-03', 'CABA (oficina CFI)', true,
       'Observación técnica sobre captación de agua: la fuente de captación definitiva, el derecho de uso de agua y el dimensionamiento del reservorio/estación de bombeo (para garantizar 400 m³/h a 70 m.c.a.) deben completarse en la instancia de proyecto ejecutivo, previo al desembolso. No afecta la validez del diagnóstico.',
@@ -120,8 +140,8 @@ async function main() {
   }
 
   const hist = [
-    ['2026-07-01 09:00:00-03', 'aperez', 'Diagnóstico creado', 'Relevamiento en Chacra C75 — Walter Ferracuti (Viedma, Río Negro)', 'ok'],
-    ['2026-07-02 10:00:00-03', 'aperez', 'Firmado por Técnico de campo', 'Identidad reautenticada', 'ok'],
+    ['2026-07-01 09:00:00-03', 'tecnicorn', 'Diagnóstico creado', 'Relevamiento en Chacra C75 — Walter Ferracuti (Viedma, Río Negro)', 'ok'],
+    ['2026-07-02 10:00:00-03', 'tecnicorn', 'Firmado por Técnico de campo', 'Identidad reautenticada', 'ok'],
     ['2026-07-21 09:00:00-03', 'lreinoso', 'Validado y firmado por Responsable provincial', 'Mg. Ing. Agr. Lucio Reinoso — Sec. de Agricultura de Río Negro. Sin observaciones', 'ok'],
     ['2026-07-29 11:00:00-03', 'lcosta', 'Borrador de Conformidad Técnica generado', 'Basado en el análisis técnico del proyecto hidráulico (Memoria Técnica Agroconsultind S.R.L.)', 'ok'],
     ['2026-07-30 14:00:00-03', 'lcosta', 'Validado y firmado por Técnico CFI', 'Con observaciones sujetas a complementación (captación de agua / reservorio / bombeo)', 'warn']
