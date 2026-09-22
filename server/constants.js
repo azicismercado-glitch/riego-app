@@ -40,12 +40,13 @@ function emptyData() {
     superficieTotal: '', superficieCultivada: '', superficieInculta: '', superficieDerecho: '', fuenteRiegoDerecho: '',
     ccpp: '', pozos: '', obsGenerales: '',
     cultivos: [emptyCultivo()], obsCultivos: '',
-    tipoProduccion: null, ganaderiaAnimalTipo: '', ganaderiaActividad: null, ganaderiaCabezas: '', ganaderiaCategorias: [],
-    analisisSuelo: null, analisisSueloArchivo: null, textura: '', problemasSuelo: '', obsSuelo: '',
+    tipoProduccion: null, ganaderiaAnimalTipo: '', ganaderiaManejo: null, ganaderiaActividad: [], ganaderiaCabezas: '', ganaderiaCategorias: [],
+    analisisSuelo: null, analisisSueloArchivo: null, textura: '', problemasSuelo: '',
+    profundidadLimitante: '', profundidadEfectivaCm: '', salinidadTipo: '', hayPiedras: null, porcentajePiedra: '',
     requiereAnalisisPrevio: null, requiereAnalisisPrevioQue: [],
     tipoRiegoGeneral: null, sistemasPresentes: [], otroSistemaTexto: '',
-    rsFuente: null, rsSuperficie: '', rsCaudal: '', rsFrecTurnado: '', rsDuracionTurnado: '', rsCantTurnos: '', rsInfraestructura: '', rsProblemas: '', rsObservaciones: '',
-    rpFuente: null, rpSuperficie: '', rpCaudal: '', rpFrecuencia: '', rpDuracion: '', rpProblemas: '', rpObservaciones: '',
+    rsFuente: null, rsSuperficie: '', rsCaudal: '', rsFrecTurnado: '', rsDuracionTurnado: '', rsCantTurnos: '', rsInfraestructura: '', rsProblemas: '',
+    rpFuente: null, rpSuperficie: '', rpCaudal: '', rpFrecuencia: '', rpDuracion: '', rpProblemas: '',
     represa: null, volumenRepresa: '', medicionCaudales: null, metodoMedicion: '', asistenciaTecnica: null, personalRiego: [], obsRiego: '',
     descripcionMejora: '', objetivosMejora: '', materialesMejora: '', indicadoresMejora: '', cronogramaEtapas: '', tiempoTotalMeses: '',
     presupuesto: [emptyPresupuesto()], responsableSeguimiento: '', metodosControl: '', periodicidad: ''
@@ -56,6 +57,16 @@ function has(v) {
   return v !== null && v !== undefined && String(v).trim() !== '';
 }
 
+// Qué tipo(s) de riego tiene cargados el diagnóstico, para saber qué bloque
+// de la pestaña Riego (superficial y/o presurizado) corresponde exigir.
+function sistemasRiego(d) {
+  const sp = d.sistemasPresentes || [];
+  return {
+    superficial: sp.some((s) => ['Surcos', 'Melgas'].includes(s)),
+    presurizado: sp.some((s) => ['Goteo', 'Aspersión'].includes(s))
+  };
+}
+
 // Deja solo los dígitos de un CUIT (saca guiones/espacios) para poder cruzar
 // con lo importado de SIGI sin depender del formato exacto en que se escribió.
 function normalizeCuit(v) {
@@ -64,11 +75,17 @@ function normalizeCuit(v) {
 
 function completeness(data, fotosCount) {
   const d = data;
+  const { superficial, presurizado } = sistemasRiego(d);
+  const riegoReq = [(d.sistemasPresentes || []).length > 0];
+  if (superficial) riegoReq.push(has(d.rsSuperficie), has(d.rsFrecTurnado), has(d.rsDuracionTurnado));
+  if (presurizado) riegoReq.push(has(d.rpSuperficie), has(d.rpFrecuencia), has(d.rpDuracion));
+  if (!superficial && !presurizado) riegoReq.push(has(d.rsSuperficie) || has(d.rpSuperficie));
+
   const secs = {
     estab: { label: 'Establecimiento', req: [has(d.productor), has(d.finca), has(d.localidad), has(d.renspa), has(d.superficieTotal), has(d.superficieCultivada)] },
     cultivos: { label: 'Cultivos', req: [(d.cultivos || []).some((c) => has(c.cultivo) && has(c.superficie))] },
     suelo: { label: 'Suelo', req: [has(d.analisisSuelo), has(d.textura)] },
-    riego: { label: 'Sistema de riego', req: [(d.sistemasPresentes || []).length > 0, has(d.rsSuperficie) || has(d.rpSuperficie)] },
+    riego: { label: 'Sistema de riego', req: riegoReq },
     propuesta: { label: 'Propuesta de mejora', req: [has(d.descripcionMejora), has(d.materialesMejora), has(d.indicadoresMejora), has(d.tiempoTotalMeses), (d.presupuesto || []).some((p) => has(p.inversion) && has(p.monto))] },
     fotos: { label: 'Fotos', req: [(fotosCount || 0) > 0] }
   };
@@ -94,6 +111,17 @@ function missingForSign(data) {
   if (!has(d.textura)) faltan.push('Textura del suelo');
   if (!(d.cultivos || []).some((c) => has(c.cultivo))) faltan.push('Al menos un cultivo');
   if ((d.sistemasPresentes || []).length === 0) faltan.push('Sistema de riego presente');
+  const { superficial, presurizado } = sistemasRiego(d);
+  if (superficial) {
+    if (!has(d.rsSuperficie)) faltan.push('Superficie regada (riego superficial)');
+    if (!has(d.rsFrecTurnado)) faltan.push('Frecuencia de turnado (riego superficial)');
+    if (!has(d.rsDuracionTurnado)) faltan.push('Duración de turnado (riego superficial)');
+  }
+  if (presurizado) {
+    if (!has(d.rpSuperficie)) faltan.push('Superficie regada (riego presurizado)');
+    if (!has(d.rpFrecuencia)) faltan.push('Frecuencia por operación (riego presurizado)');
+    if (!has(d.rpDuracion)) faltan.push('Duración por operación (riego presurizado)');
+  }
   if (!has(d.descripcionMejora)) faltan.push('Descripción de la mejora propuesta');
   if (!(d.presupuesto || []).some((p) => has(p.inversion))) faltan.push('Al menos un ítem de presupuesto');
   return faltan;
@@ -102,5 +130,5 @@ function missingForSign(data) {
 module.exports = {
   STAGES, STAGE_LABELS, STAGE_ROLE, TIPOS_INVERSION, stageIndex,
   emptyCultivo, emptyPresupuesto, emptyData,
-  has, completeness, missingForSign, normalizeCuit
+  has, sistemasRiego, completeness, missingForSign, normalizeCuit
 };

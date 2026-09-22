@@ -7,13 +7,15 @@ const STAGE_LABELS = {borrador:'Borrador', firmado_tecnico:'Firmado por técnico
 const STAGE_ROLE = ['tecnico','provincia','cfi'];
 const DEMO_HINT = {tecnico:{username:'aperez', password:'1234'}, provincia:{username:'mgomez', password:'1234'}, cfi:{username:'lcosta', password:'1234'}, lector:{username:'invitado', password:'1234'}};
 const TABS = [['estab','Establec.'],['cultivos','Cultivos'],['suelo','Suelo'],['riego','Riego'],['propuesta','Propuesta'],['fotos','Fotos'],['resumen','Resumen'],['firmas','Firmas'],['historial','Historial']];
-const FUENTES_RIEGO_DERECHO = ['Superficial','Subterránea','Mixta'];
+const FUENTES_RIEGO_DERECHO = ['Río','Arroyo','Laguna','Vertiente','Subterránea (pozo)','Mixta','Otra'];
 const DESTINOS_CULTIVO = ['Industria','Consumo','Oleaginosa','Cereal','Otro'];
 const RENDIMIENTO_UNIDADES = ['Kg/ha','Materia seca/ha','Otros'];
 const ACTIVIDAD_GANADERA = ['Cría','Invernada','Ciclo completo'];
+const MANEJO_GANADERO = ['A campo','Confinado (feedlot/corral)'];
 const CATEGORIAS_GANADERAS = ['Terneros/as','Vaquillonas','Novillos','Novillitos','Vacas','Toros','Cabritos','Corderos','Otros'];
 const TEXTURAS_SUELO = ['Arenoso','Areno francoso','Franco arenoso','Franco','Franco limoso','Limoso','Franco arcillo arenoso','Franco arcilloso','Franco arcillo limoso','Arcillo arenoso','Arcillo limoso','Arcilloso'];
-const ANALISIS_PREVIO_ITEMS = ['Salinidad','Textura','Profundidad','Materia orgánica','pH','Otro'];
+const ANALISIS_PREVIO_ITEMS = ['Salinidad','Textura','Sodicidad','Materia orgánica','pH','Otro'];
+const PROFUNDIDAD_LIMITANTE_OPCIONES = ['Sin limitaciones','Limitantes moderadas','Con limitaciones'];
 // Nomenclador de inversiones — Línea de Financiamiento Triple Impacto (CFI).
 // Nivel 1: 13 grandes categorías (A-M). Nivel 2: subcategorías dentro de cada
 // una. El nivel 2 se filtra según la categoría elegida en el nivel 1.
@@ -542,6 +544,17 @@ function chip(cv, value, label, key) {
 }
 function setChip(key, val) { if (!canEdit()) return; cur().data[key] = val; flushSave(); render(); }
 function setField(key, val) { if (!canEdit()) return; cur().data[key] = val; scheduleSave(); }
+// Superficie inculta se calcula sola (total - cultivada) para poder chequear
+// que los datos cierran, en vez de que el técnico la tipee a mano.
+function setSuperficieBase(key, val) {
+  if (!canEdit()) return;
+  const d = cur().data;
+  d[key] = val;
+  const total = Number(d.superficieTotal) || 0;
+  const cultivada = Number(d.superficieCultivada) || 0;
+  d.superficieInculta = (d.superficieTotal || d.superficieCultivada) ? String(+(Math.max(0, total - cultivada)).toFixed(2)) : '';
+  flushSave(); render();
+}
 // Al elegir Gravitacional/Presurizado, los sistemas presentes que ya no
 // corresponden a esa familia se sacan de la selección (ej: si tenía "Surcos"
 // marcado y pasa a Presurizado, "Surcos" deja de estar disponible).
@@ -676,11 +689,11 @@ function renderTabContent(dg) {
         <div class="field-group"><label>N.° de expediente SIGI</label><input type="text" value="${d.expedienteSigi||''}" ${dis} placeholder="2025-CR-MZ-002426 (si ya existe)" oninput="setField('expedienteSigi',this.value)"></div>
       </div>
       <div class="row2">
-        <div class="field-group"><label>Superficie total (ha) <span class="req">*</span></label><input type="number" value="${d.superficieTotal}" ${dis} oninput="setField('superficieTotal',this.value)"></div>
-        <div class="field-group"><label>Superficie cultivada (ha)</label><input type="number" value="${d.superficieCultivada}" ${dis} oninput="setField('superficieCultivada',this.value)"></div>
+        <div class="field-group"><label>Superficie total (ha) <span class="req">*</span></label><input type="number" value="${d.superficieTotal}" ${dis} onchange="setSuperficieBase('superficieTotal',this.value)"></div>
+        <div class="field-group"><label>Superficie cultivada (ha)</label><input type="number" value="${d.superficieCultivada}" ${dis} onchange="setSuperficieBase('superficieCultivada',this.value)"></div>
       </div>
       <div class="row2">
-        <div class="field-group"><label>Superficie inculta (ha)</label><input type="number" value="${d.superficieInculta}" ${dis} oninput="setField('superficieInculta',this.value)"></div>
+        <div class="field-group"><label>Superficie inculta (ha) <span class="hint" style="font-weight:400">calculada: total − cultivada</span></label><input type="number" value="${d.superficieInculta}" disabled></div>
         <div class="field-group"><label>Sup. con derecho de riego (ha)</label><input type="number" value="${d.superficieDerecho}" ${dis} oninput="setField('superficieDerecho',this.value)"></div>
       </div>
       <div class="field-group"><label>Fuente de agua de la superficie con derecho de riego</label>
@@ -697,7 +710,7 @@ function renderTabContent(dg) {
     ${lockedBanner(dg)}
     <div class="section-title" style="margin-bottom:10px"><i class="ti ti-plant-2"></i> Datos del cultivo</div>
     <div class="table-scroll"><table class="dyn-table">
-      <thead><tr><th>Cultivo</th><th>Variedad</th><th>Destino</th><th>Año Plant./Siembra</th><th>Marco de plantación/Densidad de siembra</th><th>Sup. (ha)</th><th>Rendimiento</th><th></th></tr></thead>
+      <thead><tr><th>Cultivo</th><th>Variedad</th><th>Destino</th><th>Año de Plantación</th><th>Marco de plantación/Densidad de siembra</th><th>Sup. (ha)</th><th>Rendimiento</th><th></th></tr></thead>
       <tbody>${d.cultivos.map((cv,i)=>`<tr>
         <td><input type="text" value="${cv.cultivo}" ${dis} onchange="setCultivo(${i},'cultivo',this.value)"></td>
         <td><input type="text" value="${cv.variedad}" ${dis} onchange="setCultivo(${i},'variedad',this.value)"></td>
@@ -729,8 +742,10 @@ function renderTabContent(dg) {
       <div class="field-group"><label>Animales (tipo)</label><input type="text" value="${d.ganaderiaAnimalTipo||''}" ${dis} placeholder="Ej: Bovinos, caprinos" oninput="setField('ganaderiaAnimalTipo',this.value)"></div>
       <div class="field-group"><label>Cantidad de cabezas</label><input type="number" value="${d.ganaderiaCabezas||''}" ${dis} oninput="setField('ganaderiaCabezas',this.value)"></div>
     </div>
-    <div class="field-group"><label>Actividad</label>
-      <div class="chip-group">${ACTIVIDAD_GANADERA.map(a=>chip(d.ganaderiaActividad,a,a,'ganaderiaActividad')).join('')}</div></div>
+    <div class="field-group"><label>Manejo</label>
+      <div class="chip-group">${MANEJO_GANADERO.map(m=>chip(d.ganaderiaManejo,m,m,'ganaderiaManejo')).join('')}</div></div>
+    <div class="field-group"><label>Actividad <span class="hint" style="font-weight:400">(se puede tildar más de una)</span></label>
+      <div class="chip-group">${ACTIVIDAD_GANADERA.map(a=>`<div class="chip ${(d.ganaderiaActividad||[]).includes(a)?'selected':''} ${canEdit()?'':'disabled'}" ${canEdit()?`onclick="toggleArr('ganaderiaActividad','${a}')"`:''}>${a}</div>`).join('')}</div></div>
     <div class="field-group"><label>Categorías</label>
       <div class="chip-group">${CATEGORIAS_GANADERAS.map(c=>`<div class="chip ${(d.ganaderiaCategorias||[]).includes(c)?'selected':''} ${canEdit()?'':'disabled'}" ${canEdit()?`onclick="toggleArr('ganaderiaCategorias','${c}')"`:''}>${c}</div>`).join('')}</div></div>
     `:''}
@@ -767,17 +782,31 @@ function renderTabContent(dg) {
         Sin un análisis de laboratorio conviene: 1) tomar muestras representativas del lote antes de definir el sistema de riego; 2) medir como mínimo textura, salinidad (CE) y materia orgánica; 3) confirmar la textura estimada a campo con un análisis, ya que condiciona el diseño del riego; 4) recurrir a un laboratorio acreditado de la zona.
       </div>` : ''}
 
-      <div class="field-group"><label>Principales problemas de suelo observados</label>
-        <textarea ${dis} oninput="setField('problemasSuelo',this.value)">${d.problemasSuelo}</textarea></div>
-      <div class="field-group"><label>Otras observaciones del suelo</label>
-        <textarea ${dis} oninput="setField('obsSuelo',this.value)">${d.obsSuelo}</textarea></div>
+      <div class="field-group"><label>Profundidad</label>
+        <select ${dis} onchange="setField('profundidadLimitante',this.value)" style="width:100%;max-width:280px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:12.5px;font-family:inherit">
+          <option value="">Elegir…</option>
+          ${PROFUNDIDAD_LIMITANTE_OPCIONES.map(o=>`<option value="${o}" ${d.profundidadLimitante===o?'selected':''}>${o}</option>`).join('')}
+        </select>
+        <div class="hint">Optativo: profundidad efectiva (cm)</div>
+        <input type="number" value="${d.profundidadEfectivaCm||''}" ${dis} style="max-width:140px;margin-top:4px" oninput="setField('profundidadEfectivaCm',this.value)"></div>
 
-      <div class="subsection-title">¿Requiere análisis previo?</div>
+      <div class="field-group"><label>¿Hay piedras?</label>
+        <div class="chip-group">${chip(d.hayPiedras,'Sí','Sí','hayPiedras')}${chip(d.hayPiedras,'No','No','hayPiedras')}</div></div>
+      ${d.hayPiedras==='Sí'?`
+      <div class="field-group"><label>% de piedra</label><input type="number" value="${d.porcentajePiedra||''}" ${dis} style="max-width:140px" oninput="setField('porcentajePiedra',this.value)"></div>`:''}
+
+      <div class="field-group"><label>Principales problemas y observaciones de suelo</label>
+        <textarea ${dis} oninput="setField('problemasSuelo',this.value)">${d.problemasSuelo}</textarea></div>
+
+      <div class="subsection-title">¿Sugiere análisis previo?</div>
       <div class="field-group"><label>&nbsp;</label>
         <div class="chip-group">${chip(d.requiereAnalisisPrevio,'Sí','Sí','requiereAnalisisPrevio')}${chip(d.requiereAnalisisPrevio,'No','No','requiereAnalisisPrevio')}</div></div>
       ${d.requiereAnalisisPrevio==='Sí'?`
       <div class="field-group"><label>¿De qué?</label>
         <div class="chip-group">${ANALISIS_PREVIO_ITEMS.map(it=>`<div class="chip ${(d.requiereAnalisisPrevioQue||[]).includes(it)?'selected':''} ${canEdit()?'':'disabled'}" ${canEdit()?`onclick="toggleArr('requiereAnalisisPrevioQue','${it}')"`:''}>${it}</div>`).join('')}</div></div>
+      ${(d.requiereAnalisisPrevioQue||[]).includes('Salinidad')?`
+      <div class="field-group"><label>Salinidad</label>
+        <div class="chip-group">${chip(d.salinidadTipo,'Simple','Simple','salinidadTipo')}${chip(d.salinidadTipo,'Compuesta','Compuesta','salinidadTipo')}</div></div>`:''}
       ${(d.requiereAnalisisPrevioQue||[]).length?`
       <div class="rejection-banner" style="background:var(--clay-light);border-color:var(--clay);color:var(--ink)">
         <strong><i class="ti ti-alert-triangle"></i> Recomendación</strong>
@@ -813,17 +842,16 @@ function renderTabContent(dg) {
       <div class="field-group"><label>Fuente de agua</label>
         <div class="chip-group">${chip(d.rsFuente,'Turno','Turno','rsFuente')}${chip(d.rsFuente,'Pozo','Pozo','rsFuente')}</div></div>
       <div class="row2">
-        <div class="field-group"><label>Superficie regada (ha)</label><input type="text" value="${d.rsSuperficie}" ${dis} oninput="setField('rsSuperficie',this.value)"></div>
+        <div class="field-group"><label>Superficie regada (ha) <span class="req">*</span></label><input type="text" value="${d.rsSuperficie}" ${dis} oninput="setField('rsSuperficie',this.value)"></div>
         <div class="field-group"><label>Caudal medio (l/s)</label><input type="text" value="${d.rsCaudal}" ${dis} oninput="setField('rsCaudal',this.value)"></div>
       </div>
       <div class="row2">
-        <div class="field-group"><label>Frecuencia turnado (días)</label><input type="text" value="${d.rsFrecTurnado}" ${dis} oninput="setField('rsFrecTurnado',this.value)"></div>
-        <div class="field-group"><label>Duración turnado (hs)</label><input type="text" value="${d.rsDuracionTurnado}" ${dis} oninput="setField('rsDuracionTurnado',this.value)"></div>
+        <div class="field-group"><label>Frecuencia turnado (días) <span class="req">*</span></label><input type="text" value="${d.rsFrecTurnado}" ${dis} oninput="setField('rsFrecTurnado',this.value)"></div>
+        <div class="field-group"><label>Duración turnado (hs) <span class="req">*</span></label><input type="text" value="${d.rsDuracionTurnado}" ${dis} oninput="setField('rsDuracionTurnado',this.value)"></div>
       </div>
       <div class="field-group"><label>Turnos por temporada</label><input type="text" value="${d.rsCantTurnos}" ${dis} oninput="setField('rsCantTurnos',this.value)"></div>
       <div class="field-group"><label>Infraestructura de riego</label><textarea ${dis} oninput="setField('rsInfraestructura',this.value)">${d.rsInfraestructura}</textarea></div>
       <div class="field-group"><label>Principales problemas y limitantes</label><textarea ${dis} oninput="setField('rsProblemas',this.value)">${d.rsProblemas}</textarea></div>
-      <div class="field-group"><label>Observaciones</label><textarea ${dis} oninput="setField('rsObservaciones',this.value)">${d.rsObservaciones}</textarea></div>
       `:''}
 
       ${showPresurizado?`
@@ -831,15 +859,14 @@ function renderTabContent(dg) {
       <div class="field-group"><label>Fuente de agua</label>
         <div class="chip-group">${chip(d.rpFuente,'Turno','Turno','rpFuente')}${chip(d.rpFuente,'Pozo','Pozo','rpFuente')}</div></div>
       <div class="row2">
-        <div class="field-group"><label>Superficie regada (ha)</label><input type="text" value="${d.rpSuperficie}" ${dis} oninput="setField('rpSuperficie',this.value)"></div>
-        <div class="field-group"><label>Caudal medio (l/h)</label><input type="text" value="${d.rpCaudal}" ${dis} oninput="setField('rpCaudal',this.value)"></div>
+        <div class="field-group"><label>Superficie regada (ha) <span class="req">*</span></label><input type="text" value="${d.rpSuperficie}" ${dis} oninput="setField('rpSuperficie',this.value)"></div>
+        <div class="field-group"><label>Caudal medio (mm/h)</label><input type="text" value="${d.rpCaudal}" ${dis} oninput="setField('rpCaudal',this.value)"></div>
       </div>
       <div class="row2">
-        <div class="field-group"><label>Frecuencia por operación (días)</label><input type="text" value="${d.rpFrecuencia}" ${dis} oninput="setField('rpFrecuencia',this.value)"></div>
-        <div class="field-group"><label>Duración por operación (hs)</label><input type="text" value="${d.rpDuracion}" ${dis} oninput="setField('rpDuracion',this.value)"></div>
+        <div class="field-group"><label>Frecuencia por operación (días) <span class="req">*</span></label><input type="text" value="${d.rpFrecuencia}" ${dis} oninput="setField('rpFrecuencia',this.value)"></div>
+        <div class="field-group"><label>Duración por operación (hs) <span class="req">*</span></label><input type="text" value="${d.rpDuracion}" ${dis} oninput="setField('rpDuracion',this.value)"></div>
       </div>
       <div class="field-group"><label>Principales problemas y limitantes</label><textarea ${dis} oninput="setField('rpProblemas',this.value)">${d.rpProblemas}</textarea></div>
-      <div class="field-group"><label>Observaciones</label><textarea ${dis} oninput="setField('rpObservaciones',this.value)">${d.rpObservaciones}</textarea></div>
       `:''}
 
       <div class="subsection-title">Infraestructura y manejo</div>
@@ -872,7 +899,7 @@ function renderTabContent(dg) {
       <div class="hint" style="margin-bottom:8px">El "Monto ($)" es un número simple, sin texto — se usa para el panel de totales del programa. El campo "Presupuesto estimado" queda libre para aclaraciones (IVA, moneda local, etc.).</div>
       <div class="hint" style="margin-bottom:8px">Categorías del nomenclador de inversiones CFI — Línea Triple Impacto. Elegí primero la categoría (nivel 1) y después la subcategoría específica (nivel 2).</div>
       <div class="table-scroll"><table class="dyn-table" style="min-width:100%">
-        <thead><tr><th>Inversión</th><th>Categoría (nivel 1)</th><th>Subcategoría (nivel 2)</th><th>Monto ($)</th><th>Presupuesto estimado (texto)</th><th></th></tr></thead>
+        <thead><tr><th>Mejora</th><th>Categoría (nivel 1)</th><th>Subcategoría (nivel 2)</th><th>Monto ($)</th><th>Presupuesto estimado (texto)</th><th></th></tr></thead>
         <tbody>${d.presupuesto.map((p,i)=>{
           const cat = NOMENCLADOR.find(c=>c.n1===p.codN1);
           const legacyLabel = (!p.codN1 && p.tipo) ? p.tipo : '';
@@ -942,7 +969,7 @@ function renderResumen(dg) {
   const presupuestoStr = d.presupuesto.filter(p=>p.inversion).map(p=>`${p.inversion}${p.monto?` — ${p.monto}`:''}`).join('; ')||'—';
   return `
     <div class="section-card">
-      <div class="section-title"><i class="ti ti-list-check"></i> Completitud del diagnóstico — ${c.pct}%</div>
+      <div class="section-title"><i class="ti ti-list-check"></i> Avance del diagnóstico — ${c.pct}%</div>
       <ul class="check-list">${checks}</ul>
     </div>
     <div class="section-card">
@@ -1041,6 +1068,18 @@ function missingLocal(dg) {
   if (!has(d.superficieTotal)) faltan.push('Superficie total');
   if (!d.cultivos.some(c=>has(c.cultivo))) faltan.push('Al menos un cultivo');
   if (d.sistemasPresentes.length===0) faltan.push('Sistema de riego presente');
+  const showSup = d.sistemasPresentes.some(s=>['Surcos','Melgas'].includes(s));
+  const showPres = d.sistemasPresentes.some(s=>['Goteo','Aspersión'].includes(s));
+  if (showSup) {
+    if (!has(d.rsSuperficie)) faltan.push('Superficie regada (riego superficial)');
+    if (!has(d.rsFrecTurnado)) faltan.push('Frecuencia de turnado (riego superficial)');
+    if (!has(d.rsDuracionTurnado)) faltan.push('Duración de turnado (riego superficial)');
+  }
+  if (showPres) {
+    if (!has(d.rpSuperficie)) faltan.push('Superficie regada (riego presurizado)');
+    if (!has(d.rpFrecuencia)) faltan.push('Frecuencia por operación (riego presurizado)');
+    if (!has(d.rpDuracion)) faltan.push('Duración por operación (riego presurizado)');
+  }
   if (!has(d.descripcionMejora)) faltan.push('Descripción de la mejora propuesta');
   if (!d.presupuesto.some(p=>has(p.inversion))) faltan.push('Al menos un ítem de presupuesto');
   return faltan;
