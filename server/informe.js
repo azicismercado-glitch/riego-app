@@ -22,7 +22,7 @@ function generateConformidadDraft(d) {
   const sistemaActual = sistemaPartes.length ? sistemaPartes.join(', complementado con ') + '.' : 's/d.';
 
   const limitantes = [d.rsProblemas, d.rpProblemas, d.problemasSuelo].filter(Boolean);
-  const propuestaItems = (d.materialesMejora || '').split('\n').map((s) => s.trim()).filter(Boolean);
+  const propuestaItems = (d.materiales || []).filter((m) => m.item).map((m) => m.item + (m.cantidad ? ` — ${m.cantidad} ${m.unidad || ''}`.trim() : ''));
   const indicadores = (d.indicadoresMejora || '').split('\n').map((s) => s.trim()).filter(Boolean);
   const presupuesto = d.presupuesto || [];
   const presupuestoTotal =

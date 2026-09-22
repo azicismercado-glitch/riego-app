@@ -32,24 +32,76 @@ function emptyPresupuesto() {
   // codN1/codN2: categoría y subcategoría del nomenclador de inversiones CFI
   // (ver public/app.js NOMENCLADOR). "tipo" guarda la etiqueta legible de la
   // categoría elegida, para no tener que tocar la agregación del panel.
-  return { inversion: '', codN1: '', codN2: '', tipo: '', monto: '', montoUSD: '' };
+  return { inversion: '', codN1: '', codN2: '', tipo: '', monto: '', montoUSD: '', superficieAsociada: '' };
+}
+function emptyMaterial() {
+  return { item: '', cantidad: '', unidad: '', obs: '' };
+}
+function emptyIndicadores() {
+  return [
+    { indicador: 'Eficiencia de aplicación (%)', actual: '', proyectada: '', obs: '' },
+    { indicador: 'Uniformidad de aplicación (%)', actual: '', proyectada: '', obs: '' },
+    { indicador: 'Caudal aprovechado (L/s)', actual: '', proyectada: '', obs: '' },
+    { indicador: 'Superficie tecnificada (ha)', actual: '', proyectada: '', obs: '' },
+    { indicador: 'Incremento en rendimientos', actual: '', proyectada: '', obs: '' },
+    { indicador: 'Ahorro energético', actual: '', proyectada: '', obs: '' },
+    { indicador: 'Impacto ambiental', actual: '', proyectada: '', obs: '' }
+  ];
+}
+function emptyCronogramaGrid() {
+  return {
+    'Extracción de árboles / especies introducidas': { desde: '', hasta: '' },
+    'Remoción de suelo y nivelación láser': { desde: '', hasta: '' },
+    'Adquisición de insumos': { desde: '', hasta: '' },
+    'Instalación / calibración': { desde: '', hasta: '' },
+    'Capacitación': { desde: '', hasta: '' },
+    'Siembra': { desde: '', hasta: '' }
+  };
+}
+function emptyPresupuestoDetallado() {
+  return { item: '', cantidad: '', unidad: '', precioUnitario: '' };
 }
 function emptyData() {
   return {
     productor: '', finca: '', renspa: '', localidad: '', cuit: '', expedienteSigi: '',
-    superficieTotal: '', superficieCultivada: '', superficieInculta: '', superficieDerecho: '', fuenteRiegoDerecho: '',
+    coordenadas: '',
+    superficieTotal: '', superficieCultivada: '', superficieInculta: '', superficieBajoRiego: '', superficieDerecho: '', fuenteRiegoDerecho: '',
     ccpp: '', pozos: '', obsGenerales: '',
-    cultivos: [emptyCultivo()], obsCultivos: '',
+    cultivos: [emptyCultivo()], obsCultivos: '', aclaracionSuperficieCultivo: '',
     tipoProduccion: null, ganaderiaAnimalTipo: '', ganaderiaManejo: null, ganaderiaActividad: [], ganaderiaCabezas: '', ganaderiaCategorias: [],
-    analisisSuelo: null, analisisSueloArchivo: null, textura: '', problemasSuelo: '',
+    analisisSuelo: null, analisisSueloArchivo: null, anioAnalisisSuelo: '', analisisSueloAclaracion: '',
+    textura: '', materiaOrganicaPct: '', fosforoPpm: '', phSuelo: '', nivelSalinidadSuelo: '',
+    descripcionPerfilSuelo: '', problemasSuelo: '', obsSuelo: '',
     profundidadLimitante: '', profundidadEfectivaCm: '', salinidadTipo: '', hayPiedras: null, porcentajePiedra: '',
     requiereAnalisisPrevio: null, requiereAnalisisPrevioQue: [],
     tipoRiegoGeneral: null, sistemasPresentes: [], otroSistemaTexto: '',
     rsFuente: null, rsSuperficie: '', rsCaudal: '', rsFrecTurnado: '', rsDuracionTurnado: '', rsCantTurnos: '', rsInfraestructura: '', rsProblemas: '',
+    rsMetodoDecision: '', rsRiegaTodaPropiedad: null, rsPctSuperficiePorTurno: '',
+    rsMetodoLamina: [], rsMetodoLaminaDetalle: '', rsFormaRegar: '', rsCantHilerasSurcos: '',
+    rsTieneInfraDerivar: null, rsInfraDerivarItems: [], rsMantenimientoItems: [],
+    rsNivelacionCuando: '', rsMetodoNivelacion: '', rsTapadaItems: [], rsControlMalezas: '',
     rpFuente: null, rpSuperficie: '', rpCaudal: '', rpFrecuencia: '', rpDuracion: '', rpProblemas: '',
+    rpMetodoLamina: [], rpMetodoLaminaDetalle: '',
+    rpTieneCaudalimetro: null, rpControlaHorasBombeo: null, rpSistemaFiltrado: '',
+    rpFrecLimpiezaPrimario: '', rpFrecLimpiezaSecundario: '', rpParametroLimpieza: '',
+    rpTieneManometros: null, rpPuntosMedicion: [], rpMantenimientoItems: [], rpControlValvulasItems: [],
+    rpCanerias: '', rpLaterales: '', rpRealizaMedicionCaudal: null, rpAclaracionCaudal: '',
     represa: null, volumenRepresa: '', medicionCaudales: null, metodoMedicion: '', asistenciaTecnica: null, personalRiego: [], obsRiego: '',
-    descripcionMejora: '', objetivosMejora: '', materialesMejora: '', indicadoresMejora: '', cronogramaEtapas: '', tiempoTotalMeses: '',
-    presupuesto: [emptyPresupuesto()], responsableSeguimiento: '', metodosControl: '', periodicidad: ''
+    problemasFrecuentesItems: [], problemasGeneralesObs: '',
+    limitantesItems: [], limitantesDetalle: '', infraDeficienteItems: [],
+    interesMejoras: null, tipoMejoraInteres: '', limitantesObs: '',
+    descripcionMejora: '', cambioPropuestoItems: [], objetivosMejora: '',
+    problemaJustificacionItems: [], justificacionDetalle: '',
+    materiales: [emptyMaterial()],
+    indicadores: emptyIndicadores(),
+    impactoProductivoItems: [], impactoProductivoDetalle: '',
+    impactoEconomicoItems: [], impactoEconomicoDetalle: '',
+    impactoAmbientalItems: [], impactoAmbientalDetalle: '',
+    indicadoresMejora: '', cronogramaEtapas: '', cronogramaGrid: emptyCronogramaGrid(), tiempoTotalMeses: '',
+    presupuesto: [emptyPresupuesto()], presupuestoDetallado: [emptyPresupuestoDetallado()],
+    aportePorcentajeProductor: '', financiamientoPorcentajeSolicitado: '',
+    tipoSeguimiento: '', fechaEstimadaSeguimiento: '', recursosNecesariosSeguimiento: '',
+    responsableSeguimiento: '', metodosControl: [], metodosControlOtro: '', periodicidad: '', criteriosExito: ''
   };
 }
 
@@ -86,7 +138,7 @@ function completeness(data, fotosCount) {
     cultivos: { label: 'Cultivos', req: [(d.cultivos || []).some((c) => has(c.cultivo) && has(c.superficie))] },
     suelo: { label: 'Suelo', req: [has(d.analisisSuelo), has(d.textura)] },
     riego: { label: 'Sistema de riego', req: riegoReq },
-    propuesta: { label: 'Propuesta de mejora', req: [has(d.descripcionMejora), has(d.materialesMejora), has(d.indicadoresMejora), has(d.tiempoTotalMeses), (d.presupuesto || []).some((p) => has(p.inversion) && has(p.monto))] },
+    propuesta: { label: 'Propuesta de mejora', req: [has(d.descripcionMejora), (d.materiales || []).some((m) => has(m.item)), has(d.indicadoresMejora), has(d.tiempoTotalMeses), (d.presupuesto || []).some((p) => has(p.inversion) && has(p.monto))] },
     fotos: { label: 'Fotos', req: [(fotosCount || 0) > 0] }
   };
   let done = 0, total = 0;
@@ -129,6 +181,6 @@ function missingForSign(data) {
 
 module.exports = {
   STAGES, STAGE_LABELS, STAGE_ROLE, TIPOS_INVERSION, stageIndex,
-  emptyCultivo, emptyPresupuesto, emptyData,
+  emptyCultivo, emptyPresupuesto, emptyMaterial, emptyIndicadores, emptyCronogramaGrid, emptyPresupuestoDetallado, emptyData,
   has, sistemasRiego, completeness, missingForSign, normalizeCuit
 };
