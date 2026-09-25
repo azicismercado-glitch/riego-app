@@ -2,6 +2,7 @@ const express = require('express');
 const XLSX = require('xlsx');
 const db = require('../db');
 const { requireAuth, requireRole } = require('../auth');
+const { getScope, visibleClause } = require('../access');
 const { STAGES, STAGE_LABELS, completeness, normalizeCuit } = require('../constants');
 
 const router = express.Router();
@@ -33,8 +34,12 @@ function parseSuperficie(v) {
 // incompletos, y cómo viene el embudo consulta -> diagnóstico -> crédito.
 // La usan tanto GET / (para la vista del panel) como GET /export (para el
 // Excel descargable), así evitamos calcular todo dos veces con lógica duplicada.
-async function buildDashboard() {
-  const { rows } = await db.query('SELECT id, data, doc_status, created_by, created_at, updated_at FROM diagnosticos');
+async function buildDashboard(scope) {
+  const v = visibleClause(scope);
+  const { rows } = await db.query(
+    `SELECT d.id, d.data, d.doc_status, d.created_by, d.created_at, d.updated_at FROM diagnosticos d LEFT JOIN users cu ON cu.id = d.created_by WHERE ${v.sql}`,
+    v.params
+  );
   const fotosRes = await db.query('SELECT diagnostico_id, COUNT(*)::int AS cnt FROM fotos GROUP BY diagnostico_id');
   const fotosPorDiag = {};
   fotosRes.rows.forEach((r) => { fotosPorDiag[r.diagnostico_id] = r.cnt; });
@@ -60,6 +65,8 @@ async function buildDashboard() {
     console.error('Panel: datos SIGI/consultas no disponibles —', e.message);
     sigiDisponible = false;
   }
+  // Créditos SIGI y consultas provinciales son datos de todo el programa: solo los ven cfi y lector.
+  if (scope) { creditosRes = { rows: [] }; consultasRes = { rows: [] }; }
 
   const creditosPorCuit = {};
   creditosRes.rows.forEach((r) => { creditosPorCuit[r.cuit] = r; });
@@ -277,7 +284,7 @@ async function buildDashboard() {
 
 router.get('/', async (req, res, next) => {
   try {
-    res.json(await buildDashboard());
+    res.json(await buildDashboard(await getScope(req.user)));
   } catch (e) {
     next(e); // lo toma el error-handler de index.js -> 500 {error}, sin caer el proceso
   }
@@ -303,7 +310,7 @@ function addSheet(wb, name, rowsAoa) {
 
 router.get('/export', async (req, res) => {
   try {
-    const dash = await buildDashboard();
+    const dash = await buildDashboard(await getScope(req.user));
     const wb = XLSX.utils.book_new();
 
     addSheet(wb, 'Resumen', [

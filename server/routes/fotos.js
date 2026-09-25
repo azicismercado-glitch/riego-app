@@ -7,6 +7,7 @@ const { requireAuth } = require('../auth');
 
 const router = express.Router();
 router.use(requireAuth);
+router.param('id', require('../access').requireDiagnosticoVisible);
 
 const UPLOAD_ROOT = path.join(__dirname, '..', 'uploads');
 

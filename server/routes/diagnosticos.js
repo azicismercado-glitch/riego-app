@@ -5,10 +5,13 @@ const db = require('../db');
 const { requireAuth, requireRole } = require('../auth');
 const { STAGES, STAGE_LABELS, STAGE_ROLE, stageIndex, completeness, missingForSign } = require('../constants');
 const { generateConformidadDraft } = require('../informe');
+const { getScope, visibleClause, requireDiagnosticoVisible } = require('../access');
 const { sendEmailNotif } = require('../mailer');
 
 const router = express.Router();
 router.use(requireAuth);
+// Todas las rutas con :id exigen que el diagnóstico sea visible para el usuario (ver access.js).
+router.param('id', requireDiagnosticoVisible);
 
 const UPLOAD_ROOT = path.join(__dirname, '..', 'uploads');
 
@@ -64,7 +67,11 @@ async function fullPayload(diag) {
 
 // ---------- listado ----------
 router.get('/', async (req, res) => {
-  const { rows } = await db.query('SELECT * FROM diagnosticos ORDER BY updated_at DESC');
+  const v = visibleClause(await getScope(req.user));
+  const { rows } = await db.query(
+    `SELECT d.* FROM diagnosticos d LEFT JOIN users cu ON cu.id = d.created_by WHERE ${v.sql} ORDER BY d.updated_at DESC`,
+    v.params
+  );
   const out = [];
   for (const d of rows) {
     const n = await fotosCount(d.id);
