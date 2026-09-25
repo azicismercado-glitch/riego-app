@@ -1,7 +1,7 @@
 {
   "name": "riego-app",
   "version": "1.0.0",
-  "description": "Diagnóstico Técnico de Riego (CFI/DGI) — backend + frontend reales",
+  "description": "Diagnóstico Técnico de Riego (CFI) — backend + frontend reales",
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",

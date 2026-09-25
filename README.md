@@ -1,4 +1,4 @@
-# Diagnóstico Técnico de Riego — CFI/DGI (versión real con backend)
+# Diagnóstico Técnico de Riego — CFI (versión real con backend)
 
 Esta es la versión real del prototipo: backend en Node.js/Express, base de
 datos PostgreSQL, autenticación con JWT y contraseñas hasheadas, subida real

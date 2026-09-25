@@ -2,8 +2,8 @@ const nodemailer = require('nodemailer');
 const db = require('./db');
 
 const DEMO_USERS_BY_ROLE = {
-  tecnico: { nombre: 'Ana Pérez', email: 'aperez@dgi.mendoza.gov.ar' },
-  provincia: { nombre: 'Mario Gómez', email: 'mgomez@mendoza.gov.ar' },
+  tecnico: { nombre: 'Técnico de campo', email: 'tecnico@example.org' },
+  provincia: { nombre: 'Responsable provincial', email: 'provincia@example.org' },
   cfi: { nombre: 'Lucas Costa', email: 'lcosta@cfi.org.ar' }
 };
 

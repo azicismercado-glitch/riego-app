@@ -1,4 +1,4 @@
--- Esquema de base de datos para Diagnóstico Técnico de Riego (CFI/DGI)
+-- Esquema de base de datos para Diagnóstico Técnico de Riego (CFI)
 -- PostgreSQL
 
 CREATE TABLE IF NOT EXISTS users (
