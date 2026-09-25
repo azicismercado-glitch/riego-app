@@ -2,7 +2,7 @@
  * Generador del borrador de "Conformidad Técnica" a partir de los datos
  * del diagnóstico. Portado 1:1 desde la lógica del prototipo original.
  */
-function generateConformidadDraft(d) {
+function generateConformidadDraft(d, provincia) {
   const productor = d.productor || '[productor]';
   const finca = d.finca || '[finca/establecimiento]';
   const localidad = d.localidad || '[localidad]';
@@ -32,7 +32,7 @@ function generateConformidadDraft(d) {
       .join('; ') || 's/d';
 
   let txt = '';
-  txt += `CONFORMIDAD TÉCNICA\nPrograma de Apoyo para la Tecnificación del Riego - CFI\nProvincia de Mendoza\n\n`;
+  txt += `CONFORMIDAD TÉCNICA\nPrograma de Apoyo para la Tecnificación del Riego - CFI\n${provincia ? 'Provincia de ' + provincia + '\n' : ''}\n`;
   txt += `Productor: ${productor}\nEstablecimiento/Finca: ${finca}\nLocalidad: ${localidad}\n`;
   txt += `Superficie total: ${d.superficieTotal || 's/d'} ha\nSuperficie cultivada: ${d.superficieCultivada || 's/d'} ha\nCultivos: ${cultivosStr}\nSistema actual: ${sistemaActual}\n\n`;
   txt += `Del análisis del diagnóstico técnico presentado, se considera técnicamente consistente la propuesta de inversión orientada a ${(d.descripcionMejora || '[completar descripción de la mejora]').replace(/\.$/, '').toLowerCase()}.\n\n`;

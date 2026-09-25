@@ -174,7 +174,9 @@ router.post('/:id/informe/generar', requireRole('cfi'), async (req, res) => {
   const diag = await loadDiag(req.params.id);
   if (!diag) return res.status(404).json({ error: 'No encontrado' });
   if (diag.doc_status !== 'firmado_provincia') return res.status(403).json({ error: 'No es el turno de CFI todavía.' });
-  const texto = generateConformidadDraft(diag.data);
+  // La provincia sale del técnico que cargó el diagnóstico (cada uno atiende una sola).
+  const { rows: prov } = await db.query('SELECT provincia FROM users WHERE id = $1', [diag.created_by]);
+  const texto = generateConformidadDraft(diag.data, prov[0] && prov[0].provincia);
   await db.query('UPDATE diagnosticos SET informe_conformidad = $1, updated_at = now() WHERE id = $2', [texto, diag.id]);
   await db.query(
     `INSERT INTO historial (diagnostico_id, usuario, evento, detalle, tipo) VALUES ($1,$2,$3,$4,$5)`,
