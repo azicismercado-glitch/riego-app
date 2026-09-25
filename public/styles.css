@@ -73,7 +73,7 @@ button{font-family:inherit;}
 .step.done .lbl,.step.current .lbl{color:var(--ink);}
 .step-line{flex:0 0 10px; height:1px; background:var(--border); margin-top:10px;}
 
-.tabs{display:flex; overflow-x:auto; border-bottom:1px solid var(--border); padding:0 6px; background:var(--card); position:sticky; top:0; z-index:5;}
+.tabs{display:flex; flex-wrap:wrap; overflow-x:visible; border-bottom:1px solid var(--border); padding:0 6px; background:var(--card); position:sticky; top:0; z-index:5;}
 .tabs::-webkit-scrollbar{display:none;}
 .tabs button{flex:0 0 auto; padding:11px 9px; font-size:11.5px; font-weight:700; color:var(--lock); background:none; border:none; border-bottom:2px solid transparent; cursor:pointer; white-space:nowrap; display:flex; align-items:center; gap:4px;}
 .tabs button.active{color:var(--green-dark); border-bottom-color:var(--green);}
