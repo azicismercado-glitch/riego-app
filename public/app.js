@@ -1259,36 +1259,95 @@ function renderResumen(dg) {
 }
 function printDiag() {
   const dg = cur(); const d = dg.data;
-  const sigRow = (key,label) => {
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const has = (v) => v !== null && v !== undefined && String(v).trim() !== '';
+  const arr = (v) => Array.isArray(v) ? v : [];
+  const kv = (label, val, unit) => has(val) ? `<b>${esc(label)}:</b> ${esc(val)}${unit ? ' ' + unit : ''}<br>` : '';
+  const kvList = (label, list) => arr(list).length ? `<b>${esc(label)}:</b> ${esc(arr(list).join(', '))}<br>` : '';
+  const kvText = (label, val) => has(val) ? `<p><b>${esc(label)}:</b> ${esc(val).replace(/\n/g, '<br>')}</p>` : '';
+  const bullets = (label, val) => has(val) ? `<p><b>${esc(label)}:</b></p><ul>${String(val).split('\n').filter((x) => x.trim()).map((x) => '<li>' + esc(x) + '</li>').join('')}</ul>` : '';
+  const table = (heads, rows) => rows.length ? `<table><tr>${heads.map((h) => '<th>' + esc(h) + '</th>').join('')}</tr>${rows.map((r) => '<tr>' + r.map((c) => '<td>' + esc(has(c) ? c : '—') + '</td>').join('') + '</tr>').join('')}</table>` : '';
+  const money = (n) => '$ ' + Number(n || 0).toLocaleString('es-AR', { maximumFractionDigits: 0 });
+  let n = 0;
+  const sec = (title, body) => has(body.replace(/<[^>]*>/g, '')) ? `<h2>${++n}. ${esc(title)}</h2>${body}` : '';
+  const sub = (title, body) => has(body.replace(/<[^>]*>/g, '')) ? `<p style="margin:8px 0 2px"><b><u>${esc(title)}</u></b></p>${body}` : '';
+  const sigRow = (key, label) => {
     const s = dg.signatures[key];
-    return `<tr><td>${label}</td><td>${s?('Firmado — usuario '+s.usuario):'Pendiente'}</td><td>${s?nowFmt(s.timestamp):'—'}</td><td style="font-family:monospace">${s?s.hash:'—'}</td></tr>`;
+    return `<tr><td>${label}</td><td>${s ? 'Firmado — usuario ' + esc(s.usuario) : 'Pendiente'}</td><td>${s ? nowFmt(s.timestamp) : '—'}</td><td style="font-family:monospace">${s ? esc(s.hash) : '—'}</td></tr>`;
   };
+
+  const sp = arr(d.sistemasPresentes);
+  const superficial = sp.some((s) => ['Surcos', 'Melgas'].includes(s));
+  const presurizado = sp.some((s) => ['Goteo', 'Aspersión'].includes(s));
+
+  const generales = `<p>${kv('Productor', d.productor)}${kv('Finca', d.finca)}${kv('Localidad/Departamento', d.localidad)}${kv('RENSPA/RUT', d.renspa)}${kv('CUIT', d.cuit)}${kv('Expediente SIGI', d.expedienteSigi)}${kv('Coordenadas', d.coordenadas)}
+    ${kv('Superficie total', d.superficieTotal, 'ha')}${kv('Superficie cultivada', d.superficieCultivada, 'ha')}${kv('Superficie inculta', d.superficieInculta, 'ha')}${kv('Superficie bajo riego', d.superficieBajoRiego, 'ha')}${kv('Superficie con derecho de riego', d.superficieDerecho, 'ha')}${kv('Fuente de agua (derecho)', d.fuenteRiegoDerecho)}
+    ${kv('Padrón', d.ccpp)}${kv('Pozos', d.pozos)}${kv('Observaciones', d.obsGenerales)}</p>`;
+
+  const cultivosRows = arr(d.cultivos).filter((c) => has(c.cultivo)).map((c) => [c.cultivo, c.variedad, c.destino, c.anio, c.marco, c.superficie, has(c.rendimiento) ? c.rendimiento + ' ' + (c.rendimientoUnidad || '') : '']);
+  const cultivos = table(['Cultivo', 'Variedad', 'Destino', 'Año de plantación', 'Marco/densidad', 'Sup. (ha)', 'Rendimiento'], cultivosRows)
+    + `<p>${kv('Aclaraciones sobre superficie/disponibilidad', d.aclaracionSuperficieCultivo)}${kv('Observaciones', d.obsCultivos)}${kv('Tipo de producción', d.tipoProduccion)}${d.tipoProduccion === 'Ganadería' ? kv('Animales', d.ganaderiaAnimalTipo) + kv('Cabezas', d.ganaderiaCabezas) + kv('Manejo', d.ganaderiaManejo) + kvList('Actividad', d.ganaderiaActividad) + kvList('Categorías', d.ganaderiaCategorias) : ''}</p>`;
+
+  const suelo = `<p>${kv('Análisis de suelo', d.analisisSuelo)}${kv('Año del último análisis', d.anioAnalisisSuelo)}${kv('Aclaración', d.analisisSueloAclaracion)}${kv('Materia orgánica', d.materiaOrganicaPct, '%')}${kv('Fósforo (Pe)', d.fosforoPpm, 'ppm')}${kv('pH', d.phSuelo)}${kv('Textura', d.textura)}
+    ${kv('Profundidad', d.profundidadLimitante)}${kv('Profundidad efectiva', d.profundidadEfectivaCm, 'cm')}${kv('¿Hay piedras?', d.hayPiedras)}${kv('% de piedra', d.porcentajePiedra)}${kv('Nivel de salinidad', d.nivelSalinidadSuelo)}
+    ${kv('Descripción del perfil', d.descripcionPerfilSuelo)}${kv('Problemas detectados', d.problemasSuelo)}${kv('Observaciones', d.obsSuelo)}${kv('¿Sugiere análisis previo?', d.requiereAnalisisPrevio)}${kvList('Análisis sugeridos', d.requiereAnalisisPrevioQue)}${kv('Salinidad (tipo)', d.salinidadTipo)}</p>`;
+
+  const riegoGeneral = `<p>${kv('Tipo de riego', d.tipoRiegoGeneral)}${kvList('Sistemas presentes', sp)}${kv('Detalle "Otro"', d.otroSistemaTexto)}</p>`;
+  const riegoSup = superficial ? sub('Riego superficial (surcos/melgas)', `<p>${kv('Fuente de agua', d.rsFuente)}${kv('Superficie regada', d.rsSuperficie, 'ha')}${kv('Caudal medio', d.rsCaudal, 'l/s')}${kv('Frecuencia de turnado', d.rsFrecTurnado, 'días')}${kv('Duración de turnado', d.rsDuracionTurnado, 'hs')}${kv('Turnos por temporada', d.rsCantTurnos)}
+    ${kv('Método para decidir cuándo regar', d.rsMetodoDecision)}${kv('¿Riega toda la propiedad en cada turno?', d.rsRiegaTodaPropiedad)}${kv('% de superficie por turno', d.rsPctSuperficiePorTurno)}${kvList('Método para determinar la lámina', d.rsMetodoLamina)}${kv('Detalle método de lámina', d.rsMetodoLaminaDetalle)}
+    ${kv('Sistema de riego superficial', d.rsFormaRegar)}${kv('Hileras o surcos por tapada', d.rsCantHilerasSurcos)}${kv('¿Infraestructura para derivar el agua?', d.rsTieneInfraDerivar)}${kvList('Infraestructura utilizada', d.rsInfraDerivarItems)}
+    ${kvList('Tareas de mantenimiento', d.rsMantenimientoItems)}${kv('Nivelación: ¿cuándo se hizo?', d.rsNivelacionCuando)}${kv('Metodología de nivelación', d.rsMetodoNivelacion)}${kvList('En la tapada', d.rsTapadaItems)}${kv('Control de malezas', d.rsControlMalezas)}
+    ${kv('Infraestructura de riego', d.rsInfraestructura)}${kv('Problemas y limitantes', d.rsProblemas)}</p>`) : '';
+  const riegoPres = presurizado ? sub('Riego presurizado (goteo/aspersión)', `<p>${kv('Fuente de agua', d.rpFuente)}${kv('Superficie regada', d.rpSuperficie, 'ha')}${kv('Tasa de precipitación', d.rpCaudal, 'mm/h')}${kv('Frecuencia por operación', d.rpFrecuencia, 'días')}${kv('Duración por operación', d.rpDuracion, 'hs')}
+    ${kvList('Método para determinar la lámina', d.rpMetodoLamina)}${kv('Detalle método de lámina', d.rpMetodoLaminaDetalle)}${kv('¿Caudalímetro en el equipo?', d.rpTieneCaudalimetro)}${kv('¿Controla horas de bombeo?', d.rpControlaHorasBombeo)}${kv('Sistema de filtrado', d.rpSistemaFiltrado)}
+    ${kv('Limpieza filtros primarios', d.rpFrecLimpiezaPrimario)}${kv('Limpieza filtros secundarios', d.rpFrecLimpiezaSecundario)}${kv('Parámetro de limpieza', d.rpParametroLimpieza)}${kv('¿Manómetros?', d.rpTieneManometros)}${kvList('Puntos de medición de presión', d.rpPuntosMedicion)}
+    ${kvList('Mantenimiento del equipo', d.rpMantenimientoItems)}${kvList('Control de válvulas', d.rpControlValvulasItems)}${kv('Cañerías', d.rpCanerias)}${kv('Laterales o cintas', d.rpLaterales)}${kv('¿Realiza medición de caudal?', d.rpRealizaMedicionCaudal)}${kv('Aclaración', d.rpAclaracionCaudal)}${kv('Problemas y limitantes', d.rpProblemas)}</p>`) : '';
+  const riegoManejo = sub('Infraestructura y manejo', `<p>${kv('Represa', d.represa)}${kv('Volumen represa', d.volumenRepresa, 'm³')}${kv('Medición de caudales', d.medicionCaudales)}${kv('Método de medición', d.metodoMedicion)}${kv('Asistencia técnica agronómica', d.asistenciaTecnica)}${kvList('Personal de riego', d.personalRiego)}${kv('Otras observaciones', d.obsRiego)}</p>`);
+
+  const problemas = `<p>${kvList('Problemas frecuentes', d.problemasFrecuentesItems)}${kv('Observaciones generales', d.problemasGeneralesObs)}${kvList('Limitantes para mejorar el riego', d.limitantesItems)}${kv('Detalle de limitantes', d.limitantesDetalle)}${kvList('Infraestructura deficiente en', d.infraDeficienteItems)}${kv('Interés en implementar mejoras', d.interesMejoras)}${kv('Tipo de mejora de interés', d.tipoMejoraInteres)}${kv('Observaciones', d.limitantesObs)}</p>`;
+
+  const invRows = arr(d.presupuesto).filter((p) => has(p.inversion) || has(p.montoUSD) || has(p.monto)).map((p) => [p.inversion, p.tipo, p.codN2, has(p.montoUSD) ? money(p.montoUSD) : '', p.superficieAsociada, p.monto]);
+  const propuesta = `<p>${kv('Descripción técnica', d.descripcionMejora)}${kvList('Cambio propuesto', d.cambioPropuestoItems)}${kvList('Problema que resuelve', d.problemaJustificacionItems)}${kv('Justificación', d.justificacionDetalle)}${kv('Plazo estimado', d.tiempoTotalMeses, 'meses')}${kv('Cronograma (resumen)', d.cronogramaEtapas)}</p>`
+    + bullets('Objetivos específicos', d.objetivosMejora) + bullets('Indicadores de mejora', d.indicadoresMejora)
+    + sub('Inversiones propuestas (Nomenclador CFI)', table(['Mejora', 'Categoría', 'Subcat.', 'Monto', 'Sup. asociada (ha)', 'Aclaración'], invRows)
+      + (invRows.length ? `<p><b>Total inversiones propuestas:</b> ${money(arr(d.presupuesto).reduce((s, p) => s + (Number(p.montoUSD) || 0), 0))}</p>` : ''));
+
+  const mats = arr(d.materiales).filter((m) => has(m.item)).map((m) => [m.item, m.cantidad, m.unidad, m.obs]);
+  const materiales = table(['Ítem / insumo', 'Cantidad', 'Unidad', 'Observaciones'], mats);
+
+  const inds = arr(d.indicadores).filter((i) => has(i.actual) || has(i.proyectada) || has(i.obs)).map((i) => [i.indicador, i.actual, i.proyectada, i.obs]);
+  const impactos = table(['Indicador', 'Situación actual', 'Situación proyectada', 'Observaciones'], inds)
+    + `<p>${kvList('Impacto productivo', d.impactoProductivoItems)}${kv('Detalle productivo', d.impactoProductivoDetalle)}${kvList('Impacto económico', d.impactoEconomicoItems)}${kv('Detalle económico', d.impactoEconomicoDetalle)}${kvList('Impacto ambiental', d.impactoAmbientalItems)}${kv('Detalle ambiental', d.impactoAmbientalDetalle)}</p>`;
+
+  const cronoRows = Object.keys(d.cronogramaGrid || {}).filter((k) => has(d.cronogramaGrid[k].desde) || has(d.cronogramaGrid[k].hasta)).map((k) => [k, d.cronogramaGrid[k].desde, d.cronogramaGrid[k].hasta]);
+  const detRows = arr(d.presupuestoDetallado).filter((p) => has(p.item)).map((p) => [p.item, p.cantidad, p.unidad, has(p.precioUnitario) ? money(p.precioUnitario) : '', money((Number(p.cantidad) || 0) * (Number(p.precioUnitario) || 0))]);
+  const totalDet = arr(d.presupuestoDetallado).reduce((s, p) => s + (Number(p.cantidad) || 0) * (Number(p.precioUnitario) || 0), 0);
+  const cronoPres = table(['Etapa', 'Mes desde', 'Mes hasta'], cronoRows)
+    + table(['Ítem', 'Cantidad', 'Unidad', 'Precio unitario', 'Subtotal'], detRows)
+    + (detRows.length ? `<p><b>Total solicitud programa de mejora:</b> ${money(totalDet)}</p>` : '')
+    + `<p>${kv('% de aporte del productor', d.aportePorcentajeProductor)}${kv('% de financiamiento solicitado', d.financiamientoPorcentajeSolicitado)}</p>`;
+
+  const seguimiento = `<p>${kv('Tipo de seguimiento', d.tipoSeguimiento)}${kv('Fecha estimada de seguimiento', d.fechaEstimadaSeguimiento)}${kv('Responsable técnico', d.responsableSeguimiento)}${kv('Recursos necesarios', d.recursosNecesariosSeguimiento)}${kvList('Métodos de control', d.metodosControl)}${kv('Detalle "Otro"', d.metodosControlOtro)}${kv('Periodicidad', d.periodicidad)}${kv('Criterios de éxito', d.criteriosExito)}</p>`;
+
+  const conformidad = dg.signatures.cfi && dg.signatures.cfi.informe ? `<p style="white-space:pre-wrap">${esc(dg.signatures.cfi.informe)}</p>` : '';
+
   document.getElementById('printArea').innerHTML = `
     <h1>Diagnóstico Técnico de Riego</h1>
-    <div class="p-sub">Programa de Apoyo para la Tecnificación del Riego — CFI · Provincia de Mendoza<br>Estado: ${STAGE_LABELS[dg.docStatus]} · Impreso: ${nowFmt(new Date().toISOString())}</div>
-    <h2>1. Datos generales</h2>
-    <p><b>Productor:</b> ${d.productor||'—'} · <b>Finca:</b> ${d.finca||'—'} · <b>Localidad:</b> ${d.localidad||'—'} · <b>RENSPA/RUT:</b> ${d.renspa||'—'}<br>
-    <b>Superficie:</b> total ${d.superficieTotal||'—'} ha · cultivada ${d.superficieCultivada||'—'} ha · inculta ${d.superficieInculta||'—'} ha · con derecho ${d.superficieDerecho||'—'} ha<br>
-    <b>CCPP:</b> ${d.ccpp||'—'} · <b>Pozos:</b> ${d.pozos||'—'}</p>
-    <h2>2. Cultivos</h2>
-    <table><tr><th>Cultivo</th><th>Variedad</th><th>Destino</th><th>Sup. (ha)</th><th>Conducción</th><th>Rend.</th></tr>
-    ${d.cultivos.filter(cv=>cv.cultivo).map(cv=>`<tr><td>${cv.cultivo}</td><td>${cv.variedad||'—'}</td><td>${cv.destino||'—'}</td><td>${cv.superficie||'—'}</td><td>${cv.conduccion||'—'}</td><td>${cv.rendimiento||'—'}</td></tr>`).join('')||'<tr><td colspan="6">Sin cultivos cargados</td></tr>'}</table>
-    <h2>3. Suelo</h2>
-    <p><b>Análisis:</b> ${d.analisisSuelo||'—'} · <b>Textura:</b> ${d.textura||'—'}<br><b>Problemas:</b> ${d.problemasSuelo||'—'}</p>
-    <h2>4. Sistema de riego</h2>
-    <p><b>Presentes:</b> ${d.sistemasPresentes.join(', ')||'—'}<br>
-    <b>Superficial:</b> fuente ${d.rsFuente||'—'} · ${d.rsSuperficie||'—'} ha · problemas: ${d.rsProblemas||'—'}<br>
-    <b>Presurizado:</b> fuente ${d.rpFuente||'—'} · ${d.rpSuperficie||'—'} ha · problemas: ${d.rpProblemas||'—'}<br>
-    <b>Represa:</b> ${d.represa||'—'} ${d.volumenRepresa?('('+d.volumenRepresa+' m³)'):''} · <b>Medición de caudales:</b> ${d.medicionCaudales||'—'}</p>
-    <h2>5. Propuesta de mejora</h2>
-    <p><b>Descripción:</b> ${d.descripcionMejora||'—'}</p>
-    ${d.materiales&&d.materiales.some(m=>m.item)?('<p><b>Materiales:</b></p><ul>'+d.materiales.filter(m=>m.item).map(m=>'<li>'+m.item+(m.cantidad?` — ${m.cantidad} ${m.unidad||''}`:'')+'</li>').join('')+'</ul>'):''}
-    ${d.indicadoresMejora?('<p><b>Indicadores:</b></p><ul>'+d.indicadoresMejora.split('\n').filter(Boolean).map(x=>'<li>'+x+'</li>').join('')+'</ul>'):''}
-    <p><b>Plazo:</b> ${d.tiempoTotalMeses||'—'} meses · <b>Presupuesto:</b> ${d.presupuesto.filter(p=>p.inversion).map(p=>p.inversion+(p.monto?': '+p.monto:'')).join('; ')||'—'}</p>
-    ${dg.signatures.cfi && dg.signatures.cfi.informe ? '<h2>6. Conformidad Técnica (CFI)</h2><p style="white-space:pre-wrap">'+dg.signatures.cfi.informe+'</p>' : ''}
+    <div class="p-sub">Programa de Apoyo para la Tecnificación del Riego — CFI<br>Estado: ${esc(STAGE_LABELS[dg.docStatus])} · Impreso: ${esc(nowFmt(new Date().toISOString()))}</div>
+    ${sec('Datos generales', generales)}
+    ${sec('Cultivos y producción', cultivos)}
+    ${sec('Suelo', suelo)}
+    ${sec('Sistema de riego', riegoGeneral + riegoSup + riegoPres + riegoManejo)}
+    ${sec('Problemas y limitantes', problemas)}
+    ${sec('Propuesta de mejora', propuesta)}
+    ${sec('Materiales e insumos', materiales)}
+    ${sec('Indicadores e impacto esperado', impactos)}
+    ${sec('Cronograma y presupuesto', cronoPres)}
+    ${sec('Seguimiento y evaluación', seguimiento)}
+    ${sec('Conformidad Técnica (CFI)', conformidad)}
     <h2>Firmas</h2>
     <table><tr><th>Rol</th><th>Estado</th><th>Fecha</th><th>Hash de contenido</th></tr>
-    ${sigRow('tecnico','Técnico de campo')}${sigRow('provincia','Responsable provincial')}${sigRow('cfi','Técnico CFI')}</table>
+    ${sigRow('tecnico', 'Técnico de campo')}${sigRow('provincia', 'Responsable provincial')}${sigRow('cfi', 'Técnico CFI')}</table>
     <p class="p-firma">Documento generado por Diagnóstico Técnico de Riego. Las firmas electrónicas registran usuario autenticado, reautenticación al momento de firmar, fecha/hora del servidor y hash del contenido firmado.</p>`;
   window.print();
 }
