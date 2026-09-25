@@ -352,7 +352,7 @@ router.get('/export', async (req, res) => {
     ]);
 
     addSheet(wb, 'Datos incompletos', [
-      ['ID', 'Nombre', 'Etapa', '% completo'],
+      ['ID', 'Nombre', 'Etapa', 'Avance (%)'],
       ...dash.incompletos.map((e) => [e.id, e.nombre, e.etapa, e.pct])
     ]);
 

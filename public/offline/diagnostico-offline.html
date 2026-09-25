@@ -110,6 +110,8 @@ const FUENTES_RIEGO_DERECHO = ['Río','Arroyo','Laguna','Vertiente','Subterráne
 const DESTINOS_CULTIVO = ['Industria','Consumo','Oleaginosa','Cereal','Otro'];
 const RENDIMIENTO_UNIDADES = ['Kg/ha','Materia seca/ha','Otros'];
 const ACTIVIDAD_GANADERA = ['Cría','Invernada','Ciclo completo'];
+const INDICADORES_BASE = ['Eficiencia de aplicación (%)','Uniformidad de aplicación (%)','Caudal aprovechado (L/s)','Superficie tecnificada (ha)','Incremento en rendimientos','Ahorro energético','Impacto ambiental','Aumento de la superficie bajo riego (ha)','Otro'];
+const IMPACTO_LOGRADO_OPCIONES = ['Sin impacto','Bajo impacto','Impacto medio','Alto impacto','Superior al mencionado'];
 const MANEJO_GANADERO = ['A campo','Confinado (feedlot/corral)'];
 const CATEGORIAS_GANADERAS = ['Terneros/as','Vaquillonas','Novillos','Novillitos','Vacas','Toros','Cabritos','Corderos','Otros'];
 const TEXTURAS_SUELO = ['Arenoso','Areno francoso','Franco arenoso','Franco','Franco limoso','Limoso','Franco arcillo arenoso','Franco arcilloso','Franco arcillo limoso','Arcillo arenoso','Arcillo limoso','Arcilloso'];
@@ -124,7 +126,7 @@ const MANT_SUPERFICIAL_ITEMS = ['Impermeabilización de acequias internas','Limp
 const METODO_NIVELACION_OPCIONES = ['Manguera de albañil','Nivel óptico','Sistema automático (láser)','Otro'];
 const EN_TAPADA_ITEMS = ['Acequia en cabecera de la unidad de riego (reguera)','Acequia en pie de la unidad de riego (desagüe)','Micronivelación del surco o hilera','Bordos para contener el agua'];
 const CONTROL_MALEZAS_OPCIONES = ['En interfilar (melgas)','En línea de plantas (surco)','Otro','No realiza'];
-const TIPO_FILTRADO_OPCIONES = ['Automático','Manual','Automático y Manual','No se realizó'];
+const TIPO_FILTRADO_OPCIONES = ['Automático','Manual','Automático y Manual','Otro','No tiene','No sabe'];
 const PARAMETRO_LIMPIEZA_OPCIONES = ['Tiempo','Diferencia de presión','Ambos'];
 const PUNTO_MEDICION_ITEMS = ['Antes del filtro primario','Salida del filtro primario','Salida del filtro secundario','En válvula de campo','En final de línea','Otro'];
 const MANT_EQUIPO_ITEMS = ['Reservorio','Tablero eléctrico','Motores eléctricos','Bombas de extracción/presurizadoras','Sostenedora de presión','Tablero del automatismo','Funcionamiento de la central','Electroválvulas o galit','Sistema de comunicación (hidráulico/neumático/eléctrico/telemetría)','Comando en válvula de campo','Limpieza de cañerías primarias y secundarias','Limpieza de cañería terciaria o distribuidora','Limpieza de emisores o goteros','Limpieza de laterales o mangueras de riego','Control de fugas'];
@@ -132,8 +134,6 @@ const CONTROL_VALVULAS_ITEMS = ['Válvula de aire','Válvula de alivio o segurid
 const PROBLEMAS_FRECUENTES_ITEMS = ['Obstrucciones','Baja presión','Pérdidas / fugas','Falta de turnos de agua','Energía','Otro'];
 const LIMITANTES_ITEMS = ['Infraestructura deficiente','Falta de financiamiento','Falta de asesoramiento','Falta de agua','Otro'];
 const TIPO_INFRA_DEFICIENTE_ITEMS = ['Canales / acequias','Compuertas / marcos','Equipo de bombeo','Sistema de filtrado','Automatización del sistema','Otro'];
-const CAMBIO_PROPUESTO_ITEMS = ['Cambio a riego presurizado','Cambio de método de riego superficial','Incorporación de equipo de bombeo/filtrado','Automatización / control','Mejora de infraestructura de conducción','Erradicación de especies invasoras','Capacitación de mano de obra','Otro'];
-const PROBLEMA_JUSTIFICACION_ITEMS = ['Desnivel / irregularidad topográfica','Encharcamiento','Baja eficiencia de aplicación','Pérdida de agua en la conducción','Falta de uniformidad de riego','Salinización','Competencia de malezas/árboles','Otro'];
 const UNIDADES_MATERIAL = ['un.','kg','l','hs','m','m²','m³','bolsa','rollo','global'];
 const IMPACTO_PRODUCTIVO_ITEMS = ['Aumento de rendimiento (%)','Mejora de calidad (% descarte/calibre/color)','Otro'];
 const IMPACTO_ECONOMICO_ITEMS = ['Ahorro de agua (volumen o %)','Ahorro de energía','Disminución de mano de obra','Mejora del margen ($/ha)','Otro'];
@@ -156,7 +156,9 @@ function emptyIndicadores(){
     { indicador:'Superficie tecnificada (ha)', actual:'', proyectada:'', obs:'' },
     { indicador:'Incremento en rendimientos', actual:'', proyectada:'', obs:'' },
     { indicador:'Ahorro energético', actual:'', proyectada:'', obs:'' },
-    { indicador:'Impacto ambiental', actual:'', proyectada:'', obs:'' }
+    { indicador:'Impacto ambiental', actual:'', proyectada:'', obs:'' },
+    { indicador:'Aumento de la superficie bajo riego (ha)', actual:'', proyectada:'', obs:'' },
+    { indicador:'Otro', actual:'', proyectada:'', obs:'' }
   ];
 }
 function emptyCronogramaGrid(){
@@ -177,7 +179,7 @@ function emptyData(){
     superficieTotal:'',superficieCultivada:'',superficieInculta:'',superficieBajoRiego:'',superficieDerecho:'',fuenteRiegoDerecho:'',
     ccpp:'',pozos:'',obsGenerales:'',
     cultivos:[emptyCultivo()],obsCultivos:'',aclaracionSuperficieCultivo:'',
-    tipoProduccion:null,ganaderiaAnimalTipo:'',ganaderiaManejo:null,ganaderiaActividad:[],ganaderiaCabezas:'',ganaderiaCategorias:[],
+    tipoProduccion:null,ganaderiaAnimalTipo:'',ganaderiaManejo:null,ganaderiaActividad:[],ganaderiaActividadManejo:{},ganaderiaCabezas:'',ganaderiaCategorias:[],
     analisisSuelo:null,analisisSueloArchivo:null,anioAnalisisSuelo:'',analisisSueloAclaracion:'',
     textura:'',materiaOrganicaPct:'',fosforoPpm:'',phSuelo:'',nivelSalinidadSuelo:'',
     descripcionPerfilSuelo:'',problemasSuelo:'',obsSuelo:'',
@@ -252,6 +254,10 @@ let state = {
 // se completan con los valores por defecto para que ninguna pestaña se rompa.
 state.data = { ...emptyData(), ...state.data };
 if (!Array.isArray(state.data.metodosControl)) state.data.metodosControl = [];
+// Borradores con la grilla vieja de indicadores: se completan los que faltan.
+if (!Array.isArray(state.data.indicadores)) state.data.indicadores = [];
+INDICADORES_BASE.forEach(n => { if (!state.data.indicadores.some(i => i.indicador === n)) state.data.indicadores.push({indicador:n, actual:'', proyectada:'', obs:''}); });
+if (!state.data.ganaderiaActividadManejo || typeof state.data.ganaderiaActividadManejo !== 'object') state.data.ganaderiaActividadManejo = {};
 
 /* ================= helpers de estado ================= */
 function d(){ return state.data; }
@@ -265,9 +271,13 @@ function toggleArr(key,val){
 }
 function setTipoRiegoGeneral(val){
   state.data.tipoRiegoGeneral = val;
-  const permitidos = val==='Gravitacional' ? ['Surcos','Melgas','Otro'] : ['Goteo','Aspersión','Otro'];
+  const permitidos = val==='Gravitacional' ? ['Surcos','Melgas','Otro'] : val==='Presurizado' ? ['Goteo','Aspersión','Otro'] : [];
   state.data.sistemasPresentes = (state.data.sistemasPresentes||[]).filter(s=>permitidos.includes(s));
   scheduleSave(); render();
+}
+function setActividadManejo(act,val){
+  if (!state.data.ganaderiaActividadManejo) state.data.ganaderiaActividadManejo = {};
+  state.data.ganaderiaActividadManejo[act] = val; scheduleSave(); render();
 }
 function addCultivo(){ state.data.cultivos.push(emptyCultivo()); scheduleSave(); render(); }
 function removeCultivo(i){ state.data.cultivos.splice(i,1); scheduleSave(); render(); }
@@ -388,16 +398,17 @@ function sistemasRiego(dd){
 function completeness(data, fotosCount){
   const dd = data;
   const { superficial, presurizado } = sistemasRiego(dd);
-  const riegoReq = [(dd.sistemasPresentes || []).length > 0];
+  const noRiega = dd.tipoRiegoGeneral === 'No riega';
+  const riegoReq = [noRiega || (dd.sistemasPresentes || []).length > 0];
   if (superficial) riegoReq.push(has(dd.rsSuperficie), has(dd.rsFrecTurnado), has(dd.rsDuracionTurnado));
   if (presurizado) riegoReq.push(has(dd.rpSuperficie), has(dd.rpFrecuencia), has(dd.rpDuracion));
-  if (!superficial && !presurizado) riegoReq.push(has(dd.rsSuperficie) || has(dd.rpSuperficie));
+  if (!superficial && !presurizado && !noRiega) riegoReq.push(has(dd.rsSuperficie) || has(dd.rpSuperficie));
   const secs = {
     estab: { label:'Establecimiento', req:[has(dd.productor),has(dd.finca),has(dd.localidad),has(dd.renspa),has(dd.superficieTotal),has(dd.superficieCultivada)] },
     cultivos: { label:'Cultivos', req:[(dd.cultivos||[]).some(c=>has(c.cultivo)&&has(c.superficie))] },
     suelo: { label:'Suelo', req:[has(dd.analisisSuelo),has(dd.textura)] },
     riego: { label:'Sistema de riego', req:riegoReq },
-    propuesta: { label:'Propuesta de mejora', req:[has(dd.descripcionMejora),(dd.materiales||[]).some(m=>has(m.item)),has(dd.indicadoresMejora),has(dd.tiempoTotalMeses),(dd.presupuesto||[]).some(p=>has(p.inversion)&&has(p.monto))] },
+    propuesta: { label:'Propuesta de mejora', req:[has(dd.descripcionMejora),(dd.materiales||[]).some(m=>has(m.item)),(dd.indicadores||[]).some(i=>has(i.actual)||has(i.proyectada)),has(dd.tiempoTotalMeses),(dd.presupuesto||[]).some(p=>has(p.inversion)&&has(p.monto))] },
     fotos: { label:'Fotos', req:[(fotosCount||0)>0] }
   };
   let done=0, total=0; const detail=[];
@@ -438,41 +449,41 @@ function renderResumenCompleto(dd, fotosCount){
     html += `<div class="subsection-title">Producción</div>`;
     html += kv('Tipo', dd.tipoProduccion);
     if (dd.tipoProduccion === 'Ganadería') {
-      html += kv('Animales', dd.ganaderiaAnimalTipo) + kv('Cabezas', dd.ganaderiaCabezas) + kv('Actividad', dd.ganaderiaActividad) + kv('Categorías', (dd.ganaderiaCategorias || []).join(', '));
+      html += kv('Animales', dd.ganaderiaAnimalTipo) + kv('Cabezas', dd.ganaderiaCabezas) + kv('Actividad (manejo)', (dd.ganaderiaActividad||[]).map(a=>a+((dd.ganaderiaActividadManejo||{})[a]?' — '+dd.ganaderiaActividadManejo[a]:'')).join(', ')) + kv('Categorías', (dd.ganaderiaCategorias || []).join(', '));
     }
   }
 
   const hayDatosSuelo = has(dd.analisisSuelo) || has(dd.textura) || has(dd.problemasSuelo) || has(dd.obsSuelo) || has(dd.requiereAnalisisPrevio);
   if (hayDatosSuelo) {
     html += `<div class="subsection-title">Suelo</div>`;
-    html += kv('Análisis de suelo', dd.analisisSuelo) + kv('Textura', dd.textura) + kv('Problemas observados', dd.problemasSuelo) + kv('Observaciones', dd.obsSuelo);
+    html += kv('Análisis de suelo', dd.analisisSuelo) + kv('Textura', dd.textura) + kv('Observaciones del suelo', dd.problemasSuelo) + kv('Otras observaciones', dd.obsSuelo);
     if (dd.requiereAnalisisPrevio) html += kv('¿Requiere análisis previo?', dd.requiereAnalisisPrevio) + kv('¿De qué?', (dd.requiereAnalisisPrevioQue || []).join(', '));
   }
 
   const hayDatosRiego = (dd.sistemasPresentes || []).length > 0 || has(dd.tipoRiegoGeneral) || has(dd.represa) || has(dd.medicionCaudales) || has(dd.asistenciaTecnica);
   if (hayDatosRiego) {
     html += `<div class="subsection-title">Sistema de riego</div>`;
-    html += kv('Tipo general', dd.tipoRiegoGeneral) + kv('Sistemas presentes', (dd.sistemasPresentes || []).join(', ')) + kv('Detalle "Otro"', dd.otroSistemaTexto);
+    html += kv('Tipo general', dd.tipoRiegoGeneral) + (dd.tipoRiegoGeneral === 'No riega' ? '<div class="kv-row"><i>La finca no riega.</i></div>' : '') + kv('Sistemas presentes', (dd.sistemasPresentes || []).join(', ')) + kv('Detalle "Otro"', dd.otroSistemaTexto);
     if ((dd.sistemasPresentes || []).some(s => ['Surcos', 'Melgas'].includes(s))) {
       html += kv('Riego superficial — fuente', dd.rsFuente) + kv('Superficie regada', dd.rsSuperficie && dd.rsSuperficie + ' ha') + kv('Caudal medio', dd.rsCaudal && dd.rsCaudal + ' l/s')
             + kv('Frecuencia de turnado', dd.rsFrecTurnado && dd.rsFrecTurnado + ' días') + kv('Duración de turnado', dd.rsDuracionTurnado && dd.rsDuracionTurnado + ' hs') + kv('Turnos por temporada', dd.rsCantTurnos)
-            + kv('Infraestructura', dd.rsInfraestructura) + kv('Problemas', dd.rsProblemas) + kv('Observaciones', dd.rsObservaciones);
+            + kv('Infraestructura', dd.rsInfraestructura) + kv('Observaciones', dd.rsObservaciones);
     }
     if ((dd.sistemasPresentes || []).some(s => ['Goteo', 'Aspersión'].includes(s))) {
-      html += kv('Riego presurizado — fuente', dd.rpFuente) + kv('Superficie regada', dd.rpSuperficie && dd.rpSuperficie + ' ha') + kv('Caudal medio', dd.rpCaudal && dd.rpCaudal + ' l/h')
+      html += kv('Riego presurizado — fuente', dd.rpFuente) + kv('Superficie regada', dd.rpSuperficie && dd.rpSuperficie + ' ha') + kv('Caudal medio', dd.rpCaudal && dd.rpCaudal + ' mm/h')
             + kv('Frecuencia por operación', dd.rpFrecuencia && dd.rpFrecuencia + ' días') + kv('Duración por operación', dd.rpDuracion && dd.rpDuracion + ' hs')
-            + kv('Problemas', dd.rpProblemas) + kv('Observaciones', dd.rpObservaciones);
+            + kv('Problemas (presurizado)', dd.rpProblemas) + kv('Observaciones', dd.rpObservaciones);
     }
     html += kv('Represa', dd.represa) + kv('Volumen represa', dd.volumenRepresa && dd.volumenRepresa + ' m³') + kv('Medición de caudales', dd.medicionCaudales) + kv('Método', dd.metodoMedicion)
-          + kv('Asistencia técnica', dd.asistenciaTecnica) + kv('Personal de riego', (dd.personalRiego || []).join(', ')) + kv('Otras observaciones', dd.obsRiego);
+          + kv('Asistencia técnica', dd.asistenciaTecnica) + kv('Personal de riego', (dd.personalRiego || []).join(', ')) + kv('Principales problemas y limitantes', dd.rsProblemas) + kv('Otras observaciones', dd.obsRiego);
   }
 
-  const hayPropuesta = has(dd.descripcionMejora) || has(dd.objetivosMejora) || has(dd.indicadoresMejora) || has(dd.tiempoTotalMeses);
+  const hayPropuesta = has(dd.descripcionMejora) || has(dd.objetivosMejora) || has(dd.tiempoTotalMeses);
   if (hayPropuesta) {
     html += `<div class="subsection-title">Propuesta de mejora</div>`;
     html += kv('Descripción', dd.descripcionMejora) + kv('Cambio propuesto', (dd.cambioPropuestoItems||[]).join(', ')) + kv('Objetivos', dd.objetivosMejora)
           + kv('Problema que resuelve', (dd.problemaJustificacionItems||[]).join(', ')) + kv('Justificación', dd.justificacionDetalle)
-          + kv('Indicadores', dd.indicadoresMejora) + kv('Cronograma', dd.cronogramaEtapas) + kv('Plazo estimado', dd.tiempoTotalMeses && dd.tiempoTotalMeses + ' meses');
+          + kv('Cronograma', dd.cronogramaEtapas) + kv('Plazo estimado', dd.tiempoTotalMeses && dd.tiempoTotalMeses + ' meses');
     const presupuestoStr = (dd.presupuesto || []).filter(p => p.inversion || p.monto || p.montoUSD).map(p =>
       `${p.inversion || '(sin nombre)'}${p.tipo ? ' — ' + p.tipo : ''}${p.montoUSD ? ' — $ ' + Number(p.montoUSD).toLocaleString('es-AR') : ''}${p.monto ? ' (' + p.monto + ')' : ''}`
     ).join('<br>');
@@ -490,7 +501,7 @@ function renderResumenCompleto(dd, fotosCount){
   const hayImpacto = (dd.indicadores||[]).some(it=>it.actual||it.proyectada) || dd.presupuestoDetallado.some(p=>p.item);
   if (hayImpacto) {
     html += `<div class="subsection-title">Indicadores e impacto</div>`;
-    const indStr = (dd.indicadores||[]).filter(it=>it.actual||it.proyectada).map(it=>`${it.indicador}: ${it.actual||'—'} → ${it.proyectada||'—'}`).join('<br>');
+    const indStr = (dd.indicadores||[]).filter(it=>it.actual||it.proyectada).map(it=>`${it.indicador}: ${it.actual||'—'} → ${it.proyectada||'—'}${it.logrado?' (impacto logrado: '+it.logrado+')':''}`).join('<br>');
     if (indStr) html += `<div class="kv-row"><b>Indicadores:</b><br>${indStr}</div>`;
     const detStr = (dd.presupuestoDetallado||[]).filter(p=>p.item).map(p=>`${p.item} — ${p.cantidad||'?'} ${p.unidad||''} × $${p.precioUnitario||0}`).join('<br>');
     if (detStr) html += `<div class="kv-row"><b>Presupuesto detallado:</b><br>${detStr}</div>`;
@@ -662,10 +673,10 @@ function renderTab(){
       <div class="field-group"><label>Animales (tipo)</label><input type="text" value="${dd.ganaderiaAnimalTipo||''}" placeholder="Ej: Bovinos, caprinos" oninput="setField('ganaderiaAnimalTipo',this.value)"></div>
       <div class="field-group"><label>Cantidad de cabezas</label><input type="number" value="${dd.ganaderiaCabezas||''}" oninput="setField('ganaderiaCabezas',this.value)"></div>
     </div>
-    <div class="field-group"><label>Manejo</label>
-      <div class="chip-group">${MANEJO_GANADERO.map(m=>chip(dd.ganaderiaManejo,m,m,'ganaderiaManejo')).join('')}</div></div>
     <div class="field-group"><label>Actividad <span class="hint" style="font-weight:400">(se puede tildar más de una)</span></label>
       ${chipMultiList(ACTIVIDAD_GANADERA,'ganaderiaActividad',dd)}</div>
+    ${(dd.ganaderiaActividad||[]).length?`<div class="field-group"><label>Manejo de cada actividad <span class="hint" style="font-weight:400">(a campo o confinado / feedlot / corral)</span></label>
+      ${(dd.ganaderiaActividad||[]).map(a=>`<div style="display:flex;align-items:center;gap:8px;margin:4px 0;flex-wrap:wrap"><span style="min-width:120px;font-size:12.5px"><b>${a}</b></span><div class="chip-group">${MANEJO_GANADERO.map(m=>`<div class="chip ${(dd.ganaderiaActividadManejo||{})[a]===m?'selected':''}" onclick="setActividadManejo('${a}','${m}')">${m}</div>`).join('')}</div></div>`).join('')}</div>`:''}
     <div class="field-group"><label>Categorías</label>
       ${chipMultiList(CATEGORIAS_GANADERAS,'ganaderiaCategorias',dd)}</div>
     `:''}
@@ -707,9 +718,7 @@ function renderTab(){
 
       <div class="field-group"><label>Nivel de salinidad del suelo</label>${selectHTML(SALINIDAD_SUELO_OPCIONES,'nivelSalinidadSuelo',dd)}</div>
 
-      <div class="field-group"><label>Descripción del perfil del suelo</label><textarea oninput="setField('descripcionPerfilSuelo',this.value)">${dd.descripcionPerfilSuelo||''}</textarea></div>
-      <div class="field-group"><label>Problemas detectados <span class="hint" style="font-weight:400">(desnivel, encharcamiento, etc.)</span></label><textarea oninput="setField('problemasSuelo',this.value)">${dd.problemasSuelo}</textarea></div>
-      <div class="field-group"><label>Observaciones</label><textarea oninput="setField('obsSuelo',this.value)">${dd.obsSuelo}</textarea></div>
+      <div class="field-group"><label>Observaciones del suelo <span class="hint" style="font-weight:400">(perfil, problemas detectados: desnivel, encharcamiento, etc.)</span></label><textarea oninput="setField('problemasSuelo',this.value)">${dd.problemasSuelo}</textarea></div>
 
       <div class="subsection-title">¿Sugiere análisis previo?</div>
       <div class="field-group"><div class="chip-group">${chip(dd.requiereAnalisisPrevio,'Sí','Sí','requiereAnalisisPrevio')}${chip(dd.requiereAnalisisPrevio,'No','No','requiereAnalisisPrevio')}</div></div>
@@ -717,26 +726,28 @@ function renderTab(){
       <div class="field-group"><label>¿De qué?</label>
         ${chipMultiList(ANALISIS_PREVIO_ITEMS,'requiereAnalisisPrevioQue',dd)}</div>
       ${(dd.requiereAnalisisPrevioQue||[]).includes('Salinidad')?`
-      <div class="field-group"><label>Salinidad</label>
-        <div class="chip-group">${chip(dd.salinidadTipo,'Simple','Simple','salinidadTipo')}${chip(dd.salinidadTipo,'Compuesta','Compuesta','salinidadTipo')}</div></div>`:''}`:''}
+      <div class="field-group"><label>Salinidad</label>${selectHTML(['Simple','Compuesta'],'salinidadTipo',dd)}</div>`:''}`:''}
     </div>${navRow()}`;
 
   if (t==='riego') {
-    const showSuperficial = (dd.sistemasPresentes||[]).some(s=>['Surcos','Melgas'].includes(s));
-    const showPresurizado = (dd.sistemasPresentes||[]).some(s=>['Goteo','Aspersión'].includes(s));
+    const noRiega = dd.tipoRiegoGeneral==='No riega';
+    const showSuperficial = !noRiega && (dd.sistemasPresentes||[]).some(s=>['Surcos','Melgas'].includes(s));
+    const showPresurizado = !noRiega && (dd.sistemasPresentes||[]).some(s=>['Goteo','Aspersión'].includes(s));
     const opciones = dd.tipoRiegoGeneral==='Gravitacional' ? ['Surcos','Melgas','Otro'] : dd.tipoRiegoGeneral==='Presurizado' ? ['Goteo','Aspersión','Otro'] : ['Surcos','Melgas','Goteo','Aspersión','Otro'];
     return `
     <div class="section-card">
       <div class="section-title">Sistema de riego</div>
       <div class="subsection-title">Tipo de riego</div>
-      <div class="field-group"><label>¿El riego es gravitacional o presurizado?</label>
+      <div class="field-group"><label>¿El riego es gravitacional o presurizado? <span class="hint" style="font-weight:400">(o "No riega")</span></label>
         <div class="chip-group">
           <div class="chip ${dd.tipoRiegoGeneral==='Gravitacional'?'selected':''}" onclick="setTipoRiegoGeneral('Gravitacional')">Gravitacional</div>
           <div class="chip ${dd.tipoRiegoGeneral==='Presurizado'?'selected':''}" onclick="setTipoRiegoGeneral('Presurizado')">Presurizado</div>
+          <div class="chip ${dd.tipoRiegoGeneral==='No riega'?'selected':''}" onclick="setTipoRiegoGeneral('No riega')">No riega</div>
         </div></div>
+      ${noRiega ? `<div class="hint" style="margin:4px 0 2px">Se registra que la finca no riega: no hace falta completar el resto de la pestaña.</div>` : `
       <div class="subsection-title">Sistemas presentes en la finca</div>
       <div class="chip-group">${opciones.map(v=>chipMulti(dd.sistemasPresentes,v,v,'sistemasPresentes')).join('')}</div>
-      ${(dd.sistemasPresentes||[]).includes('Otro')?`<div class="field-group" style="margin-top:8px"><label>Detalle "Otro"</label><input type="text" value="${dd.otroSistemaTexto}" oninput="setField('otroSistemaTexto',this.value)"></div>`:''}
+      ${(dd.sistemasPresentes||[]).includes('Otro')?`<div class="field-group" style="margin-top:8px"><label>Detalle "Otro"</label><input type="text" value="${dd.otroSistemaTexto}" oninput="setField('otroSistemaTexto',this.value)"></div>`:''}`}
 
       ${showSuperficial?`
       <div class="subsection-title">Riego superficial (surcos/melgas)</div>
@@ -776,7 +787,6 @@ function renderTab(){
       <div class="field-group"><label>Control de malezas / intersiembra de verdeos</label>${selectHTML(CONTROL_MALEZAS_OPCIONES,'rsControlMalezas',dd)}</div>
 
       <div class="field-group"><label>Infraestructura de riego</label><textarea oninput="setField('rsInfraestructura',this.value)">${dd.rsInfraestructura}</textarea></div>
-      <div class="field-group"><label>Principales problemas y limitantes</label><textarea oninput="setField('rsProblemas',this.value)">${dd.rsProblemas}</textarea></div>
       `:''}
 
       ${showPresurizado?`
@@ -784,7 +794,7 @@ function renderTab(){
       <div class="field-group"><label>Fuente de agua</label><div class="chip-group">${chip(dd.rpFuente,'Turno','Turno','rpFuente')}${chip(dd.rpFuente,'Pozo','Pozo','rpFuente')}</div></div>
       <div class="row2">
         <div class="field-group"><label>Superficie regada (ha) <span class="req">*</span></label><input type="text" value="${dd.rpSuperficie}" oninput="setField('rpSuperficie',this.value)"></div>
-        <div class="field-group"><label>Tasa de precipitación del equipo (mm/h)</label><input type="text" value="${dd.rpCaudal}" oninput="setField('rpCaudal',this.value)"></div>
+        <div class="field-group"><label>Caudal medio (mm/h)</label><input type="text" value="${dd.rpCaudal}" oninput="setField('rpCaudal',this.value)"></div>
       </div>
       <div class="row2">
         <div class="field-group"><label>Frecuencia por operación (días) <span class="req">*</span></label><input type="text" value="${dd.rpFrecuencia}" oninput="setField('rpFrecuencia',this.value)"></div>
@@ -820,12 +830,12 @@ function renderTab(){
       <div class="field-group"><label>Laterales o cintas de riego (detalle)</label><input type="text" value="${dd.rpLaterales||''}" oninput="setField('rpLaterales',this.value)"></div>
       <div class="field-group"><label>¿Realiza medición de caudal?</label>
         <div class="chip-group">${chip(dd.rpRealizaMedicionCaudal,'Sí','Sí','rpRealizaMedicionCaudal')}${chip(dd.rpRealizaMedicionCaudal,'No','No','rpRealizaMedicionCaudal')}</div>
-        <div class="hint">El valor de caudal medido se carga arriba, en "Tasa de precipitación del equipo".</div></div>
+        <div class="hint">El valor de caudal medido se carga arriba, en "Caudal medio (mm/h)".</div></div>
       <div class="field-group"><label>Aclaración <span class="hint" style="font-weight:400">(turnado o equipo de riego)</span></label><input type="text" value="${dd.rpAclaracionCaudal||''}" oninput="setField('rpAclaracionCaudal',this.value)"></div>
 
-      <div class="field-group"><label>Principales problemas y limitantes</label><textarea oninput="setField('rpProblemas',this.value)">${dd.rpProblemas}</textarea></div>
       `:''}
 
+      ${noRiega ? '' : `
       <div class="subsection-title">Infraestructura y manejo</div>
       <div class="field-group"><label>Represa</label><div class="chip-group">${chip(dd.represa,'Posee','Posee','represa')}${chip(dd.represa,'No posee','No posee','represa')}</div></div>
       ${dd.represa==='Posee'?`<div class="field-group"><label>Volumen (m³)</label><input type="text" value="${dd.volumenRepresa}" oninput="setField('volumenRepresa',this.value)"></div>`:''}
@@ -834,7 +844,8 @@ function renderTab(){
       <div class="field-group"><label>Asistencia técnica agronómica</label><div class="chip-group">${chip(dd.asistenciaTecnica,'Posee','Posee','asistenciaTecnica')}${chip(dd.asistenciaTecnica,'No posee','No posee','asistenciaTecnica')}</div></div>
       <div class="field-group"><label>Personal dedicado a tareas de riego</label>
         <div class="chip-group">${['Empleado','Operario al día/jornalero','Contratista o chacarero','Propietario/familiar'].map(v=>chipMulti(dd.personalRiego,v,v,'personalRiego')).join('')}</div></div>
-      <div class="field-group"><label>Otras observaciones del riego</label><textarea oninput="setField('obsRiego',this.value)">${dd.obsRiego}</textarea></div>
+      <div class="field-group"><label>Principales problemas y limitantes del riego</label><textarea oninput="setField('rsProblemas',this.value)">${dd.rsProblemas}</textarea></div>
+      <div class="field-group"><label>Otras observaciones del riego</label><textarea oninput="setField('obsRiego',this.value)">${dd.obsRiego}</textarea></div>`}
     </div>${navRow()}`;
   }
 
@@ -860,18 +871,15 @@ function renderTab(){
     <div class="section-card">
       <div class="section-title">Propuesta de mejora</div>
       <div class="field-group"><label>1. Descripción técnica de la mejora <span class="req">*</span></label><textarea oninput="setField('descripcionMejora',this.value)">${dd.descripcionMejora}</textarea></div>
-      <div class="field-group"><label>Cambio propuesto</label>${chipMultiList(CAMBIO_PROPUESTO_ITEMS,'cambioPropuestoItems',dd)}</div>
       <div class="field-group"><label>2. Objetivos específicos</label><textarea placeholder="Un objetivo por línea" oninput="setField('objetivosMejora',this.value)">${dd.objetivosMejora}</textarea></div>
 
       <div class="subsection-title">Justificación</div>
-      <div class="field-group"><label>Problema que resuelve</label>${chipMultiList(PROBLEMA_JUSTIFICACION_ITEMS,'problemaJustificacionItems',dd)}</div>
       <div class="field-group"><label>Justificación (detalle y relación con el diagnóstico)</label><textarea oninput="setField('justificacionDetalle',this.value)">${dd.justificacionDetalle||''}</textarea></div>
 
-      <div class="field-group"><label>3. Indicadores de mejora <span class="req">*</span></label><textarea placeholder="Un indicador por línea" oninput="setField('indicadoresMejora',this.value)">${dd.indicadoresMejora}</textarea></div>
-      <div class="field-group"><label>4. Cronograma y plazos <span class="hint" style="font-weight:400">(el detalle mes a mes está en la pestaña Impacto)</span></label><textarea placeholder="Etapas: adquisición, instalación, calibración, capacitación" oninput="setField('cronogramaEtapas',this.value)">${dd.cronogramaEtapas}</textarea></div>
+      <div class="field-group"><label>3. Cronograma y plazos <span class="hint" style="font-weight:400">(el detalle mes a mes está en la pestaña Impacto)</span></label><textarea placeholder="Etapas: adquisición, instalación, calibración, capacitación" oninput="setField('cronogramaEtapas',this.value)">${dd.cronogramaEtapas}</textarea></div>
       <div class="field-group"><label>Tiempo estimado total (meses) <span class="req">*</span></label><input type="number" value="${dd.tiempoTotalMeses}" oninput="setField('tiempoTotalMeses',this.value)"></div>
 
-      <div class="subsection-title">5. Inversiones propuestas <span class="req">*</span> <span class="hint" style="font-weight:400">(según Nomenclador CFI)</span></div>
+      <div class="subsection-title">4. Mejoras propuestas <span class="req">*</span> <span class="hint" style="font-weight:400">(según Nomenclador CFI)</span></div>
       <div class="hint" style="margin-bottom:8px">El "Monto ($)" es un número simple en pesos, sin texto — se usa para el panel de totales del programa. El campo "Presupuesto estimado" queda libre para aclaraciones (IVA, cotización, etc.).</div>
       <div class="hint" style="margin-bottom:8px">Categorías del nomenclador de inversiones CFI. Elegí primero la categoría (nivel 1) y después la subcategoría (nivel 2).</div>
       <div class="table-scroll"><table class="dyn-table" style="min-width:780px">
@@ -920,7 +928,8 @@ function renderTab(){
     </div>
 
     <div class="section-card">
-      <div class="section-title">Indicadores de mejora en riego</div>
+      <div class="section-title">Indicadores de mejora en riego <span class="req">*</span></div>
+      <div class="hint" style="margin-bottom:6px">Completá al menos un indicador (situación actual y/o proyectada). En "Otro", aclará cuál en Observaciones.</div>
       <div class="table-scroll"><table class="dyn-table">
         <thead><tr><th>Indicador</th><th>Situación actual</th><th>Situación proyectada</th><th>Observaciones</th></tr></thead>
         <tbody>${dd.indicadores.map((it,i)=>`<tr>
@@ -991,6 +1000,11 @@ function renderTab(){
       <div class="field-group"><label>Métodos de control</label>${chipMultiList(METODOS_CONTROL_ITEMS,'metodosControl',dd)}</div>
       ${(dd.metodosControl||[]).includes('Otro')?`<div class="field-group"><label>Detalle "Otro"</label><input type="text" value="${dd.metodosControlOtro||''}" oninput="setField('metodosControlOtro',this.value)"></div>`:''}
       <div class="field-group"><label>Periodicidad</label>${selectHTML(PERIODICIDAD_OPCIONES,'periodicidad',dd)}</div>
+      <div class="subsection-title">Impacto logrado por indicador</div>
+      ${(()=>{ const rows = dd.indicadores.map((it,i)=>({it,i})).filter(({it})=>it.actual||it.proyectada); return rows.length ? `<div class="table-scroll"><table class="dyn-table">
+        <thead><tr><th>Indicador</th><th>Situación proyectada</th><th>Impacto logrado</th></tr></thead>
+        <tbody>${rows.map(({it,i})=>`<tr><td>${it.indicador}</td><td>${it.proyectada||'—'}</td>
+          <td><select onchange="setIndicador(${i},'logrado',this.value)" style="width:100%;min-width:150px;padding:6px 7px;border:1px solid var(--border);border-radius:6px;font-size:11.5px;font-family:inherit"><option value="">Elegir…</option>${IMPACTO_LOGRADO_OPCIONES.map(o=>`<option value="${o}" ${it.logrado===o?'selected':''}>${o}</option>`).join('')}</select></td></tr>`).join('')}</tbody></table></div>` : '<div class="hint">Todavía no hay indicadores cargados en la pestaña Impacto.</div>'; })()}
       <div class="field-group"><label>Criterios de éxito</label><textarea oninput="setField('criteriosExito',this.value)">${dd.criteriosExito||''}</textarea></div>
     </div>${navRow()}`;
 
@@ -1015,11 +1029,11 @@ function renderTab(){
     const checks = c.detail.map(s => `<li><span class="dot ${s.state}"></span>${s.label}<span style="margin-left:auto;color:var(--lock);font-size:10.5px">${s.ok}/${s.total}</span></li>`).join('');
     return `
     <div class="stat-grid">
-      <div class="stat-card"><div class="stat-value">${c.pct}%</div><div class="stat-label">Completitud</div></div>
+      <div class="stat-card"><div class="stat-value">${c.pct}%</div><div class="stat-label">Avance</div></div>
       <div class="stat-card"><div class="stat-value">${fotosCount}/6</div><div class="stat-label">Fotos cargadas</div></div>
     </div>
     <div class="section-card">
-      <div class="section-title">Completitud por sección</div>
+      <div class="section-title">Avance por sección</div>
       <ul class="check-list">${checks}</ul>
     </div>
     <div class="section-card">

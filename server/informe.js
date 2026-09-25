@@ -23,7 +23,9 @@ function generateConformidadDraft(d, provincia) {
 
   const limitantes = [d.rsProblemas, d.rpProblemas, d.problemasSuelo].filter(Boolean);
   const propuestaItems = (d.materiales || []).filter((m) => m.item).map((m) => m.item + (m.cantidad ? ` — ${m.cantidad} ${m.unidad || ''}`.trim() : ''));
-  const indicadores = (d.indicadoresMejora || '').split('\n').map((s) => s.trim()).filter(Boolean);
+  const indicadores = (d.indicadores || [])
+    .filter((i) => i.actual || i.proyectada)
+    .map((i) => `${i.indicador}: ${i.actual || 's/d'} → ${i.proyectada || 's/d'}`);
   const presupuesto = d.presupuesto || [];
   const presupuestoTotal =
     presupuesto

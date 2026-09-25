@@ -29,7 +29,7 @@ const MANT_SUPERFICIAL_ITEMS = ['Impermeabilización de acequias internas','Limp
 const METODO_NIVELACION_OPCIONES = ['Manguera de albañil','Nivel óptico','Sistema automático (láser)','Otro'];
 const EN_TAPADA_ITEMS = ['Acequia en cabecera de la unidad de riego (reguera)','Acequia en pie de la unidad de riego (desagüe)','Micronivelación del surco o hilera','Bordos para contener el agua'];
 const CONTROL_MALEZAS_OPCIONES = ['En interfilar (melgas)','En línea de plantas (surco)','Otro','No realiza'];
-const TIPO_FILTRADO_OPCIONES = ['Automático','Manual','Automático y Manual','No se realizó'];
+const TIPO_FILTRADO_OPCIONES = ['Automático','Manual','Automático y Manual','Otro','No tiene','No sabe'];
 const PARAMETRO_LIMPIEZA_OPCIONES = ['Tiempo','Diferencia de presión','Ambos'];
 const PUNTO_MEDICION_ITEMS = ['Antes del filtro primario','Salida del filtro primario','Salida del filtro secundario','En válvula de campo','En final de línea','Otro'];
 const MANT_EQUIPO_ITEMS = ['Reservorio','Tablero eléctrico','Motores eléctricos','Bombas de extracción/presurizadoras','Sostenedora de presión','Tablero del automatismo','Funcionamiento de la central','Electroválvulas o galit','Sistema de comunicación (hidráulico/neumático/eléctrico/telemetría)','Comando en válvula de campo','Limpieza de cañerías primarias y secundarias','Limpieza de cañería terciaria o distribuidora','Limpieza de emisores o goteros','Limpieza de laterales o mangueras de riego','Control de fugas'];
@@ -37,8 +37,9 @@ const CONTROL_VALVULAS_ITEMS = ['Válvula de aire','Válvula de alivio o segurid
 const PROBLEMAS_FRECUENTES_ITEMS = ['Obstrucciones','Baja presión','Pérdidas / fugas','Falta de turnos de agua','Energía','Otro'];
 const LIMITANTES_ITEMS = ['Infraestructura deficiente','Falta de financiamiento','Falta de asesoramiento','Falta de agua','Otro'];
 const TIPO_INFRA_DEFICIENTE_ITEMS = ['Canales / acequias','Compuertas / marcos','Equipo de bombeo','Sistema de filtrado','Automatización del sistema','Otro'];
-const CAMBIO_PROPUESTO_ITEMS = ['Cambio a riego presurizado','Cambio de método de riego superficial','Incorporación de equipo de bombeo/filtrado','Automatización / control','Mejora de infraestructura de conducción','Erradicación de especies invasoras','Capacitación de mano de obra','Otro'];
-const PROBLEMA_JUSTIFICACION_ITEMS = ['Desnivel / irregularidad topográfica','Encharcamiento','Baja eficiencia de aplicación','Pérdida de agua en la conducción','Falta de uniformidad de riego','Salinización','Competencia de malezas/árboles','Otro'];
+// Indicadores de impacto (misma lista que emptyIndicadores() del servidor). "Otro" admite aclaración en Observaciones.
+const INDICADORES_BASE = ['Eficiencia de aplicación (%)','Uniformidad de aplicación (%)','Caudal aprovechado (L/s)','Superficie tecnificada (ha)','Incremento en rendimientos','Ahorro energético','Impacto ambiental','Aumento de la superficie bajo riego (ha)','Otro'];
+const IMPACTO_LOGRADO_OPCIONES = ['Sin impacto','Bajo impacto','Impacto medio','Alto impacto','Superior al mencionado'];
 const UNIDADES_MATERIAL = ['un.','kg','l','hs','m','m²','m³','bolsa','rollo','global'];
 const IMPACTO_PRODUCTIVO_ITEMS = ['Aumento de rendimiento (%)','Mejora de calidad (% descarte/calibre/color)','Otro'];
 const IMPACTO_ECONOMICO_ITEMS = ['Ahorro de agua (volumen o %)','Ahorro de energía','Disminución de mano de obra','Mejora del margen ($/ha)','Otro'];
@@ -604,7 +605,7 @@ function setTipoRiegoGeneral(val) {
   if (!canEdit()) return;
   const d = cur().data;
   d.tipoRiegoGeneral = val;
-  const permitidos = val === 'Gravitacional' ? ['Surcos', 'Melgas', 'Otro'] : ['Goteo', 'Aspersión', 'Otro'];
+  const permitidos = val === 'Gravitacional' ? ['Surcos', 'Melgas', 'Otro'] : val === 'Presurizado' ? ['Goteo', 'Aspersión', 'Otro'] : [];
   d.sistemasPresentes = (d.sistemasPresentes || []).filter(s => permitidos.includes(s));
   flushSave(); render();
 }
@@ -616,6 +617,14 @@ function toggleArr(key, val) {
   if (!Array.isArray(cur().data[key])) cur().data[key] = [];
   const arr = cur().data[key]; const i = arr.indexOf(val);
   if (i>=0) arr.splice(i,1); else arr.push(val);
+  flushSave(); render();
+}
+// Ganadería: cada actividad (cría, invernada, ciclo completo) lleva su propio manejo (a campo / corral).
+function setActividadManejo(act, val) {
+  if (!canEdit()) return;
+  const d = cur().data;
+  if (!d.ganaderiaActividadManejo || typeof d.ganaderiaActividadManejo !== 'object') d.ganaderiaActividadManejo = {};
+  d.ganaderiaActividadManejo[act] = val;
   flushSave(); render();
 }
 function addCultivo() { if (!canEdit()) return; cur().data.cultivos.push({cultivo:'',variedad:'',destino:'',anio:'',marco:'',superficie:'',rendimiento:'',rendimientoUnidad:''}); flushSave(); render(); }
@@ -740,7 +749,10 @@ function renderTabContent(dg) {
   // tienen estas claves nuevas en su "data" guardada — se normalizan acá
   // para que las pestañas nuevas no se rompan al abrir un diagnóstico viejo.
   if (!d.materiales) d.materiales = [{item:'',cantidad:'',unidad:'',obs:''}];
-  if (!d.indicadores) d.indicadores = [];
+  if (!Array.isArray(d.indicadores)) d.indicadores = [];
+  // Diagnósticos con la grilla vieja de 7 indicadores: se completan los que faltan (por nombre).
+  INDICADORES_BASE.forEach(nombre => { if (!d.indicadores.some(i => i.indicador === nombre) && !(nombre.startsWith('Aumento') && d.indicadores.some(i => i.indicador.startsWith('Aumento')))) d.indicadores.push({indicador:nombre, actual:'', proyectada:'', obs:''}); });
+  if (!d.ganaderiaActividadManejo || typeof d.ganaderiaActividadManejo !== 'object') d.ganaderiaActividadManejo = {};
   if (!d.presupuestoDetallado) d.presupuestoDetallado = [{item:'',cantidad:'',unidad:'',precioUnitario:''}];
   if (!d.cronogramaGrid) d.cronogramaGrid = {};
   if (!Array.isArray(d.metodosControl)) d.metodosControl = [];
@@ -818,10 +830,11 @@ function renderTabContent(dg) {
       <div class="field-group"><label>Animales (tipo)</label><input type="text" value="${d.ganaderiaAnimalTipo||''}" ${dis} placeholder="Ej: Bovinos, caprinos" oninput="setField('ganaderiaAnimalTipo',this.value)"></div>
       <div class="field-group"><label>Cantidad de cabezas</label><input type="number" value="${d.ganaderiaCabezas||''}" ${dis} oninput="setField('ganaderiaCabezas',this.value)"></div>
     </div>
-    <div class="field-group"><label>Manejo</label>
-      <div class="chip-group">${MANEJO_GANADERO.map(m=>chip(d.ganaderiaManejo,m,m,'ganaderiaManejo')).join('')}</div></div>
     <div class="field-group"><label>Actividad <span class="hint" style="font-weight:400">(se puede tildar más de una)</span></label>
       <div class="chip-group">${ACTIVIDAD_GANADERA.map(a=>`<div class="chip ${(d.ganaderiaActividad||[]).includes(a)?'selected':''} ${canEdit()?'':'disabled'}" ${canEdit()?`onclick="toggleArr('ganaderiaActividad','${a}')"`:''}>${a}</div>`).join('')}</div></div>
+    ${(d.ganaderiaActividad||[]).length?`<div class="field-group"><label>Manejo de cada actividad <span class="hint" style="font-weight:400">(a campo o confinado / feedlot / corral)</span></label>
+      ${(d.ganaderiaActividad||[]).map(a=>`<div style="display:flex;align-items:center;gap:8px;margin:4px 0;flex-wrap:wrap"><span style="min-width:120px;font-size:12.5px"><b>${a}</b></span>
+        <div class="chip-group" style="margin:0">${MANEJO_GANADERO.map(m=>`<div class="chip ${(d.ganaderiaActividadManejo||{})[a]===m?'selected':''} ${canEdit()?'':'disabled'}" ${canEdit()?`onclick="setActividadManejo('${a}','${m}')"`:''}>${m}</div>`).join('')}</div></div>`).join('')}</div>`:''}
     <div class="field-group"><label>Categorías</label>
       <div class="chip-group">${CATEGORIAS_GANADERAS.map(c=>`<div class="chip ${(d.ganaderiaCategorias||[]).includes(c)?'selected':''} ${canEdit()?'':'disabled'}" ${canEdit()?`onclick="toggleArr('ganaderiaCategorias','${c}')"`:''}>${c}</div>`).join('')}</div></div>
     `:''}
@@ -882,12 +895,8 @@ function renderTabContent(dg) {
 
       <div class="field-group"><label>Nivel de salinidad del suelo</label>${selectHTML(SALINIDAD_SUELO_OPCIONES,'nivelSalinidadSuelo',d)}</div>
 
-      <div class="field-group"><label>Descripción del perfil del suelo</label>
-        <textarea ${dis} oninput="setField('descripcionPerfilSuelo',this.value)">${d.descripcionPerfilSuelo||''}</textarea></div>
-      <div class="field-group"><label>Problemas detectados <span class="hint" style="font-weight:400">(desnivel, encharcamiento, etc.)</span></label>
+      <div class="field-group"><label>Observaciones del suelo <span class="hint" style="font-weight:400">(perfil, problemas detectados: desnivel, encharcamiento, etc.)</span></label>
         <textarea ${dis} oninput="setField('problemasSuelo',this.value)">${d.problemasSuelo}</textarea></div>
-      <div class="field-group"><label>Observaciones</label>
-        <textarea ${dis} oninput="setField('obsSuelo',this.value)">${d.obsSuelo||''}</textarea></div>
 
       <div class="subsection-title">¿Sugiere análisis previo?</div>
       <div class="field-group"><label>&nbsp;</label>
@@ -896,8 +905,7 @@ function renderTabContent(dg) {
       <div class="field-group"><label>¿De qué?</label>
         <div class="chip-group">${ANALISIS_PREVIO_ITEMS.map(it=>`<div class="chip ${(d.requiereAnalisisPrevioQue||[]).includes(it)?'selected':''} ${canEdit()?'':'disabled'}" ${canEdit()?`onclick="toggleArr('requiereAnalisisPrevioQue','${it}')"`:''}>${it}</div>`).join('')}</div></div>
       ${(d.requiereAnalisisPrevioQue||[]).includes('Salinidad')?`
-      <div class="field-group"><label>Salinidad</label>
-        <div class="chip-group">${chip(d.salinidadTipo,'Simple','Simple','salinidadTipo')}${chip(d.salinidadTipo,'Compuesta','Compuesta','salinidadTipo')}</div></div>`:''}
+      <div class="field-group"><label>Salinidad</label>${selectHTML(['Simple','Compuesta'],'salinidadTipo',d)}</div>`:''}
       ${(d.requiereAnalisisPrevioQue||[]).length?`
       <div class="rejection-banner" style="background:var(--clay-light);border-color:var(--clay);color:var(--ink)">
         <strong><i class="ti ti-alert-triangle"></i> Recomendación</strong>
@@ -908,20 +916,22 @@ function renderTabContent(dg) {
     </div>${navRow()}`; }
 
   if (t === 'riego') {
-    const showSuperficial = d.sistemasPresentes.some(s => ['Surcos','Melgas'].includes(s));
-    const showPresurizado = d.sistemasPresentes.some(s => ['Goteo','Aspersión'].includes(s));
+    const noRiega = d.tipoRiegoGeneral === 'No riega';
+    const showSuperficial = !noRiega && d.sistemasPresentes.some(s => ['Surcos','Melgas'].includes(s));
+    const showPresurizado = !noRiega && d.sistemasPresentes.some(s => ['Goteo','Aspersión'].includes(s));
     return `
     ${lockedBanner(dg)}
     <div class="section-card">
       <div class="section-title"><i class="ti ti-droplet-filled"></i> Sistema de riego</div>
       <div class="subsection-title">Tipo de riego</div>
-      <div class="field-group"><label>¿El riego es gravitacional o presurizado?</label>
+      <div class="field-group"><label>¿El riego es gravitacional o presurizado? <span class="hint" style="font-weight:400">(o "No riega")</span></label>
         <div class="chip-group">
           <div class="chip ${d.tipoRiegoGeneral==='Gravitacional'?'selected':''} ${canEdit()?'':'disabled'}" ${canEdit()?`onclick="setTipoRiegoGeneral('Gravitacional')"`:''}>Gravitacional</div>
           <div class="chip ${d.tipoRiegoGeneral==='Presurizado'?'selected':''} ${canEdit()?'':'disabled'}" ${canEdit()?`onclick="setTipoRiegoGeneral('Presurizado')"`:''}>Presurizado</div>
+          <div class="chip ${d.tipoRiegoGeneral==='No riega'?'selected':''} ${canEdit()?'':'disabled'}" ${canEdit()?`onclick="setTipoRiegoGeneral('No riega')"`:''}>No riega</div>
         </div></div>
 
-      ${d.tipoRiegoGeneral || (d.sistemasPresentes||[]).length ? `
+      ${noRiega ? `<div class="hint" style="margin:4px 0 2px">Se registra que la finca no riega: no hace falta completar el resto de la pestaña.</div>` : d.tipoRiegoGeneral || (d.sistemasPresentes||[]).length ? `
       <div class="subsection-title">Sistemas presentes en la finca</div>
       <div class="chip-group">${(d.tipoRiegoGeneral==='Gravitacional'?['Surcos','Melgas','Otro']:d.tipoRiegoGeneral==='Presurizado'?['Goteo','Aspersión','Otro']:['Surcos','Melgas','Goteo','Aspersión','Otro']).map(v=>`<div class="chip ${d.sistemasPresentes.includes(v)?'selected':''} ${canEdit()?'':'disabled'}" ${canEdit()?`onclick="toggleArr('sistemasPresentes','${v}')"`:''}>${v}</div>`).join('')}</div>
       ${d.sistemasPresentes.includes('Otro')?`<div class="field-group"><label>Detalle "Otro"</label><input type="text" value="${d.otroSistemaTexto}" ${dis} oninput="setField('otroSistemaTexto',this.value)"></div>`:''}
@@ -968,7 +978,6 @@ function renderTabContent(dg) {
       <div class="field-group"><label>Control de malezas / intersiembra de verdeos</label>${selectHTML(CONTROL_MALEZAS_OPCIONES,'rsControlMalezas',d)}</div>
 
       <div class="field-group"><label>Infraestructura de riego</label><textarea ${dis} oninput="setField('rsInfraestructura',this.value)">${d.rsInfraestructura}</textarea></div>
-      <div class="field-group"><label>Principales problemas y limitantes</label><textarea ${dis} oninput="setField('rsProblemas',this.value)">${d.rsProblemas}</textarea></div>
       `:''}
 
       ${showPresurizado?`
@@ -977,7 +986,7 @@ function renderTabContent(dg) {
         <div class="chip-group">${chip(d.rpFuente,'Turno','Turno','rpFuente')}${chip(d.rpFuente,'Pozo','Pozo','rpFuente')}</div></div>
       <div class="row2">
         <div class="field-group"><label>Superficie regada (ha) <span class="req">*</span></label><input type="text" value="${d.rpSuperficie}" ${dis} oninput="setField('rpSuperficie',this.value)"></div>
-        <div class="field-group"><label>Tasa de precipitación del equipo (mm/h)</label><input type="text" value="${d.rpCaudal}" ${dis} oninput="setField('rpCaudal',this.value)"></div>
+        <div class="field-group"><label>Caudal medio (mm/h)</label><input type="text" value="${d.rpCaudal}" ${dis} oninput="setField('rpCaudal',this.value)"></div>
       </div>
       <div class="row2">
         <div class="field-group"><label>Frecuencia por operación (días) <span class="req">*</span></label><input type="text" value="${d.rpFrecuencia}" ${dis} oninput="setField('rpFrecuencia',this.value)"></div>
@@ -1013,12 +1022,12 @@ function renderTabContent(dg) {
       <div class="field-group"><label>Laterales o cintas de riego (detalle)</label><input type="text" value="${d.rpLaterales||''}" ${dis} oninput="setField('rpLaterales',this.value)"></div>
       <div class="field-group"><label>¿Realiza medición de caudal?</label>
         <div class="chip-group">${chip(d.rpRealizaMedicionCaudal,'Sí','Sí','rpRealizaMedicionCaudal')}${chip(d.rpRealizaMedicionCaudal,'No','No','rpRealizaMedicionCaudal')}</div>
-        <div class="hint">El valor de caudal medido se carga arriba, en "Tasa de precipitación del equipo".</div></div>
+        <div class="hint">El valor de caudal medido se carga arriba, en "Caudal medio (mm/h)".</div></div>
       <div class="field-group"><label>Aclaración <span class="hint" style="font-weight:400">(turnado o equipo de riego)</span></label><input type="text" value="${d.rpAclaracionCaudal||''}" ${dis} oninput="setField('rpAclaracionCaudal',this.value)"></div>
 
-      <div class="field-group"><label>Principales problemas y limitantes</label><textarea ${dis} oninput="setField('rpProblemas',this.value)">${d.rpProblemas}</textarea></div>
       `:''}
 
+      ${noRiega ? '' : `
       <div class="subsection-title">Infraestructura y manejo</div>
       <div class="field-group"><label>Represa</label>
         <div class="chip-group">${chip(d.represa,'Posee','Posee','represa')}${chip(d.represa,'No posee','No posee','represa')}</div></div>
@@ -1030,7 +1039,8 @@ function renderTabContent(dg) {
         <div class="chip-group">${chip(d.asistenciaTecnica,'Posee','Posee','asistenciaTecnica')}${chip(d.asistenciaTecnica,'No posee','No posee','asistenciaTecnica')}</div></div>
       <div class="field-group"><label>Personal dedicado a tareas de riego</label>
         <div class="chip-group">${['Empleado','Operario al día/jornalero','Contratista o chacarero','Propietario/familiar'].map(v=>`<div class="chip ${d.personalRiego.includes(v)?'selected':''} ${canEdit()?'':'disabled'}" ${canEdit()?`onclick="toggleArr('personalRiego','${v}')"`:''}>${v}</div>`).join('')}</div></div>
-      <div class="field-group"><label>Otras observaciones del riego</label><textarea ${dis} oninput="setField('obsRiego',this.value)">${d.obsRiego}</textarea></div>
+      <div class="field-group"><label>Principales problemas y limitantes del riego</label><textarea ${dis} oninput="setField('rsProblemas',this.value)">${d.rsProblemas}</textarea></div>
+      <div class="field-group"><label>Otras observaciones del riego</label><textarea ${dis} oninput="setField('obsRiego',this.value)">${d.obsRiego}</textarea></div>`}
     </div>${navRow()}`;
   }
 
@@ -1074,7 +1084,8 @@ function renderTabContent(dg) {
     </div>
 
     <div class="section-card">
-      <div class="section-title"><i class="ti ti-chart-line"></i> Indicadores de mejora en riego</div>
+      <div class="section-title"><i class="ti ti-chart-line"></i> Indicadores de mejora en riego <span class="req">*</span></div>
+      <div class="hint" style="margin-bottom:6px">Completá al menos un indicador (situación actual y/o proyectada). En "Otro", aclará cuál en Observaciones.</div>
       <div class="table-scroll"><table class="dyn-table">
         <thead><tr><th>Indicador</th><th>Situación actual</th><th>Situación proyectada</th><th>Observaciones</th></tr></thead>
         <tbody>${d.indicadores.map((it,i)=>`<tr>
@@ -1146,6 +1157,11 @@ function renderTabContent(dg) {
       <div class="field-group"><label>Métodos de control</label>${chipMulti(METODOS_CONTROL_ITEMS,'metodosControl',d)}</div>
       ${(d.metodosControl||[]).includes('Otro')?`<div class="field-group"><label>Detalle "Otro"</label><input type="text" value="${d.metodosControlOtro||''}" ${dis} oninput="setField('metodosControlOtro',this.value)"></div>`:''}
       <div class="field-group"><label>Periodicidad</label>${selectHTML(PERIODICIDAD_OPCIONES,'periodicidad',d)}</div>
+      <div class="subsection-title">Impacto logrado por indicador</div>
+      ${(()=>{ const rows = d.indicadores.map((it,i)=>({it,i})).filter(({it})=>it.actual||it.proyectada); return rows.length ? `<div class="table-scroll"><table class="dyn-table">
+        <thead><tr><th>Indicador</th><th>Situación proyectada</th><th>Impacto logrado</th></tr></thead>
+        <tbody>${rows.map(({it,i})=>`<tr><td>${it.indicador}${it.obs?` <span class="hint">(${it.obs})</span>`:''}</td><td>${it.proyectada||'—'}</td>
+          <td><select ${dis} onchange="setIndicador(${i},'logrado',this.value)" style="width:100%;min-width:150px;padding:6px 7px;border:1px solid var(--border);border-radius:6px;font-size:11.5px;font-family:inherit"><option value="">Elegir…</option>${IMPACTO_LOGRADO_OPCIONES.map(o=>`<option value="${o}" ${it.logrado===o?'selected':''}>${o}</option>`).join('')}</select></td></tr>`).join('')}</tbody></table></div>` : '<div class="hint">Todavía no hay indicadores cargados en la pestaña Impacto.</div>'; })()}
       <div class="field-group"><label>Criterios de éxito</label><textarea ${dis} oninput="setField('criteriosExito',this.value)">${d.criteriosExito||''}</textarea></div>
       <div class="hint">Al llegar la fecha de seguimiento, esta pestaña permite retomar el caso y comparar contra los indicadores declarados en la pestaña Impacto.</div>
     </div>${navRow()}`;
@@ -1155,19 +1171,17 @@ function renderTabContent(dg) {
     <div class="section-card">
       <div class="section-title"><i class="ti ti-tools"></i> Propuesta de mejora</div>
       <div class="field-group"><label>1. Descripción técnica de la mejora <span class="req">*</span></label><textarea ${dis} oninput="setField('descripcionMejora',this.value)">${d.descripcionMejora}</textarea></div>
-      <div class="field-group"><label>Cambio propuesto</label>${chipMulti(CAMBIO_PROPUESTO_ITEMS,'cambioPropuestoItems',d)}</div>
       <div class="field-group"><label>2. Objetivos específicos</label><textarea ${dis} placeholder="Un objetivo por línea" oninput="setField('objetivosMejora',this.value)">${d.objetivosMejora}</textarea></div>
 
       <div class="subsection-title">Justificación</div>
-      <div class="field-group"><label>Problema que resuelve</label>${chipMulti(PROBLEMA_JUSTIFICACION_ITEMS,'problemaJustificacionItems',d)}</div>
       <div class="field-group"><label>Justificación (detalle y relación con el diagnóstico)</label><textarea ${dis} oninput="setField('justificacionDetalle',this.value)">${d.justificacionDetalle||''}</textarea></div>
 
-      <div class="field-group"><label>3. Indicadores de mejora <span class="req">*</span></label><textarea ${dis} placeholder="Un indicador por línea" oninput="setField('indicadoresMejora',this.value)">${d.indicadoresMejora}</textarea></div>
-      <div class="field-group"><label>4. Cronograma y plazos <span class="hint" style="font-weight:400">(resumen en texto — el detalle mes a mes está en la pestaña Impacto)</span></label><textarea ${dis} placeholder="Etapas: adquisición, instalación, calibración, capacitación" oninput="setField('cronogramaEtapas',this.value)">${d.cronogramaEtapas}</textarea></div>
+      <div class="field-group"><label>3. Cronograma y plazos <span class="hint" style="font-weight:400">(resumen en texto — el detalle mes a mes está en la pestaña Impacto)</span></label><textarea ${dis} placeholder="Etapas: adquisición, instalación, calibración, capacitación" oninput="setField('cronogramaEtapas',this.value)">${d.cronogramaEtapas}</textarea></div>
       <div class="field-group"><label>Tiempo estimado total (meses) <span class="req">*</span></label><input type="number" value="${d.tiempoTotalMeses}" ${dis} oninput="setField('tiempoTotalMeses',this.value)"></div>
 
-      <div class="subsection-title">5. Inversiones propuestas <span class="req">*</span> <span class="hint" style="font-weight:400">(según Nomenclador de Inversiones — CFI)</span></div>
+      <div class="subsection-title">4. Mejoras propuestas <span class="req">*</span> <span class="hint" style="font-weight:400">(según Nomenclador CFI)</span></div>
       <div class="hint" style="margin-bottom:8px">El "Monto ($)" es un número simple, sin texto — se usa para el panel de totales del programa. El campo "Presupuesto estimado" queda libre para aclaraciones (IVA, moneda local, etc.).</div>
+      <div class="hint" style="margin-bottom:8px">Los indicadores de mejora se cargan en la pestaña Impacto.</div>
       <div class="hint" style="margin-bottom:8px">Elegí primero la categoría (nivel 1) y después la subcategoría específica (nivel 2).</div>
       <div class="table-scroll"><table class="dyn-table" style="min-width:100%">
         <thead><tr><th>Mejora</th><th>Categoría (nivel 1)</th><th>Subcategoría (nivel 2)</th><th>Monto ($)</th><th>Sup. asociada (ha)</th><th>Presupuesto estimado (texto)</th><th></th></tr></thead>
@@ -1286,31 +1300,31 @@ function printDiag() {
 
   const cultivosRows = arr(d.cultivos).filter((c) => has(c.cultivo)).map((c) => [c.cultivo, c.variedad, c.destino, c.anio, c.marco, c.superficie, has(c.rendimiento) ? c.rendimiento + ' ' + (c.rendimientoUnidad || '') : '']);
   const cultivos = table(['Cultivo', 'Variedad', 'Destino', 'Año de plantación', 'Marco/densidad', 'Sup. (ha)', 'Rendimiento'], cultivosRows)
-    + `<p>${kv('Aclaraciones sobre superficie/disponibilidad', d.aclaracionSuperficieCultivo)}${kv('Observaciones', d.obsCultivos)}${kv('Tipo de producción', d.tipoProduccion)}${d.tipoProduccion === 'Ganadería' ? kv('Animales', d.ganaderiaAnimalTipo) + kv('Cabezas', d.ganaderiaCabezas) + kv('Manejo', d.ganaderiaManejo) + kvList('Actividad', d.ganaderiaActividad) + kvList('Categorías', d.ganaderiaCategorias) : ''}</p>`;
+    + `<p>${kv('Aclaraciones sobre superficie/disponibilidad', d.aclaracionSuperficieCultivo)}${kv('Observaciones', d.obsCultivos)}${kv('Tipo de producción', d.tipoProduccion)}${d.tipoProduccion === 'Ganadería' ? kv('Animales', d.ganaderiaAnimalTipo) + kv('Cabezas', d.ganaderiaCabezas) + kv('Manejo', d.ganaderiaManejo) + kvList('Actividad (manejo)', arr(d.ganaderiaActividad).map((a) => a + ((d.ganaderiaActividadManejo || {})[a] ? ' — ' + d.ganaderiaActividadManejo[a] : ''))) + kvList('Categorías', d.ganaderiaCategorias) : ''}</p>`;
 
   const suelo = `<p>${kv('Análisis de suelo', d.analisisSuelo)}${kv('Año del último análisis', d.anioAnalisisSuelo)}${kv('Archivo del análisis', d.analisisSueloArchivo)}${kv('Aclaración', d.analisisSueloAclaracion)}${kv('Materia orgánica', d.materiaOrganicaPct, '%')}${kv('Fósforo (Pe)', d.fosforoPpm, 'ppm')}${kv('pH', d.phSuelo)}${kv('Textura', d.textura)}
     ${kv('Profundidad', d.profundidadLimitante)}${kv('Profundidad efectiva', d.profundidadEfectivaCm, 'cm')}${kv('¿Hay piedras?', d.hayPiedras)}${kv('% de piedra', d.porcentajePiedra)}${kv('Nivel de salinidad', d.nivelSalinidadSuelo)}
-    ${kv('Descripción del perfil', d.descripcionPerfilSuelo)}${kv('Problemas detectados', d.problemasSuelo)}${kv('Observaciones', d.obsSuelo)}${kv('¿Sugiere análisis previo?', d.requiereAnalisisPrevio)}${kvList('Análisis sugeridos', d.requiereAnalisisPrevioQue)}${kv('Salinidad (tipo)', d.salinidadTipo)}</p>`;
+    ${kv('Observaciones del suelo', d.problemasSuelo)}${kv('Descripción del perfil', d.descripcionPerfilSuelo)}${kv('Otras observaciones', d.obsSuelo)}${kv('¿Sugiere análisis previo?', d.requiereAnalisisPrevio)}${kvList('Análisis sugeridos', d.requiereAnalisisPrevioQue)}${kv('Salinidad (tipo)', d.salinidadTipo)}</p>`;
 
-  const riegoGeneral = `<p>${kv('Tipo de riego', d.tipoRiegoGeneral)}${kvList('Sistemas presentes', sp)}${kv('Detalle "Otro"', d.otroSistemaTexto)}</p>`;
+  const riegoGeneral = `<p>${kv('Tipo de riego', d.tipoRiegoGeneral)}${d.tipoRiegoGeneral === 'No riega' ? '<i>La finca no riega.</i><br>' : ''}${kvList('Sistemas presentes', sp)}${kv('Detalle "Otro"', d.otroSistemaTexto)}</p>`;
   const riegoSup = superficial ? sub('Riego superficial (surcos/melgas)', `<p>${kv('Fuente de agua', d.rsFuente)}${kv('Superficie regada', d.rsSuperficie, 'ha')}${kv('Caudal medio', d.rsCaudal, 'l/s')}${kv('Frecuencia de turnado', d.rsFrecTurnado, 'días')}${kv('Duración de turnado', d.rsDuracionTurnado, 'hs')}${kv('Turnos por temporada', d.rsCantTurnos)}
     ${kv('Método para decidir cuándo regar', d.rsMetodoDecision)}${kv('¿Riega toda la propiedad en cada turno?', d.rsRiegaTodaPropiedad)}${kv('% de superficie por turno', d.rsPctSuperficiePorTurno)}${kvList('Método para determinar la lámina', d.rsMetodoLamina)}${kv('Detalle método de lámina', d.rsMetodoLaminaDetalle)}
     ${kv('Sistema de riego superficial', d.rsFormaRegar)}${kv('Hileras o surcos por tapada', d.rsCantHilerasSurcos)}${kv('¿Infraestructura para derivar el agua?', d.rsTieneInfraDerivar)}${kvList('Infraestructura utilizada', d.rsInfraDerivarItems)}
     ${kvList('Tareas de mantenimiento', d.rsMantenimientoItems)}${kv('Nivelación: ¿cuándo se hizo?', d.rsNivelacionCuando)}${kv('Metodología de nivelación', d.rsMetodoNivelacion)}${kvList('En la tapada', d.rsTapadaItems)}${kv('Control de malezas', d.rsControlMalezas)}
-    ${kv('Infraestructura de riego', d.rsInfraestructura)}${kv('Problemas y limitantes', d.rsProblemas)}</p>`) : '';
+    ${kv('Infraestructura de riego', d.rsInfraestructura)}</p>`) : '';
   const riegoPres = presurizado ? sub('Riego presurizado (goteo/aspersión)', `<p>${kv('Fuente de agua', d.rpFuente)}${kv('Superficie regada', d.rpSuperficie, 'ha')}${kv('Tasa de precipitación', d.rpCaudal, 'mm/h')}${kv('Frecuencia por operación', d.rpFrecuencia, 'días')}${kv('Duración por operación', d.rpDuracion, 'hs')}
     ${kvList('Método para determinar la lámina', d.rpMetodoLamina)}${kv('Detalle método de lámina', d.rpMetodoLaminaDetalle)}${kv('¿Caudalímetro en el equipo?', d.rpTieneCaudalimetro)}${kv('¿Controla horas de bombeo?', d.rpControlaHorasBombeo)}${kv('Sistema de filtrado', d.rpSistemaFiltrado)}
     ${kv('Limpieza filtros primarios', d.rpFrecLimpiezaPrimario)}${kv('Limpieza filtros secundarios', d.rpFrecLimpiezaSecundario)}${kv('Parámetro de limpieza', d.rpParametroLimpieza)}${kv('¿Manómetros?', d.rpTieneManometros)}${kvList('Puntos de medición de presión', d.rpPuntosMedicion)}
-    ${kvList('Mantenimiento del equipo', d.rpMantenimientoItems)}${kvList('Control de válvulas', d.rpControlValvulasItems)}${kv('Cañerías', d.rpCanerias)}${kv('Laterales o cintas', d.rpLaterales)}${kv('¿Realiza medición de caudal?', d.rpRealizaMedicionCaudal)}${kv('Aclaración', d.rpAclaracionCaudal)}${kv('Problemas y limitantes', d.rpProblemas)}</p>`) : '';
-  const riegoManejo = sub('Infraestructura y manejo', `<p>${kv('Represa', d.represa)}${kv('Volumen represa', d.volumenRepresa, 'm³')}${kv('Medición de caudales', d.medicionCaudales)}${kv('Método de medición', d.metodoMedicion)}${kv('Asistencia técnica agronómica', d.asistenciaTecnica)}${kvList('Personal de riego', d.personalRiego)}${kv('Otras observaciones', d.obsRiego)}</p>`);
+    ${kvList('Mantenimiento del equipo', d.rpMantenimientoItems)}${kvList('Control de válvulas', d.rpControlValvulasItems)}${kv('Cañerías', d.rpCanerias)}${kv('Laterales o cintas', d.rpLaterales)}${kv('¿Realiza medición de caudal?', d.rpRealizaMedicionCaudal)}${kv('Aclaración', d.rpAclaracionCaudal)}${has(d.rpProblemas) ? kv('Problemas y limitantes (presurizado)', d.rpProblemas) : ''}</p>`) : '';
+  const riegoManejo = d.tipoRiegoGeneral === 'No riega' ? '' : sub('Infraestructura y manejo', `<p>${kv('Represa', d.represa)}${kv('Volumen represa', d.volumenRepresa, 'm³')}${kv('Medición de caudales', d.medicionCaudales)}${kv('Método de medición', d.metodoMedicion)}${kv('Asistencia técnica agronómica', d.asistenciaTecnica)}${kvList('Personal de riego', d.personalRiego)}${kv('Principales problemas y limitantes', d.rsProblemas)}${kv('Otras observaciones', d.obsRiego)}</p>`);
 
   const problemas = `<p>${kvList('Problemas frecuentes', d.problemasFrecuentesItems)}${kv('Observaciones generales', d.problemasGeneralesObs)}${kvList('Limitantes para mejorar el riego', d.limitantesItems)}${kv('Detalle de limitantes', d.limitantesDetalle)}${kvList('Infraestructura deficiente en', d.infraDeficienteItems)}${kv('Interés en implementar mejoras', d.interesMejoras)}${kv('Tipo de mejora de interés', d.tipoMejoraInteres)}${kv('Observaciones', d.limitantesObs)}</p>`;
 
   const invRows = arr(d.presupuesto).filter((p) => has(p.inversion) || has(p.montoUSD) || has(p.monto)).map((p) => [p.inversion, p.tipo, p.codN2, has(p.montoUSD) ? money(p.montoUSD) : '', p.superficieAsociada, p.monto]);
   const propuesta = `<p>${kv('Descripción técnica', d.descripcionMejora)}${kvList('Cambio propuesto', d.cambioPropuestoItems)}${kvList('Problema que resuelve', d.problemaJustificacionItems)}${kv('Justificación', d.justificacionDetalle)}${kv('Plazo estimado', d.tiempoTotalMeses, 'meses')}${kv('Cronograma (resumen)', d.cronogramaEtapas)}</p>`
-    + bullets('Objetivos específicos', d.objetivosMejora) + bullets('Indicadores de mejora', d.indicadoresMejora)
-    + sub('Inversiones propuestas (Nomenclador CFI)', table(['Mejora', 'Categoría', 'Subcat.', 'Monto', 'Sup. asociada (ha)', 'Aclaración'], invRows)
-      + (invRows.length ? `<p><b>Total inversiones propuestas:</b> ${money(arr(d.presupuesto).reduce((s, p) => s + (Number(p.montoUSD) || 0), 0))}</p>` : ''));
+    + bullets('Objetivos específicos', d.objetivosMejora) + bullets('Indicadores de mejora (carga anterior)', d.indicadoresMejora)
+    + sub('Mejoras propuestas (Nomenclador CFI)', table(['Mejora', 'Categoría', 'Subcat.', 'Monto', 'Sup. asociada (ha)', 'Aclaración'], invRows)
+      + (invRows.length ? `<p><b>Total de mejoras propuestas:</b> ${money(arr(d.presupuesto).reduce((s, p) => s + (Number(p.montoUSD) || 0), 0))}</p>` : ''));
 
   const mats = arr(d.materiales).filter((m) => has(m.item)).map((m) => [m.item, m.cantidad, m.unidad, m.obs]);
   const materiales = table(['Ítem / insumo', 'Cantidad', 'Unidad', 'Observaciones'], mats);
@@ -1327,7 +1341,8 @@ function printDiag() {
     + (detRows.length ? `<p><b>Total solicitud programa de mejora:</b> ${money(totalDet)}</p>` : '')
     + `<p>${kv('% de aporte del productor', d.aportePorcentajeProductor)}${kv('% de financiamiento solicitado', d.financiamientoPorcentajeSolicitado)}</p>`;
 
-  const seguimiento = `<p>${kv('Tipo de seguimiento', d.tipoSeguimiento)}${kv('Fecha estimada de seguimiento', d.fechaEstimadaSeguimiento)}${kv('Responsable técnico', d.responsableSeguimiento)}${kv('Recursos necesarios', d.recursosNecesariosSeguimiento)}${kvList('Métodos de control', d.metodosControl)}${kv('Detalle "Otro"', d.metodosControlOtro)}${kv('Periodicidad', d.periodicidad)}${kv('Criterios de éxito', d.criteriosExito)}</p>`;
+  const logrados = arr(d.indicadores).filter((i) => has(i.logrado)).map((i) => [i.indicador, i.proyectada, i.logrado]);
+  const seguimiento = table(['Indicador', 'Situación proyectada', 'Impacto logrado'], logrados) + `<p>${kv('Tipo de seguimiento', d.tipoSeguimiento)}${kv('Fecha estimada de seguimiento', d.fechaEstimadaSeguimiento)}${kv('Responsable técnico', d.responsableSeguimiento)}${kv('Recursos necesarios', d.recursosNecesariosSeguimiento)}${kvList('Métodos de control', d.metodosControl)}${kv('Detalle "Otro"', d.metodosControlOtro)}${kv('Periodicidad', d.periodicidad)}${kv('Criterios de éxito', d.criteriosExito)}</p>`;
 
   const conformidad = dg.signatures.cfi && dg.signatures.cfi.informe ? `<p style="white-space:pre-wrap">${esc(dg.signatures.cfi.informe)}</p>` : '';
 
@@ -1395,7 +1410,8 @@ function missingLocal(dg) {
   if (!has(d.localidad)) faltan.push('Localidad/Departamento');
   if (!has(d.superficieTotal)) faltan.push('Superficie total');
   if (!d.cultivos.some(c=>has(c.cultivo))) faltan.push('Al menos un cultivo');
-  if (d.sistemasPresentes.length===0) faltan.push('Sistema de riego presente');
+  const noRiegaL = d.tipoRiegoGeneral==='No riega';
+  if (!noRiegaL && d.sistemasPresentes.length===0) faltan.push('Sistema de riego presente');
   const showSup = d.sistemasPresentes.some(s=>['Surcos','Melgas'].includes(s));
   const showPres = d.sistemasPresentes.some(s=>['Goteo','Aspersión'].includes(s));
   if (showSup) {
@@ -1409,6 +1425,7 @@ function missingLocal(dg) {
     if (!has(d.rpDuracion)) faltan.push('Duración por operación (riego presurizado)');
   }
   if (!has(d.descripcionMejora)) faltan.push('Descripción de la mejora propuesta');
+  if (!(d.indicadores||[]).some(i=>has(i.actual)||has(i.proyectada))) faltan.push('Al menos un indicador de mejora (pestaña Impacto)');
   if (!d.presupuesto.some(p=>has(p.inversion))) faltan.push('Al menos un ítem de presupuesto');
   return faltan;
 }

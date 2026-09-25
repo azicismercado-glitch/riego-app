@@ -45,7 +45,9 @@ function emptyIndicadores() {
     { indicador: 'Superficie tecnificada (ha)', actual: '', proyectada: '', obs: '' },
     { indicador: 'Incremento en rendimientos', actual: '', proyectada: '', obs: '' },
     { indicador: 'Ahorro energético', actual: '', proyectada: '', obs: '' },
-    { indicador: 'Impacto ambiental', actual: '', proyectada: '', obs: '' }
+    { indicador: 'Impacto ambiental', actual: '', proyectada: '', obs: '' },
+    { indicador: 'Aumento de la superficie bajo riego (ha)', actual: '', proyectada: '', obs: '' },
+    { indicador: 'Otro', actual: '', proyectada: '', obs: '' }
   ];
 }
 function emptyCronogramaGrid() {
@@ -68,7 +70,7 @@ function emptyData() {
     superficieTotal: '', superficieCultivada: '', superficieInculta: '', superficieBajoRiego: '', superficieDerecho: '', fuenteRiegoDerecho: '',
     ccpp: '', pozos: '', obsGenerales: '',
     cultivos: [emptyCultivo()], obsCultivos: '', aclaracionSuperficieCultivo: '',
-    tipoProduccion: null, ganaderiaAnimalTipo: '', ganaderiaManejo: null, ganaderiaActividad: [], ganaderiaCabezas: '', ganaderiaCategorias: [],
+    tipoProduccion: null, ganaderiaAnimalTipo: '', ganaderiaManejo: null, ganaderiaActividad: [], ganaderiaActividadManejo: {}, ganaderiaCabezas: '', ganaderiaCategorias: [],
     analisisSuelo: null, analisisSueloArchivo: null, anioAnalisisSuelo: '', analisisSueloAclaracion: '',
     textura: '', materiaOrganicaPct: '', fosforoPpm: '', phSuelo: '', nivelSalinidadSuelo: '',
     descripcionPerfilSuelo: '', problemasSuelo: '', obsSuelo: '',
@@ -105,6 +107,15 @@ function emptyData() {
   };
 }
 
+// "No riega": el diagnóstico no tiene sistema de riego y no se piden datos de riego.
+function noRiega(d) {
+  return d.tipoRiegoGeneral === 'No riega';
+}
+// Al menos un indicador de impacto con dato cargado (obligatorio).
+function hayIndicador(d) {
+  return (d.indicadores || []).some((i) => has(i.actual) || has(i.proyectada));
+}
+
 function has(v) {
   return v !== null && v !== undefined && String(v).trim() !== '';
 }
@@ -128,17 +139,17 @@ function normalizeCuit(v) {
 function completeness(data, fotosCount) {
   const d = data;
   const { superficial, presurizado } = sistemasRiego(d);
-  const riegoReq = [(d.sistemasPresentes || []).length > 0];
+  const riegoReq = [noRiega(d) || (d.sistemasPresentes || []).length > 0];
   if (superficial) riegoReq.push(has(d.rsSuperficie), has(d.rsFrecTurnado), has(d.rsDuracionTurnado));
   if (presurizado) riegoReq.push(has(d.rpSuperficie), has(d.rpFrecuencia), has(d.rpDuracion));
-  if (!superficial && !presurizado) riegoReq.push(has(d.rsSuperficie) || has(d.rpSuperficie));
+  if (!superficial && !presurizado && !noRiega(d)) riegoReq.push(has(d.rsSuperficie) || has(d.rpSuperficie));
 
   const secs = {
     estab: { label: 'Establecimiento', req: [has(d.productor), has(d.finca), has(d.localidad), has(d.renspa), has(d.superficieTotal), has(d.superficieCultivada)] },
     cultivos: { label: 'Cultivos', req: [(d.cultivos || []).some((c) => has(c.cultivo) && has(c.superficie))] },
     suelo: { label: 'Suelo', req: [has(d.analisisSuelo), has(d.textura)] },
     riego: { label: 'Sistema de riego', req: riegoReq },
-    propuesta: { label: 'Propuesta de mejora', req: [has(d.descripcionMejora), (d.materiales || []).some((m) => has(m.item)), has(d.indicadoresMejora), has(d.tiempoTotalMeses), (d.presupuesto || []).some((p) => has(p.inversion) && has(p.monto))] },
+    propuesta: { label: 'Propuesta de mejora', req: [has(d.descripcionMejora), (d.materiales || []).some((m) => has(m.item)), hayIndicador(d), has(d.tiempoTotalMeses), (d.presupuesto || []).some((p) => has(p.inversion) && has(p.monto))] },
     fotos: { label: 'Fotos', req: [(fotosCount || 0) > 0] }
   };
   let done = 0, total = 0;
@@ -162,7 +173,7 @@ function missingForSign(data) {
   if (!has(d.superficieTotal)) faltan.push('Superficie total');
   if (!has(d.textura)) faltan.push('Textura del suelo');
   if (!(d.cultivos || []).some((c) => has(c.cultivo))) faltan.push('Al menos un cultivo');
-  if ((d.sistemasPresentes || []).length === 0) faltan.push('Sistema de riego presente');
+  if (!noRiega(d) && (d.sistemasPresentes || []).length === 0) faltan.push('Sistema de riego presente');
   const { superficial, presurizado } = sistemasRiego(d);
   if (superficial) {
     if (!has(d.rsSuperficie)) faltan.push('Superficie regada (riego superficial)');
@@ -175,6 +186,7 @@ function missingForSign(data) {
     if (!has(d.rpDuracion)) faltan.push('Duración por operación (riego presurizado)');
   }
   if (!has(d.descripcionMejora)) faltan.push('Descripción de la mejora propuesta');
+  if (!hayIndicador(d)) faltan.push('Al menos un indicador de mejora (pestaña Impacto)');
   if (!(d.presupuesto || []).some((p) => has(p.inversion))) faltan.push('Al menos un ítem de presupuesto');
   return faltan;
 }

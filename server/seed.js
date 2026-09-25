@@ -1,7 +1,7 @@
 require('dotenv').config();
 const bcrypt = require('bcryptjs');
 const db = require('./db');
-const { emptyData } = require('./constants');
+const { emptyData, emptyIndicadores } = require('./constants');
 
 // Cada técnico y cada responsable provincial atiende UNA sola provincia —
 // por eso la provincia de un diagnóstico se deduce de quién lo creó (ver
@@ -97,7 +97,7 @@ const DIAGNOSTICOS = [
       { item: 'Cabezal de filtrado', cantidad: '1', unidad: 'global', obs: '' },
       { item: 'Cinta de goteo', cantidad: '30000', unidad: 'm', obs: '' }
     ],
-    indicadoresMejora: 'Eficiencia de aplicación: del 45 % al 85 %.',
+    indicadores: emptyIndicadores().map((i, n) => n === 0 ? { ...i, actual: '45', proyectada: '85' } : i),
     tiempoTotalMeses: '6',
     presupuesto: [
       { inversion: 'Sistema de riego por goteo (30 ha)', codN1: 'D', codN2: 'D01', tipo: 'D — Aplicación – Riego presurizado', monto: 'Monto ficticio de ejemplo', montoUSD: 45000000, superficieAsociada: '30' }
@@ -153,7 +153,7 @@ const DIAGNOSTICOS = [
     materiales: [
       { item: 'Paneles fotovoltaicos', cantidad: '120', unidad: 'un.', obs: '' }
     ],
-    indicadoresMejora: 'Ahorro energético: 60 %.',
+    indicadores: emptyIndicadores().map((i, n) => n === 5 ? { ...i, actual: '0', proyectada: '60' } : i),
     tiempoTotalMeses: '4',
     presupuesto: [
       { inversion: 'Bombeo solar fotovoltaico', codN1: 'F', codN2: 'F01', tipo: 'F — Energía y eficiencia energética', monto: 'Monto ficticio de ejemplo', montoUSD: 80000000, superficieAsociada: '90' }
