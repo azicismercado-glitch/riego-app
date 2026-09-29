@@ -116,4 +116,26 @@ router.get('/crear-usuario', async (req, res) => {
   }
 });
 
+// Borra UN diagnóstico por ID (y sus fotos, firmas e historial). Pensada para
+// sacar diagnósticos de prueba sin tener que entrar a la base directamente.
+// Uso: /admin/borrar-diagnostico?key=...&id=17
+router.get('/borrar-diagnostico', async (req, res) => {
+  if (!checkKey(req, res)) return;
+  try {
+    const id = Number(req.query.id);
+    if (!Number.isInteger(id)) return res.status(400).json({ error: 'Falta o es inválido el parámetro "id".' });
+    const { rows } = await db.query('SELECT id, data->>\'productor\' AS productor FROM diagnosticos WHERE id = $1', [id]);
+    if (!rows[0]) return res.status(404).json({ error: `No existe el diagnóstico ${id}.` });
+    await db.query('DELETE FROM fotos WHERE diagnostico_id = $1', [id]);
+    await db.query('DELETE FROM signatures WHERE diagnostico_id = $1', [id]);
+    await db.query('DELETE FROM historial WHERE diagnostico_id = $1', [id]);
+    await db.query('DELETE FROM diagnosticos WHERE id = $1', [id]);
+    const dir = path.join(__dirname, '..', 'uploads', String(id));
+    if (fs.existsSync(dir)) fs.rmSync(dir, { recursive: true, force: true });
+    res.json({ ok: true, mensaje: `Diagnóstico ${id} (${rows[0].productor || 's/d'}) borrado. Ya podés cerrar esta pestaña.` });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 module.exports = router;
