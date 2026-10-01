@@ -71,6 +71,12 @@ CREATE TABLE IF NOT EXISTS fotos (
   UNIQUE (diagnostico_id, slot_index)
 );
 
+-- Desde que las fotos se suben a Cloudinary (y no al disco local de Render,
+-- que se borra en cada redeploy), "filename" guarda el public_id de
+-- Cloudinary (para poder borrarla después) y "url" la dirección pública
+-- de la imagen servida desde ahí.
+ALTER TABLE fotos ADD COLUMN IF NOT EXISTS url TEXT;
+
 CREATE TABLE IF NOT EXISTS emails (
   id SERIAL PRIMARY KEY,
   diagnostico_id INTEGER REFERENCES diagnosticos(id) ON DELETE SET NULL,

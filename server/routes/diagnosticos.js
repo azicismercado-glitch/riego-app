@@ -1,5 +1,4 @@
 const express = require('express');
-const fs = require('fs');
 const path = require('path');
 const db = require('../db');
 const { requireAuth, requireRole } = require('../auth');
@@ -7,13 +6,12 @@ const { STAGES, STAGE_LABELS, STAGE_ROLE, stageIndex, completeness, missingForSi
 const { generateConformidadDraft } = require('../informe');
 const { getScope, visibleClause, requireDiagnosticoVisible } = require('../access');
 const { sendEmailNotif } = require('../mailer');
+const { subirBuffer } = require('../cloudinary');
 
 const router = express.Router();
 router.use(requireAuth);
 // Todas las rutas con :id exigen que el diagnóstico sea visible para el usuario (ver access.js).
 router.param('id', requireDiagnosticoVisible);
-
-const UPLOAD_ROOT = path.join(__dirname, '..', 'uploads');
 
 function simpleHash(str) {
   let h = 0;
@@ -37,7 +35,7 @@ async function fotosCount(id) {
 
 async function fullPayload(diag) {
   const [fotosRes, sigRes, histRes] = await Promise.all([
-    db.query('SELECT id, slot_index, filename, mimetype, lat, lng, created_at FROM fotos WHERE diagnostico_id = $1 ORDER BY slot_index', [diag.id]),
+    db.query('SELECT id, slot_index, filename, mimetype, lat, lng, url, created_at FROM fotos WHERE diagnostico_id = $1 ORDER BY slot_index', [diag.id]),
     db.query('SELECT role, usuario, ts, geo, hash, signature_image, con_observaciones, observaciones, informe FROM signatures WHERE diagnostico_id = $1', [diag.id]),
     db.query('SELECT ts, usuario, evento, detalle, tipo FROM historial WHERE diagnostico_id = $1 ORDER BY ts ASC', [diag.id])
   ]);
@@ -140,17 +138,14 @@ router.post('/import', requireRole('tecnico'), async (req, res, next) => {
       if (!m) continue;
       const mimetype = m[1];
       const buffer = Buffer.from(m[2], 'base64');
-      const ext = mimetype.split('/')[1] === 'jpeg' ? 'jpg' : mimetype.split('/')[1];
-      const dir = path.join(UPLOAD_ROOT, String(diag.id));
-      fs.mkdirSync(dir, { recursive: true });
-      const filename = `slot-${f.slotIndex}-${Date.now()}.${ext}`;
-      fs.writeFileSync(path.join(dir, filename), buffer);
+      const publicId = `slot-${f.slotIndex}-${Date.now()}`;
+      const subida = await subirBuffer(buffer, { folder: `riego-app/${diag.id}/fotos`, publicId, mimetype });
       await db.query(
-        `INSERT INTO fotos (diagnostico_id, slot_index, filename, mimetype, lat, lng)
-         VALUES ($1,$2,$3,$4,$5,$6)
+        `INSERT INTO fotos (diagnostico_id, slot_index, filename, mimetype, lat, lng, url)
+         VALUES ($1,$2,$3,$4,$5,$6,$7)
          ON CONFLICT (diagnostico_id, slot_index) DO UPDATE SET
-           filename = EXCLUDED.filename, mimetype = EXCLUDED.mimetype, lat = EXCLUDED.lat, lng = EXCLUDED.lng, created_at = now()`,
-        [diag.id, f.slotIndex, filename, mimetype, f.lat != null ? Number(f.lat) : null, f.lng != null ? Number(f.lng) : null]
+           filename = EXCLUDED.filename, mimetype = EXCLUDED.mimetype, lat = EXCLUDED.lat, lng = EXCLUDED.lng, url = EXCLUDED.url, created_at = now()`,
+        [diag.id, f.slotIndex, subida.public_id, mimetype, f.lat != null ? Number(f.lat) : null, f.lng != null ? Number(f.lng) : null, subida.secure_url]
       );
     }
 
@@ -159,17 +154,16 @@ router.post('/import', requireRole('tecnico'), async (req, res, next) => {
       if (m) {
         const mimetype = m[1];
         const buffer = Buffer.from(m[2], 'base64');
-        const dir = path.join(UPLOAD_ROOT, String(diag.id));
-        fs.mkdirSync(dir, { recursive: true });
+        const esImagen = /^image\//.test(mimetype);
         const extFromName = sueloDocOffline.originalName ? path.extname(sueloDocOffline.originalName) : '';
-        const ext = extFromName || (mimetype === 'application/pdf' ? '.pdf' : '.' + (mimetype.split('/')[1] === 'jpeg' ? 'jpg' : mimetype.split('/')[1] || 'bin'));
-        const filename = `analisis-suelo-${Date.now()}${ext}`;
-        fs.writeFileSync(path.join(dir, filename), buffer);
+        const ext = esImagen ? '' : (extFromName || '.pdf');
+        const publicId = `analisis-suelo-${Date.now()}${ext}`;
+        const subida = await subirBuffer(buffer, { folder: `riego-app/${diag.id}`, publicId, mimetype });
         const archivo = {
-          filename,
-          originalName: sueloDocOffline.originalName || 'analisis-suelo' + ext,
+          filename: subida.public_id,
+          originalName: sueloDocOffline.originalName || 'analisis-suelo',
           mimetype,
-          url: `/uploads/${diag.id}/${filename}`
+          url: subida.secure_url
         };
         const newData = { ...diag.data, analisisSueloArchivo: archivo };
         await db.query('UPDATE diagnosticos SET data = $1, updated_at = now() WHERE id = $2', [newData, diag.id]);

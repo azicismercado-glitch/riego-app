@@ -1224,7 +1224,7 @@ function renderTabContent(dg) {
       const f = fotoBySlot[i];
       if (f) {
         return `<div class="photo-slot filled" data-slot="${i}">
-          <img src="/uploads/${dg.id}/${f.filename}" alt="Foto ${i+1}">
+          <img src="${f.url || ('/uploads/' + dg.id + '/' + f.filename)}" alt="Foto ${i+1}">
           ${canEdit()?`<button class="photo-remove" onclick="removePhoto(${i},event)" aria-label="Quitar foto"><i class="ti ti-x"></i></button>`:''}
         </div>`;
       }
