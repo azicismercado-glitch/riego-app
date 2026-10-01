@@ -116,6 +116,12 @@ router.post('/import', requireRole('tecnico'), async (req, res, next) => {
     const data = payload.data;
     if (!data || typeof data !== 'object') return res.status(400).json({ error: 'Archivo inválido: falta "data".' });
 
+    // El documento de análisis de suelo cargado offline viaja como dataUrl (base64) en
+    // vez del { filename, url } que produce la carga directa a la app — se guarda
+    // aparte y se procesa después de crear el diagnóstico, que es cuando existe el id.
+    const sueloDocOffline = data.analisisSueloArchivo && data.analisisSueloArchivo.dataUrl ? data.analisisSueloArchivo : null;
+    if (sueloDocOffline) data.analisisSueloArchivo = null;
+
     const { rows } = await db.query(
       `INSERT INTO diagnosticos (data, doc_status, created_by) VALUES ($1,'borrador',$2) RETURNING *`,
       [data, req.user.id]
@@ -146,6 +152,28 @@ router.post('/import', requireRole('tecnico'), async (req, res, next) => {
            filename = EXCLUDED.filename, mimetype = EXCLUDED.mimetype, lat = EXCLUDED.lat, lng = EXCLUDED.lng, created_at = now()`,
         [diag.id, f.slotIndex, filename, mimetype, f.lat != null ? Number(f.lat) : null, f.lng != null ? Number(f.lng) : null]
       );
+    }
+
+    if (sueloDocOffline) {
+      const m = /^data:([a-zA-Z0-9.+/-]+);base64,(.+)$/.exec(sueloDocOffline.dataUrl || '');
+      if (m) {
+        const mimetype = m[1];
+        const buffer = Buffer.from(m[2], 'base64');
+        const dir = path.join(UPLOAD_ROOT, String(diag.id));
+        fs.mkdirSync(dir, { recursive: true });
+        const extFromName = sueloDocOffline.originalName ? path.extname(sueloDocOffline.originalName) : '';
+        const ext = extFromName || (mimetype === 'application/pdf' ? '.pdf' : '.' + (mimetype.split('/')[1] === 'jpeg' ? 'jpg' : mimetype.split('/')[1] || 'bin'));
+        const filename = `analisis-suelo-${Date.now()}${ext}`;
+        fs.writeFileSync(path.join(dir, filename), buffer);
+        const archivo = {
+          filename,
+          originalName: sueloDocOffline.originalName || 'analisis-suelo' + ext,
+          mimetype,
+          url: `/uploads/${diag.id}/${filename}`
+        };
+        const newData = { ...diag.data, analisisSueloArchivo: archivo };
+        await db.query('UPDATE diagnosticos SET data = $1, updated_at = now() WHERE id = $2', [newData, diag.id]);
+      }
     }
 
     const full = await loadDiag(diag.id);
