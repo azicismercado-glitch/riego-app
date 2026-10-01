@@ -1,10 +1,14 @@
 const nodemailer = require('nodemailer');
 const db = require('./db');
 
+// TEMPORAL: mientras se prueba el envío real, los tres roles mandan a la
+// misma casilla de prueba. Cuando tengamos las direcciones reales de cada
+// técnico/responsable provincial, esto pasa a buscarse desde la tabla users
+// (ya tiene la columna email) según la provincia del diagnóstico.
 const DEMO_USERS_BY_ROLE = {
-  tecnico: { nombre: 'Técnico de campo', email: 'tecnico@example.org' },
-  provincia: { nombre: 'Responsable provincial', email: 'provincia@example.org' },
-  cfi: { nombre: 'Lucas Costa', email: 'lcosta@cfi.org.ar' }
+  tecnico: { nombre: 'Técnico de campo', email: 'azicis@cfi.org.ar' },
+  provincia: { nombre: 'Responsable provincial', email: 'azicis@cfi.org.ar' },
+  cfi: { nombre: 'Lucas Costa', email: 'azicis@cfi.org.ar' }
 };
 
 let transporter = null;
