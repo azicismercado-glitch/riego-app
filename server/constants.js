@@ -39,15 +39,22 @@ function emptyMaterial() {
 }
 function emptyIndicadores() {
   return [
-    { indicador: 'Eficiencia de aplicación (%)', actual: '', proyectada: '', obs: '' },
-    { indicador: 'Uniformidad de aplicación (%)', actual: '', proyectada: '', obs: '' },
-    { indicador: 'Caudal aprovechado (L/s)', actual: '', proyectada: '', obs: '' },
-    { indicador: 'Superficie tecnificada (ha)', actual: '', proyectada: '', obs: '' },
-    { indicador: 'Incremento en rendimientos', actual: '', proyectada: '', obs: '' },
-    { indicador: 'Ahorro energético', actual: '', proyectada: '', obs: '' },
-    { indicador: 'Impacto ambiental', actual: '', proyectada: '', obs: '' },
-    { indicador: 'Aumento de la superficie bajo riego (ha)', actual: '', proyectada: '', obs: '' },
-    { indicador: 'Otro', actual: '', proyectada: '', obs: '' }
+    { indicador: 'Eficiencia de aplicación (%)', unidad: '%', actual: '', proyectada: '', obs: '' },
+    { indicador: 'Uniformidad de aplicación (%)', unidad: '%', actual: '', proyectada: '', obs: '' },
+    { indicador: 'Caudal aprovechado (L/s)', unidad: 'l/s', actual: '', proyectada: '', obs: '' },
+    { indicador: 'Superficie tecnificada (ha)', unidad: 'ha', actual: '', proyectada: '', obs: '' },
+    { indicador: 'Incremento en rendimientos', unidad: '', actual: '', proyectada: '', obs: '' },
+    { indicador: 'Ahorro energético', unidad: '', actual: '', proyectada: '', obs: '' },
+    { indicador: 'Impacto ambiental', unidad: '', actual: '', proyectada: '', obs: '' },
+    { indicador: 'Aumento de la superficie bajo riego (ha)', unidad: 'ha', actual: '', proyectada: '', obs: '' },
+    { indicador: 'Mejora de calidad (% descarte/calibre/color)', unidad: '%', actual: '', proyectada: '', obs: '' },
+    { indicador: 'Ahorro de agua (volumen o %)', unidad: '', actual: '', proyectada: '', obs: '' },
+    { indicador: 'Disminución de mano de obra', unidad: '', actual: '', proyectada: '', obs: '' },
+    { indicador: 'Mejora del margen ($/ha)', unidad: '$', actual: '', proyectada: '', obs: '' },
+    { indicador: 'Reducción de escurrimiento / percolación', unidad: '', actual: '', proyectada: '', obs: '' },
+    { indicador: 'Mejora de salinidad del suelo', unidad: '', actual: '', proyectada: '', obs: '' },
+    { indicador: 'Reducción de erosión', unidad: '', actual: '', proyectada: '', obs: '' },
+    { indicador: 'Otro', unidad: '', actual: '', proyectada: '', obs: '' }
   ];
 }
 function emptyCronogramaGrid() {
@@ -67,7 +74,7 @@ function emptyData() {
   return {
     productor: '', finca: '', renspa: '', localidad: '', cuit: '', expedienteSigi: '',
     coordenadas: '',
-    superficieTotal: '', superficieCultivada: '', superficieInculta: '', superficieBajoRiego: '', superficieDerecho: '', fuenteRiegoDerecho: '',
+    superficieTotal: '', superficieCultivada: '', superficieInculta: '', superficieBajoRiego: '', superficieDerecho: '', fuenteRiegoDerecho: [], fuenteRiegoDerechoOtroDetalle: '',
     ccpp: '', pozos: '', obsGenerales: '',
     cultivos: [emptyCultivo()], obsCultivos: '', aclaracionSuperficieCultivo: '',
     tipoProduccion: null, ganaderiaAnimalTipo: '', ganaderiaManejo: null, ganaderiaActividad: [], ganaderiaActividadManejo: {}, ganaderiaCabezas: '', ganaderiaCategorias: [],

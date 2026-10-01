@@ -38,12 +38,10 @@ const PROBLEMAS_FRECUENTES_ITEMS = ['Obstrucciones','Baja presión','Pérdidas /
 const LIMITANTES_ITEMS = ['Infraestructura deficiente','Falta de financiamiento','Falta de asesoramiento','Falta de agua','Otro'];
 const TIPO_INFRA_DEFICIENTE_ITEMS = ['Canales / acequias','Compuertas / marcos','Equipo de bombeo','Sistema de filtrado','Automatización del sistema','Otro'];
 // Indicadores de impacto (misma lista que emptyIndicadores() del servidor). "Otro" admite aclaración en Observaciones.
-const INDICADORES_BASE = ['Eficiencia de aplicación (%)','Uniformidad de aplicación (%)','Caudal aprovechado (L/s)','Superficie tecnificada (ha)','Incremento en rendimientos','Ahorro energético','Impacto ambiental','Aumento de la superficie bajo riego (ha)','Otro'];
+const INDICADORES_BASE = ['Eficiencia de aplicación (%)','Uniformidad de aplicación (%)','Caudal aprovechado (L/s)','Superficie tecnificada (ha)','Incremento en rendimientos','Ahorro energético','Impacto ambiental','Aumento de la superficie bajo riego (ha)','Mejora de calidad (% descarte/calibre/color)','Ahorro de agua (volumen o %)','Disminución de mano de obra','Mejora del margen ($/ha)','Reducción de escurrimiento / percolación','Mejora de salinidad del suelo','Reducción de erosión','Otro'];
+const UNIDADES_INDICADOR = ['ha','l/s','m³/h','m³','%','kWh','kg','kg/ha','$','USD'];
 const IMPACTO_LOGRADO_OPCIONES = ['Sin impacto','Bajo impacto','Impacto medio','Alto impacto','Superior al mencionado'];
 const UNIDADES_MATERIAL = ['un.','kg','l','hs','m','m²','m³','bolsa','rollo','global'];
-const IMPACTO_PRODUCTIVO_ITEMS = ['Aumento de rendimiento (%)','Mejora de calidad (% descarte/calibre/color)','Otro'];
-const IMPACTO_ECONOMICO_ITEMS = ['Ahorro de agua (volumen o %)','Ahorro de energía','Disminución de mano de obra','Mejora del margen ($/ha)','Otro'];
-const IMPACTO_AMBIENTAL_ITEMS = ['Reducción de consumo/volumen de agua','Reducción de escurrimiento / percolación','Mejora de salinidad del suelo','Reducción de erosión','Otro'];
 const TIPO_SEGUIMIENTO_OPCIONES = ['Visita a campo','Auditoría documental','Telemetría / remoto','Mixto (campo y remoto)','Otro'];
 const METODOS_CONTROL_ITEMS = ['Auditoría de avance de obras','Registro de uso de agua vs. cultivos declarados','Visita técnica a campo','Realizar una medición del riego actual con inversión','Otro'];
 const PERIODICIDAD_OPCIONES = ['Mensual','Trimestral','Por campaña','Anual','Otro'];
@@ -750,8 +748,10 @@ function renderTabContent(dg) {
   // para que las pestañas nuevas no se rompan al abrir un diagnóstico viejo.
   if (!d.materiales) d.materiales = [{item:'',cantidad:'',unidad:'',obs:''}];
   if (!Array.isArray(d.indicadores)) d.indicadores = [];
-  // Diagnósticos con la grilla vieja de 7 indicadores: se completan los que faltan (por nombre).
-  INDICADORES_BASE.forEach(nombre => { if (!d.indicadores.some(i => i.indicador === nombre) && !(nombre.startsWith('Aumento') && d.indicadores.some(i => i.indicador.startsWith('Aumento')))) d.indicadores.push({indicador:nombre, actual:'', proyectada:'', obs:''}); });
+  // Diagnósticos con una grilla de indicadores más vieja/corta: se completan los que faltan (por nombre).
+  INDICADORES_BASE.forEach(nombre => { if (!d.indicadores.some(i => i.indicador === nombre)) d.indicadores.push({indicador:nombre, unidad:'', actual:'', proyectada:'', obs:''}); });
+  d.indicadores.forEach(i => { if (i.unidad === undefined) i.unidad = ''; });
+  if (!Array.isArray(d.fuenteRiegoDerecho)) d.fuenteRiegoDerecho = d.fuenteRiegoDerecho ? [d.fuenteRiegoDerecho] : [];
   if (!d.ganaderiaActividadManejo || typeof d.ganaderiaActividadManejo !== 'object') d.ganaderiaActividadManejo = {};
   if (!d.presupuestoDetallado) d.presupuestoDetallado = [{item:'',cantidad:'',unidad:'',precioUnitario:''}];
   if (!d.cronogramaGrid) d.cronogramaGrid = {};
@@ -783,11 +783,9 @@ function renderTabContent(dg) {
         <div class="field-group"><label>Superficie bajo riego (ha)</label><input type="number" value="${d.superficieBajoRiego||''}" ${dis} oninput="setField('superficieBajoRiego',this.value)"></div>
       </div>
       <div class="field-group"><label>Sup. con derecho de riego (ha)</label><input type="number" value="${d.superficieDerecho}" ${dis} oninput="setField('superficieDerecho',this.value)"></div>
-      <div class="field-group"><label>Fuente de agua de la superficie con derecho de riego</label>
-        <select ${dis} onchange="setField('fuenteRiegoDerecho',this.value)" style="width:100%;max-width:280px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:12.5px;font-family:inherit">
-          <option value="">Sin especificar</option>
-          ${FUENTES_RIEGO_DERECHO.map(f=>`<option value="${f}" ${d.fuenteRiegoDerecho===f?'selected':''}>${f}</option>`).join('')}
-        </select></div>
+      <div class="field-group"><label>Fuente de agua de la superficie con derecho de riego <span class="hint" style="font-weight:400">(se puede marcar más de una)</span></label>
+        ${chipMulti(FUENTES_RIEGO_DERECHO,'fuenteRiegoDerecho',d)}</div>
+      ${(d.fuenteRiegoDerecho||[]).includes('Otra')?`<div class="field-group"><label>Detalle de "Otra"</label><input type="text" value="${d.fuenteRiegoDerechoOtroDetalle||''}" ${dis} oninput="setField('fuenteRiegoDerechoOtroDetalle',this.value)"></div>`:''}
       <div class="field-group"><label>Identificación del padrón</label><input type="text" value="${d.ccpp}" ${dis} placeholder="Ej: Fracción 1) PP 9900 CC 247: 34,6 ha" oninput="setField('ccpp',this.value)"></div>
       <div class="field-group"><label>Identificación de pozos</label><input type="text" value="${d.pozos}" ${dis} placeholder="Ej: 2 pozos: 14.392 y 14.390" oninput="setField('pozos',this.value)"></div>
       <div class="field-group"><label>Observaciones</label><textarea ${dis} oninput="setField('obsGenerales',this.value)">${d.obsGenerales}</textarea></div>
@@ -1087,9 +1085,13 @@ function renderTabContent(dg) {
       <div class="section-title"><i class="ti ti-chart-line"></i> Indicadores de mejora en riego <span class="req">*</span></div>
       <div class="hint" style="margin-bottom:6px">Completá al menos un indicador (situación actual y/o proyectada). En "Otro", aclará cuál en Observaciones.</div>
       <div class="table-scroll"><table class="dyn-table">
-        <thead><tr><th>Indicador</th><th>Situación actual</th><th>Situación proyectada</th><th>Observaciones</th></tr></thead>
+        <thead><tr><th>Indicador</th><th>Unidad</th><th>Situación actual</th><th>Situación proyectada</th><th>Observaciones</th></tr></thead>
         <tbody>${d.indicadores.map((it,i)=>`<tr>
           <td>${it.indicador}</td>
+          <td><select ${dis} onchange="setIndicador(${i},'unidad',this.value)" style="width:100%;min-width:72px;padding:6px 7px;border:1px solid var(--border);border-radius:6px;font-size:11px;font-family:inherit">
+            <option value="">—</option>
+            ${UNIDADES_INDICADOR.map(u=>`<option value="${u}" ${it.unidad===u?'selected':''}>${u}</option>`).join('')}
+          </select></td>
           <td><input type="text" value="${it.actual}" ${dis} onchange="setIndicador(${i},'actual',this.value)"></td>
           <td><input type="text" value="${it.proyectada}" ${dis} onchange="setIndicador(${i},'proyectada',this.value)"></td>
           <td><input type="text" value="${it.obs}" ${dis} onchange="setIndicador(${i},'obs',this.value)"></td>
@@ -1097,16 +1099,13 @@ function renderTabContent(dg) {
       </table></div>
 
       <div class="subsection-title">Impacto productivo (rendimientos, calidad)</div>
-      <div class="field-group"><label>Aspecto productivo</label>${chipMulti(IMPACTO_PRODUCTIVO_ITEMS,'impactoProductivoItems',d)}</div>
-      <div class="field-group"><label>Detalle / valor</label><textarea ${dis} oninput="setField('impactoProductivoDetalle',this.value)">${d.impactoProductivoDetalle||''}</textarea></div>
+      <div class="field-group"><label>Detalle</label><textarea ${dis} oninput="setField('impactoProductivoDetalle',this.value)">${d.impactoProductivoDetalle||''}</textarea></div>
 
       <div class="subsection-title">Impacto económico (ahorro de agua/energía, rentabilidad)</div>
-      <div class="field-group"><label>Aspecto económico</label>${chipMulti(IMPACTO_ECONOMICO_ITEMS,'impactoEconomicoItems',d)}</div>
-      <div class="field-group"><label>Detalle / valor</label><textarea ${dis} oninput="setField('impactoEconomicoDetalle',this.value)">${d.impactoEconomicoDetalle||''}</textarea></div>
+      <div class="field-group"><label>Detalle</label><textarea ${dis} oninput="setField('impactoEconomicoDetalle',this.value)">${d.impactoEconomicoDetalle||''}</textarea></div>
 
       <div class="subsection-title">Impacto ambiental (reducción de extracción, mitigación de salinización)</div>
-      <div class="field-group"><label>Aspecto ambiental</label>${chipMulti(IMPACTO_AMBIENTAL_ITEMS,'impactoAmbientalItems',d)}</div>
-      <div class="field-group"><label>Detalle / valor</label><textarea ${dis} oninput="setField('impactoAmbientalDetalle',this.value)">${d.impactoAmbientalDetalle||''}</textarea></div>
+      <div class="field-group"><label>Detalle</label><textarea ${dis} oninput="setField('impactoAmbientalDetalle',this.value)">${d.impactoAmbientalDetalle||''}</textarea></div>
     </div>
 
     <div class="section-card">
@@ -1160,7 +1159,7 @@ function renderTabContent(dg) {
       <div class="subsection-title">Impacto logrado por indicador</div>
       ${(()=>{ const rows = d.indicadores.map((it,i)=>({it,i})).filter(({it})=>it.actual||it.proyectada); return rows.length ? `<div class="table-scroll"><table class="dyn-table">
         <thead><tr><th>Indicador</th><th>Situación proyectada</th><th>Impacto logrado</th></tr></thead>
-        <tbody>${rows.map(({it,i})=>`<tr><td>${it.indicador}${it.obs?` <span class="hint">(${it.obs})</span>`:''}</td><td>${it.proyectada||'—'}</td>
+        <tbody>${rows.map(({it,i})=>`<tr><td>${it.indicador}${it.obs?` <span class="hint">(${it.obs})</span>`:''}</td><td>${it.proyectada?it.proyectada+(it.unidad?' '+it.unidad:''):'—'}</td>
           <td><select ${dis} onchange="setIndicador(${i},'logrado',this.value)" style="width:100%;min-width:150px;padding:6px 7px;border:1px solid var(--border);border-radius:6px;font-size:11.5px;font-family:inherit"><option value="">Elegir…</option>${IMPACTO_LOGRADO_OPCIONES.map(o=>`<option value="${o}" ${it.logrado===o?'selected':''}>${o}</option>`).join('')}</select></td></tr>`).join('')}</tbody></table></div>` : '<div class="hint">Todavía no hay indicadores cargados en la pestaña Impacto.</div>'; })()}
       <div class="field-group"><label>Criterios de éxito</label><textarea ${dis} oninput="setField('criteriosExito',this.value)">${d.criteriosExito||''}</textarea></div>
       <div class="hint">Al llegar la fecha de seguimiento, esta pestaña permite retomar el caso y comparar contra los indicadores declarados en la pestaña Impacto.</div>
@@ -1295,7 +1294,7 @@ function printDiag() {
   const presurizado = sp.some((s) => ['Goteo', 'Aspersión'].includes(s));
 
   const generales = `<p>${kv('Productor', d.productor)}${kv('Finca', d.finca)}${kv('Localidad/Departamento', d.localidad)}${kv('RENSPA/RUT', d.renspa)}${kv('CUIT', d.cuit)}${kv('Expediente SIGI', d.expedienteSigi)}${kv('Coordenadas', d.coordenadas)}
-    ${kv('Superficie total', d.superficieTotal, 'ha')}${kv('Superficie cultivada', d.superficieCultivada, 'ha')}${kv('Superficie inculta', d.superficieInculta, 'ha')}${kv('Superficie bajo riego', d.superficieBajoRiego, 'ha')}${kv('Superficie con derecho de riego', d.superficieDerecho, 'ha')}${kv('Fuente de agua (derecho)', d.fuenteRiegoDerecho)}
+    ${kv('Superficie total', d.superficieTotal, 'ha')}${kv('Superficie cultivada', d.superficieCultivada, 'ha')}${kv('Superficie inculta', d.superficieInculta, 'ha')}${kv('Superficie bajo riego', d.superficieBajoRiego, 'ha')}${kv('Superficie con derecho de riego', d.superficieDerecho, 'ha')}${kvList('Fuente de agua (derecho)', Array.isArray(d.fuenteRiegoDerecho) ? d.fuenteRiegoDerecho : (d.fuenteRiegoDerecho ? [d.fuenteRiegoDerecho] : []))}${kv('Detalle "Otra" fuente', d.fuenteRiegoDerechoOtroDetalle)}
     ${kv('Padrón', d.ccpp)}${kv('Pozos', d.pozos)}${kv('Observaciones', d.obsGenerales)}</p>`;
 
   const cultivosRows = arr(d.cultivos).filter((c) => has(c.cultivo)).map((c) => [c.cultivo, c.variedad, c.destino, c.anio, c.marco, c.superficie, has(c.rendimiento) ? c.rendimiento + ' ' + (c.rendimientoUnidad || '') : '']);
@@ -1329,9 +1328,9 @@ function printDiag() {
   const mats = arr(d.materiales).filter((m) => has(m.item)).map((m) => [m.item, m.cantidad, m.unidad, m.obs]);
   const materiales = table(['Ítem / insumo', 'Cantidad', 'Unidad', 'Observaciones'], mats);
 
-  const inds = arr(d.indicadores).filter((i) => has(i.actual) || has(i.proyectada) || has(i.obs)).map((i) => [i.indicador, i.actual, i.proyectada, i.obs]);
-  const impactos = table(['Indicador', 'Situación actual', 'Situación proyectada', 'Observaciones'], inds)
-    + `<p>${kvList('Impacto productivo', d.impactoProductivoItems)}${kv('Detalle productivo', d.impactoProductivoDetalle)}${kvList('Impacto económico', d.impactoEconomicoItems)}${kv('Detalle económico', d.impactoEconomicoDetalle)}${kvList('Impacto ambiental', d.impactoAmbientalItems)}${kv('Detalle ambiental', d.impactoAmbientalDetalle)}</p>`;
+  const inds = arr(d.indicadores).filter((i) => has(i.actual) || has(i.proyectada) || has(i.obs)).map((i) => [i.indicador, i.unidad, i.actual, i.proyectada, i.obs]);
+  const impactos = table(['Indicador', 'Unidad', 'Situación actual', 'Situación proyectada', 'Observaciones'], inds)
+    + `<p>${kv('Detalle productivo', d.impactoProductivoDetalle)}${kv('Detalle económico', d.impactoEconomicoDetalle)}${kv('Detalle ambiental', d.impactoAmbientalDetalle)}</p>`;
 
   const cronoRows = Object.keys(d.cronogramaGrid || {}).filter((k) => has(d.cronogramaGrid[k].desde) || has(d.cronogramaGrid[k].hasta)).map((k) => [k, d.cronogramaGrid[k].desde, d.cronogramaGrid[k].hasta]);
   const detRows = arr(d.presupuestoDetallado).filter((p) => has(p.item)).map((p) => [p.item, p.cantidad, p.unidad, has(p.precioUnitario) ? money(p.precioUnitario) : '', money((Number(p.cantidad) || 0) * (Number(p.precioUnitario) || 0))]);
