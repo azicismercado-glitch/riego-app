@@ -3,6 +3,35 @@
 // por mail del circuito de firmas — replica, en formato más simple, las
 // mismas secciones que arma printDiag() en el cliente (public/app.js).
 const PDFDocument = require('pdfkit');
+const zlib = require('zlib');
+
+// pdfkit decodifica el PNG de forma asíncrona por dentro (vía zlib), y si
+// el archivo viene corrupto tira una excepción que NO se puede atrapar con
+// un try/catch alrededor de doc.image() — directamente tumbaría el proceso.
+// Por eso se valida el PNG a mano (de forma síncrona, sí atrapable) antes
+// de pasárselo a pdfkit, y si no decodifica, se omite la imagen sin
+// arriesgar el resto del documento (ni el proceso del servidor).
+function pngDecodeOk(buf) {
+  try {
+    if (buf.length < 8 || buf.readUInt32BE(0) !== 0x89504e47) return false;
+    let offset = 8;
+    const idatParts = [];
+    while (offset + 8 <= buf.length) {
+      const len = buf.readUInt32BE(offset);
+      const type = buf.toString('ascii', offset + 4, offset + 8);
+      const dataStart = offset + 8;
+      if (dataStart + len > buf.length) return false;
+      if (type === 'IDAT') idatParts.push(buf.slice(dataStart, dataStart + len));
+      if (type === 'IEND') break;
+      offset = dataStart + len + 4;
+    }
+    if (!idatParts.length) return false;
+    zlib.inflateSync(Buffer.concat(idatParts));
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
 
 const STAGE_LABELS = {
   borrador: 'Borrador',
@@ -344,11 +373,13 @@ function generarDiagnosticoPDF({ data, docStatus, signatures }) {
           try {
             const b64 = String(s.image).replace(/^data:image\/\w+;base64,/, '');
             const buf = Buffer.from(b64, 'base64');
-            checkSpace(70);
-            const imgX = doc.x, imgY = doc.y;
-            doc.image(buf, imgX, imgY, { width: 160, height: 60, fit: [160, 60] });
-            doc.y = imgY + 64; // doc.image() no mueve el cursor solo — hay que avanzarlo a mano o el texto siguiente queda encimado
-            doc.x = doc.page.margins.left;
+            if (pngDecodeOk(buf)) {
+              checkSpace(70);
+              const imgX = doc.x, imgY = doc.y;
+              doc.image(buf, imgX, imgY, { width: 160, height: 60, fit: [160, 60] });
+              doc.y = imgY + 64; // doc.image() no mueve el cursor solo — hay que avanzarlo a mano o el texto siguiente queda encimado
+              doc.x = doc.page.margins.left;
+            }
           } catch (e) { /* si la imagen de firma está corrupta, se omite sin romper el PDF */ }
         }
       } else {
