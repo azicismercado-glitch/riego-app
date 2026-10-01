@@ -67,7 +67,7 @@ router.get('/set-provincias', async (req, res) => {
   if (!checkKey(req, res)) return;
   try {
     const ASIGNACIONES = [
-      { username: 'aperez', provincia: 'Mendoza' },
+      { username: 'TecnicoMdz', provincia: 'Mendoza' },
       { username: 'mgomez', provincia: 'Mendoza' }
     ];
     const actualizados = [];

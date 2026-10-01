@@ -56,7 +56,7 @@ prototipo original):
 
 | Rol                  | Usuario | Contraseña |
 |----------------------|---------|------------|
-| Técnico de campo     | aperez  | 1234       |
+| Técnico de campo     | TecnicoMdz | 1234    |
 | Responsable provincial | mgomez | 1234      |
 | Técnico CFI          | lcosta  | 1234       |
 

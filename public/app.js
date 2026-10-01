@@ -5,7 +5,7 @@
 const STAGES = ['borrador','firmado_tecnico','firmado_provincia','firmado_cfi'];
 const STAGE_LABELS = {borrador:'Borrador', firmado_tecnico:'Firmado por técnico', firmado_provincia:'Firmado por provincia', firmado_cfi:'Validado por CFI'};
 const STAGE_ROLE = ['tecnico','provincia','cfi'];
-const DEMO_HINT = {tecnico:{username:'aperez', password:'1234'}, provincia:{username:'mgomez', password:'1234'}, cfi:{username:'lcosta', password:'1234'}, lector:{username:'invitado', password:'1234'}};
+const DEMO_HINT = {tecnico:{username:'TecnicoMdz', password:'1234'}, provincia:{username:'mgomez', password:'1234'}, cfi:{username:'lcosta', password:'1234'}, lector:{username:'invitado', password:'1234'}};
 const TABS = [['estab','Establec.'],['cultivos','Cultivos'],['suelo','Suelo'],['riego','Riego'],['problemas','Problemas'],['propuesta','Propuesta'],['impacto','Impacto'],['seguimiento','Seguim.'],['fotos','Fotos'],['resumen','Resumen'],['firmas','Firmas'],['historial','Historial']];
 const FUENTES_RIEGO_DERECHO = ['Río','Arroyo','Laguna','Vertiente','Subterránea (pozo)','Mixta','Otra'];
 const DESTINOS_CULTIVO = ['Industria','Consumo','Oleaginosa','Cereal','Otro'];

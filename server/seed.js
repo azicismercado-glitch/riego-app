@@ -11,7 +11,7 @@ const { emptyData, emptyIndicadores } = require('./constants');
 // Usuarios de DEMOSTRACIÓN con contraseña trivial: solo para desarrollo/pruebas.
 // Una implementación real debe crear sus propios usuarios con contraseñas propias.
 const DEMO_USERS = [
-  { username: 'aperez', password: '1234', role: 'tecnico', nombre: 'Técnico Demo', rol_label: 'Técnico de campo', email: 'tecnico@example.org', provincia: 'Mendoza' },
+  { username: 'TecnicoMdz', password: '1234', role: 'tecnico', nombre: 'Técnico Demo', rol_label: 'Técnico de campo', email: 'tecnico@example.org', provincia: 'Mendoza' },
   { username: 'mgomez', password: '1234', role: 'provincia', nombre: 'Responsable Provincial Demo', rol_label: 'Responsable provincial', email: 'provincia@example.org', provincia: 'Mendoza' },
   { username: 'lcosta', password: '1234', role: 'cfi', nombre: 'Técnico CFI Demo', rol_label: 'Técnico CFI', email: 'cfi@example.org', provincia: null },
   // Usuarios de solo lectura: pueden ver el listado, cada diagnóstico y el panel,
@@ -181,7 +181,7 @@ async function seedDiagnosticos(tecnicoId) {
     const id = rows[0].id;
     await db.query(
       `INSERT INTO historial (diagnostico_id, usuario, evento, detalle, tipo)
-       VALUES ($1,'aperez','Diagnóstico creado','Datos de ejemplo','ok')`,
+       VALUES ($1,'TecnicoMdz','Diagnóstico creado','Datos de ejemplo','ok')`,
       [id]
     );
     console.log('Diagnóstico de ejemplo cargado:', data.productor, '/', data.finca, '→ id', id);
