@@ -7,6 +7,7 @@ const { generateConformidadDraft } = require('../informe');
 const { getScope, visibleClause, requireDiagnosticoVisible } = require('../access');
 const { sendEmailNotif } = require('../mailer');
 const { subirBuffer } = require('../cloudinary');
+const { generarDiagnosticoPDF } = require('../pdfDiagnostico');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -31,6 +32,24 @@ async function loadDiag(id) {
 async function fotosCount(id) {
   const { rows } = await db.query('SELECT count(*)::int AS n FROM fotos WHERE diagnostico_id = $1', [id]);
   return rows[0].n;
+}
+
+// Trae solo las firmas pedidas (para armar el PDF que se adjunta a cada
+// notificación por mail, que debe incluir únicamente las firmas ya hechas
+// hasta ese punto del circuito, no las que todavía faltan).
+async function loadSignatures(diagId, roles) {
+  const { rows } = await db.query(
+    'SELECT role, usuario, ts, geo, hash, signature_image, con_observaciones, observaciones, informe FROM signatures WHERE diagnostico_id = $1 AND role = ANY($2)',
+    [diagId, roles]
+  );
+  const out = {};
+  for (const s of rows) {
+    out[s.role] = {
+      usuario: s.usuario, timestamp: s.ts, geo: s.geo, hash: s.hash, image: s.signature_image,
+      conObservaciones: s.con_observaciones, observaciones: s.observaciones, informe: s.informe
+    };
+  }
+  return out;
 }
 
 async function fullPayload(diag) {
@@ -300,17 +319,30 @@ router.post('/:id/firmar', async (req, res) => {
 
   if (req.user.role === 'tecnico') {
     await db.query(`INSERT INTO historial (diagnostico_id, usuario, evento, detalle, tipo) VALUES ($1,$2,'Firmado por Técnico de campo','Identidad reautenticada','ok')`, [diag.id, req.user.username]);
-    await sendEmailNotif(diag.id, finca, productor, 'firma_tecnico');
+    const sigs = await loadSignatures(diag.id, ['tecnico']);
+    const pdf = await generarDiagnosticoPDF({ data: diag.data, docStatus: nextStatus, signatures: sigs });
+    await sendEmailNotif(diag.id, finca, productor, 'firma_tecnico', {
+      attachments: [{ filename: `diagnostico-${diag.id}-firmado-tecnico.pdf`, content: pdf }]
+    });
   }
   if (req.user.role === 'provincia') {
     await db.query(`INSERT INTO historial (diagnostico_id, usuario, evento, detalle, tipo) VALUES ($1,$2,'Validado y firmado por Responsable provincial',$3,$4)`,
       [diag.id, req.user.username, obsText ? 'Con observaciones' : 'Sin observaciones', obsText ? 'warn' : 'ok']);
-    await sendEmailNotif(diag.id, finca, productor, 'firma_provincia');
+    const sigs = await loadSignatures(diag.id, ['tecnico', 'provincia']);
+    const pdf = await generarDiagnosticoPDF({ data: diag.data, docStatus: nextStatus, signatures: sigs });
+    await sendEmailNotif(diag.id, finca, productor, 'firma_provincia', {
+      attachments: [{ filename: `diagnostico-${diag.id}-firmado-provincia.pdf`, content: pdf }]
+    });
   }
   if (req.user.role === 'cfi') {
     await db.query(`INSERT INTO historial (diagnostico_id, usuario, evento, detalle, tipo) VALUES ($1,$2,'Validado y firmado por Técnico CFI',$3,$4)`,
       [diag.id, req.user.username, obsText ? 'Con observaciones sujetas a complementación' : 'Sin observaciones', obsText ? 'warn' : 'ok']);
-    await sendEmailNotif(diag.id, finca, productor, 'firma_cfi', { conObservaciones, observaciones: obsText });
+    const sigs = await loadSignatures(diag.id, ['tecnico', 'provincia', 'cfi']);
+    const pdf = await generarDiagnosticoPDF({ data: diag.data, docStatus: nextStatus, signatures: sigs });
+    await sendEmailNotif(diag.id, finca, productor, 'firma_cfi', {
+      conObservaciones, observaciones: obsText,
+      attachments: [{ filename: `diagnostico-${diag.id}-firmado-final.pdf`, content: pdf }]
+    });
   }
 
   const updated = await loadDiag(diag.id);

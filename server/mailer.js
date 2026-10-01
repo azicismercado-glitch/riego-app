@@ -34,7 +34,7 @@ function getTransporter() {
  * todavía, queda logueado en consola y en la base con estado "logged" para
  * no perder la trazabilidad — se puede reenviar más adelante.
  */
-async function sendMail({ diagnosticoId, toKey, subject, body }) {
+async function sendMail({ diagnosticoId, toKey, subject, body, attachments }) {
   const dest = DEMO_USERS_BY_ROLE[toKey];
   if (!dest) throw new Error('Destinatario desconocido: ' + toKey);
 
@@ -47,7 +47,8 @@ async function sendMail({ diagnosticoId, toKey, subject, body }) {
         from: process.env.SMTP_FROM || 'no-reply@example.org',
         to: `${dest.nombre} <${dest.email}>`,
         subject,
-        text: body
+        text: body,
+        attachments
       });
       status = 'sent';
     } catch (e) {
@@ -76,7 +77,7 @@ async function sendEmailNotif(diagnosticoId, finca, productor, tipo, extra) {
   productor = productor || 's/d';
   const enviados = [];
 
-  const push = async (toKey, subject, body) => enviados.push(await sendMail({ diagnosticoId, toKey, subject, body }));
+  const push = async (toKey, subject, body) => enviados.push(await sendMail({ diagnosticoId, toKey, subject, body, attachments: extra && extra.attachments }));
 
   if (tipo === 'firma_tecnico') {
     await push('provincia', `[DTR] ${finca} — listo para tu revisión`,
@@ -85,6 +86,8 @@ async function sendEmailNotif(diagnosticoId, finca, productor, tipo, extra) {
 El técnico de campo ${DEMO_USERS_BY_ROLE.tecnico.nombre} firmó el Diagnóstico Técnico de Riego de la finca "${finca}" (productor: ${productor}).
 
 Te corresponde revisarlo y validarlo (o devolverlo con observaciones) como Responsable provincial.
+
+Adjuntamos el PDF del diagnóstico con la firma del técnico de campo.
 
 Ingresá a la aplicación para continuar el proceso.`);
   }
@@ -95,6 +98,8 @@ Ingresá a la aplicación para continuar el proceso.`);
 El Responsable provincial ${DEMO_USERS_BY_ROLE.provincia.nombre} validó y firmó el Diagnóstico Técnico de Riego de la finca "${finca}" (productor: ${productor}).
 
 Te corresponde la validación técnica final y la emisión de la Conformidad Técnica.
+
+Adjuntamos el PDF del diagnóstico con las firmas del técnico de campo y del Responsable provincial.
 
 Ingresá a la aplicación para continuar el proceso.`);
   }
@@ -108,11 +113,13 @@ El Diagnóstico Técnico de Riego de la finca "${finca}" (productor: ${productor
 ATENCIÓN — quedó sujeto a complementar la siguiente información:
 ${extra.observaciones}` : ''}
 
-El documento final firmado ya está disponible en la aplicación.`);
+Adjuntamos el PDF final del diagnóstico con las tres firmas.`);
     await push('provincia', `[DTR] ${finca} — proceso completado`,
 `Hola ${DEMO_USERS_BY_ROLE.provincia.nombre},
 
-Te informamos que el Diagnóstico Técnico de Riego de la finca "${finca}" completó el circuito de firmas y fue validado por CFI.`);
+Te informamos que el Diagnóstico Técnico de Riego de la finca "${finca}" completó el circuito de firmas y fue validado por CFI.
+
+Adjuntamos el PDF final del diagnóstico con las tres firmas.`);
   }
   if (tipo === 'rechazo_provincia') {
     await push('tecnico', `[DTR] ${finca} — devuelto por el Responsable provincial`,
