@@ -645,15 +645,10 @@ function addPresupuestoDet() { if (!canEdit()) return; cur().data.presupuestoDet
 function removePresupuestoDet(i) { if (!canEdit()) return; cur().data.presupuestoDetallado.splice(i,1); flushSave(); render(); }
 function setPresupuestoDet(i, key, val) { if (!canEdit()) return; cur().data.presupuestoDetallado[i][key] = val; scheduleSave(); }
 
-/* ---- Cronograma (etapas fijas, rango de meses) ---- */
-function setCronograma(etapa, campo, val) {
-  if (!canEdit()) return;
-  const d = cur().data;
-  if (!d.cronogramaGrid) d.cronogramaGrid = {};
-  if (!d.cronogramaGrid[etapa]) d.cronogramaGrid[etapa] = { desde: '', hasta: '' };
-  d.cronogramaGrid[etapa][campo] = val;
-  scheduleSave();
-}
+/* ---- Cronograma (etapas a cargar a mano, rango de meses) ---- */
+function addCronograma() { if (!canEdit()) return; cur().data.cronograma.push({ etapa: '', desde: '', hasta: '' }); flushSave(); render(); }
+function removeCronograma(i) { if (!canEdit()) return; cur().data.cronograma.splice(i, 1); flushSave(); render(); }
+function setCronograma(i, campo, val) { if (!canEdit()) return; cur().data.cronograma[i][campo] = val; scheduleSave(); }
 // Categoría (nivel 1) del nomenclador CFI: al cambiarla, se resetea la
 // subcategoría (nivel 2, depende de la categoría) y se guarda una etiqueta
 // legible en "tipo" — así el panel sigue agrupando montos sin tocar su lógica.
@@ -754,7 +749,18 @@ function renderTabContent(dg) {
   if (!Array.isArray(d.fuenteRiegoDerecho)) d.fuenteRiegoDerecho = d.fuenteRiegoDerecho ? [d.fuenteRiegoDerecho] : [];
   if (!d.ganaderiaActividadManejo || typeof d.ganaderiaActividadManejo !== 'object') d.ganaderiaActividadManejo = {};
   if (!d.presupuestoDetallado) d.presupuestoDetallado = [{item:'',cantidad:'',unidad:'',precioUnitario:''}];
-  if (!d.cronogramaGrid) d.cronogramaGrid = {};
+  // Diagnósticos viejos tenían el cronograma como una grilla de etapas fijas
+  // (objeto); se convierte a la lista editable nueva (array) la primera vez que se abren.
+  if (!Array.isArray(d.cronograma)) {
+    if (d.cronogramaGrid && typeof d.cronogramaGrid === 'object') {
+      d.cronograma = Object.keys(d.cronogramaGrid)
+        .filter(k => d.cronogramaGrid[k].desde || d.cronogramaGrid[k].hasta)
+        .map(k => ({ etapa: k, desde: d.cronogramaGrid[k].desde || '', hasta: d.cronogramaGrid[k].hasta || '' }));
+    } else {
+      d.cronograma = [];
+    }
+    if (!d.cronograma.length) d.cronograma = [{ etapa: '', desde: '', hasta: '' }];
+  }
   if (!Array.isArray(d.metodosControl)) d.metodosControl = [];
 
   if (t === 'estab') return `
@@ -1111,16 +1117,15 @@ function renderTabContent(dg) {
     <div class="section-card">
       <div class="section-title"><i class="ti ti-calendar-time"></i> Cronograma de implementación</div>
       <div class="table-scroll"><table class="dyn-table">
-        <thead><tr><th>Etapa</th><th>Mes desde</th><th>Mes hasta</th></tr></thead>
-        <tbody>${Object.keys(d.cronogramaGrid||{}).map(etapa=>{
-          const v = d.cronogramaGrid[etapa]||{desde:'',hasta:''};
-          return `<tr>
-          <td>${etapa}</td>
-          <td><input type="number" min="1" max="12" value="${v.desde}" ${dis} style="width:70px" onchange="setCronograma('${etapa}','desde',this.value)"></td>
-          <td><input type="number" min="1" max="12" value="${v.hasta}" ${dis} style="width:70px" onchange="setCronograma('${etapa}','hasta',this.value)"></td>
-        </tr>`;
-        }).join('')}</tbody>
+        <thead><tr><th>Etapa</th><th>Mes desde</th><th>Mes hasta</th><th></th></tr></thead>
+        <tbody>${d.cronograma.map((v,i)=>`<tr>
+          <td><input type="text" value="${v.etapa}" ${dis} placeholder="Ej: Instalación del equipo" onchange="setCronograma(${i},'etapa',this.value)"></td>
+          <td><input type="number" min="1" max="60" value="${v.desde}" ${dis} style="width:70px" onchange="setCronograma(${i},'desde',this.value)"></td>
+          <td><input type="number" min="1" max="60" value="${v.hasta}" ${dis} style="width:70px" onchange="setCronograma(${i},'hasta',this.value)"></td>
+          <td class="row-remove">${canEdit()&&d.cronograma.length>1?`<button onclick="removeCronograma(${i})" aria-label="Quitar"><i class="ti ti-x"></i></button>`:''}</td>
+        </tr>`).join('')}</tbody>
       </table></div>
+      <button class="add-row-btn" ${canEdit()?'':'disabled'} onclick="addCronograma()"><i class="ti ti-plus"></i> Agregar etapa</button>
 
       <div class="subsection-title">Presupuesto estimado</div>
       <div class="table-scroll"><table class="dyn-table">
@@ -1332,7 +1337,9 @@ function printDiag() {
   const impactos = table(['Indicador', 'Unidad', 'Situación actual', 'Situación proyectada', 'Observaciones'], inds)
     + `<p>${kv('Detalle productivo', d.impactoProductivoDetalle)}${kv('Detalle económico', d.impactoEconomicoDetalle)}${kv('Detalle ambiental', d.impactoAmbientalDetalle)}</p>`;
 
-  const cronoRows = Object.keys(d.cronogramaGrid || {}).filter((k) => has(d.cronogramaGrid[k].desde) || has(d.cronogramaGrid[k].hasta)).map((k) => [k, d.cronogramaGrid[k].desde, d.cronogramaGrid[k].hasta]);
+  const cronoRows = Array.isArray(d.cronograma)
+    ? d.cronograma.filter((v) => has(v.etapa) && (has(v.desde) || has(v.hasta))).map((v) => [v.etapa, v.desde, v.hasta])
+    : Object.keys(d.cronogramaGrid || {}).filter((k) => has(d.cronogramaGrid[k].desde) || has(d.cronogramaGrid[k].hasta)).map((k) => [k, d.cronogramaGrid[k].desde, d.cronogramaGrid[k].hasta]);
   const detRows = arr(d.presupuestoDetallado).filter((p) => has(p.item)).map((p) => [p.item, p.cantidad, p.unidad, has(p.precioUnitario) ? money(p.precioUnitario) : '', money((Number(p.cantidad) || 0) * (Number(p.precioUnitario) || 0))]);
   const totalDet = arr(d.presupuestoDetallado).reduce((s, p) => s + (Number(p.cantidad) || 0) * (Number(p.precioUnitario) || 0), 0);
   const cronoPres = table(['Etapa', 'Mes desde', 'Mes hasta'], cronoRows)

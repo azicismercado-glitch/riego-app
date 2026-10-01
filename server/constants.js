@@ -57,15 +57,10 @@ function emptyIndicadores() {
     { indicador: 'Otro', unidad: '', actual: '', proyectada: '', obs: '' }
   ];
 }
-function emptyCronogramaGrid() {
-  return {
-    'Extracción de árboles / especies introducidas': { desde: '', hasta: '' },
-    'Remoción de suelo y nivelación láser': { desde: '', hasta: '' },
-    'Adquisición de insumos': { desde: '', hasta: '' },
-    'Instalación / calibración': { desde: '', hasta: '' },
-    'Capacitación': { desde: '', hasta: '' },
-    'Siembra': { desde: '', hasta: '' }
-  };
+// Etapas del cronograma de implementación: lista libre que carga el técnico
+// a mano (botón "Agregar etapa"), ya no un listado fijo predefinido.
+function emptyCronogramaItem() {
+  return { etapa: '', desde: '', hasta: '' };
 }
 function emptyPresupuestoDetallado() {
   return { item: '', cantidad: '', unidad: '', precioUnitario: '' };
@@ -106,7 +101,7 @@ function emptyData() {
     impactoProductivoItems: [], impactoProductivoDetalle: '',
     impactoEconomicoItems: [], impactoEconomicoDetalle: '',
     impactoAmbientalItems: [], impactoAmbientalDetalle: '',
-    indicadoresMejora: '', cronogramaEtapas: '', cronogramaGrid: emptyCronogramaGrid(), tiempoTotalMeses: '',
+    indicadoresMejora: '', cronogramaEtapas: '', cronograma: [emptyCronogramaItem()], tiempoTotalMeses: '',
     presupuesto: [emptyPresupuesto()], presupuestoDetallado: [emptyPresupuestoDetallado()],
     aportePorcentajeProductor: '', financiamientoPorcentajeSolicitado: '',
     tipoSeguimiento: '', fechaEstimadaSeguimiento: '', recursosNecesariosSeguimiento: '',
@@ -200,6 +195,6 @@ function missingForSign(data) {
 
 module.exports = {
   STAGES, STAGE_LABELS, STAGE_ROLE, TIPOS_INVERSION, stageIndex,
-  emptyCultivo, emptyPresupuesto, emptyMaterial, emptyIndicadores, emptyCronogramaGrid, emptyPresupuestoDetallado, emptyData,
+  emptyCultivo, emptyPresupuesto, emptyMaterial, emptyIndicadores, emptyCronogramaItem, emptyPresupuestoDetallado, emptyData,
   has, sistemasRiego, completeness, missingForSign, normalizeCuit
 };

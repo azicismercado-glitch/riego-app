@@ -166,15 +166,8 @@ function emptyIndicadores(){
     { indicador:'Otro', unidad:'', actual:'', proyectada:'', obs:'' }
   ];
 }
-function emptyCronogramaGrid(){
-  return {
-    'Extracción de árboles / especies introducidas': { desde:'', hasta:'' },
-    'Remoción de suelo y nivelación láser': { desde:'', hasta:'' },
-    'Adquisición de insumos': { desde:'', hasta:'' },
-    'Instalación / calibración': { desde:'', hasta:'' },
-    'Capacitación': { desde:'', hasta:'' },
-    'Siembra': { desde:'', hasta:'' }
-  };
+function emptyCronogramaItem(){
+  return { etapa:'', desde:'', hasta:'' };
 }
 function emptyPresupuestoDetallado(){ return {item:'',cantidad:'',unidad:'',precioUnitario:''}; }
 function emptyData(){
@@ -213,7 +206,7 @@ function emptyData(){
     impactoProductivoItems:[],impactoProductivoDetalle:'',
     impactoEconomicoItems:[],impactoEconomicoDetalle:'',
     impactoAmbientalItems:[],impactoAmbientalDetalle:'',
-    indicadoresMejora:'',cronogramaEtapas:'',cronogramaGrid:emptyCronogramaGrid(),tiempoTotalMeses:'',
+    indicadoresMejora:'',cronogramaEtapas:'',cronograma:[emptyCronogramaItem()],tiempoTotalMeses:'',
     presupuesto:[emptyPresupuesto()],presupuestoDetallado:[emptyPresupuestoDetallado()],
     aportePorcentajeProductor:'',financiamientoPorcentajeSolicitado:'',
     tipoSeguimiento:'',fechaEstimadaSeguimiento:'',recursosNecesariosSeguimiento:'',
@@ -264,6 +257,16 @@ if (!Array.isArray(state.data.indicadores)) state.data.indicadores = [];
 INDICADORES_BASE.forEach(n => { if (!state.data.indicadores.some(i => i.indicador === n)) state.data.indicadores.push({indicador:n, unidad:'', actual:'', proyectada:'', obs:''}); });
 state.data.indicadores.forEach(i => { if (i.unidad === undefined) i.unidad = ''; });
 if (!Array.isArray(state.data.fuenteRiegoDerecho)) state.data.fuenteRiegoDerecho = state.data.fuenteRiegoDerecho ? [state.data.fuenteRiegoDerecho] : [];
+// El merge con emptyData() de arriba ya rellenó "cronograma" con una fila vacía por
+// defecto aunque el borrador sea viejo (tenía "cronogramaGrid" en vez de "cronograma"),
+// así que no alcanza con mirar si ya es array — hay que migrar el contenido real primero.
+if (state.data.cronogramaGrid && typeof state.data.cronogramaGrid === 'object' && !(Array.isArray(state.data.cronograma) && state.data.cronograma.some(c => c.etapa))) {
+  const migrado = Object.keys(state.data.cronogramaGrid)
+    .filter(k => state.data.cronogramaGrid[k].desde || state.data.cronogramaGrid[k].hasta)
+    .map(k => ({ etapa:k, desde: state.data.cronogramaGrid[k].desde || '', hasta: state.data.cronogramaGrid[k].hasta || '' }));
+  if (migrado.length) state.data.cronograma = migrado;
+}
+if (!Array.isArray(state.data.cronograma) || !state.data.cronograma.length) state.data.cronograma = [{ etapa:'', desde:'', hasta:'' }];
 if (!state.data.ganaderiaActividadManejo || typeof state.data.ganaderiaActividadManejo !== 'object') state.data.ganaderiaActividadManejo = {};
 
 /* ================= helpers de estado ================= */
@@ -314,13 +317,10 @@ function addPresupuestoDet(){ state.data.presupuestoDetallado.push(emptyPresupue
 function removePresupuestoDet(i){ state.data.presupuestoDetallado.splice(i,1); scheduleSave(); render(); }
 function setPresupuestoDet(i,key,val){ state.data.presupuestoDetallado[i][key]=val; scheduleSave(); }
 
-/* ---- Cronograma (etapas fijas, rango de meses) ---- */
-function setCronograma(etapa,campo,val){
-  if (!state.data.cronogramaGrid) state.data.cronogramaGrid = {};
-  if (!state.data.cronogramaGrid[etapa]) state.data.cronogramaGrid[etapa] = { desde:'', hasta:'' };
-  state.data.cronogramaGrid[etapa][campo] = val;
-  scheduleSave();
-}
+/* ---- Cronograma (etapas a cargar a mano, rango de meses) ---- */
+function addCronograma(){ state.data.cronograma.push({ etapa:'', desde:'', hasta:'' }); scheduleSave(); render(); }
+function removeCronograma(i){ state.data.cronograma.splice(i,1); scheduleSave(); render(); }
+function setCronograma(i,campo,val){ state.data.cronograma[i][campo]=val; scheduleSave(); }
 function fmtARS(n){ return '$ ' + Number(n||0).toLocaleString('es-AR', { maximumFractionDigits: 0 }); }
 
 function setTab(t){ state.tab=t; render(); window.scrollTo(0,0); }
@@ -994,16 +994,15 @@ function renderTab(){
     <div class="section-card">
       <div class="section-title">Cronograma de implementación</div>
       <div class="table-scroll"><table class="dyn-table">
-        <thead><tr><th>Etapa</th><th>Mes desde</th><th>Mes hasta</th></tr></thead>
-        <tbody>${Object.keys(dd.cronogramaGrid||{}).map(etapa=>{
-          const v = dd.cronogramaGrid[etapa]||{desde:'',hasta:''};
-          return `<tr>
-          <td>${etapa}</td>
-          <td><input type="number" min="1" max="12" value="${v.desde}" style="width:60px" onchange="setCronograma('${etapa}','desde',this.value)"></td>
-          <td><input type="number" min="1" max="12" value="${v.hasta}" style="width:60px" onchange="setCronograma('${etapa}','hasta',this.value)"></td>
-        </tr>`;
-        }).join('')}</tbody>
+        <thead><tr><th>Etapa</th><th>Mes desde</th><th>Mes hasta</th><th></th></tr></thead>
+        <tbody>${dd.cronograma.map((v,i)=>`<tr>
+          <td><input type="text" value="${v.etapa}" placeholder="Ej: Instalación del equipo" onchange="setCronograma(${i},'etapa',this.value)"></td>
+          <td><input type="number" min="1" max="60" value="${v.desde}" style="width:60px" onchange="setCronograma(${i},'desde',this.value)"></td>
+          <td><input type="number" min="1" max="60" value="${v.hasta}" style="width:60px" onchange="setCronograma(${i},'hasta',this.value)"></td>
+          <td class="row-remove">${dd.cronograma.length>1?`<button onclick="removeCronograma(${i})">×</button>`:''}</td>
+        </tr>`).join('')}</tbody>
       </table></div>
+      <button class="add-row-btn" onclick="addCronograma()">+ Agregar etapa</button>
 
       <div class="subsection-title">Presupuesto estimado</div>
       <div class="table-scroll"><table class="dyn-table">
