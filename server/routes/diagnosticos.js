@@ -8,6 +8,7 @@ const { getScope, visibleClause, requireDiagnosticoVisible } = require('../acces
 const { sendEmailNotif } = require('../mailer');
 const { subirBuffer } = require('../cloudinary');
 const { generarDiagnosticoPDF } = require('../pdfDiagnostico');
+const { generarConformidadPDF } = require('../conformidadPDF');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -339,9 +340,15 @@ router.post('/:id/firmar', async (req, res) => {
       [diag.id, req.user.username, obsText ? 'Con observaciones sujetas a complementación' : 'Sin observaciones', obsText ? 'warn' : 'ok']);
     const sigs = await loadSignatures(diag.id, ['tecnico', 'provincia', 'cfi']);
     const pdf = await generarDiagnosticoPDF({ data: diag.data, docStatus: nextStatus, signatures: sigs });
+    const conformidad = await generarConformidadPDF({
+      informe, signer: req.user.nombre, signedAt: timestamp, signatureImage: signatureImage || null
+    });
     await sendEmailNotif(diag.id, finca, productor, 'firma_cfi', {
       conObservaciones, observaciones: obsText,
-      attachments: [{ filename: `diagnostico-${diag.id}-firmado-final.pdf`, content: pdf }]
+      attachments: [
+        { filename: `diagnostico-${diag.id}-firmado-final.pdf`, content: pdf },
+        { filename: `conformidad-tecnica-${diag.id}.pdf`, content: conformidad }
+      ]
     });
   }
 
