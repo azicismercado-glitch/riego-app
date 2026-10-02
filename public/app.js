@@ -1514,7 +1514,7 @@ function setupCanvases() {
     canvas.dataset.bound = '1';
     const ctx = canvas.getContext('2d');
     canvas.width = canvas.clientWidth*2; canvas.height = canvas.clientHeight*2;
-    ctx.scale(2,2); ctx.strokeStyle = '#2F5238'; ctx.lineWidth = 2.2; ctx.lineCap = 'round';
+    ctx.scale(2,2); ctx.strokeStyle = '#1C2443'; ctx.lineWidth = 2.2; ctx.lineCap = 'round';
     let drawing=false, last=null;
     const pos = e => { const r=canvas.getBoundingClientRect(); const p=e.touches?e.touches[0]:e; return {x:p.clientX-r.left,y:p.clientY-r.top}; };
     const start = e => { drawing=true; last=pos(e); e.preventDefault(); };

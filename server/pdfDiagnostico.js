@@ -40,7 +40,7 @@ const STAGE_LABELS = {
   firmado_cfi: 'Validado por CFI'
 };
 const SIGNATURE_LABELS = { tecnico: 'Técnico de campo', provincia: 'Responsable provincial', cfi: 'Técnico CFI' };
-const GREEN = '#0F6E56';
+const BLUE = '#1C2443';
 
 function has(v) { return v !== null && v !== undefined && String(v).trim() !== ''; }
 function arr(v) { return Array.isArray(v) ? v : []; }
@@ -65,11 +65,11 @@ function generarDiagnosticoPDF({ data, docStatus, signatures }) {
     }
 
     // -------- encabezado --------
-    doc.fontSize(17).fillColor(GREEN).font('Helvetica-Bold').text('Diagnóstico Técnico de Riego');
+    doc.fontSize(17).fillColor(BLUE).font('Helvetica-Bold').text('Diagnóstico Técnico de Riego');
     doc.fontSize(9).fillColor('#555').font('Helvetica').text('Programa de Apoyo para la Tecnificación del Riego — CFI');
     doc.text(`Estado: ${STAGE_LABELS[docStatus] || docStatus || '—'}  ·  Generado: ${fmtDate(new Date())}`);
     doc.moveDown(0.5);
-    doc.strokeColor(GREEN).lineWidth(1.3).moveTo(doc.page.margins.left, doc.y).lineTo(doc.page.width - doc.page.margins.right, doc.y).stroke();
+    doc.strokeColor(BLUE).lineWidth(1.3).moveTo(doc.page.margins.left, doc.y).lineTo(doc.page.width - doc.page.margins.right, doc.y).stroke();
     doc.moveDown(0.5);
 
     // -------- helpers de contenido --------
@@ -114,7 +114,7 @@ function generarDiagnosticoPDF({ data, docStatus, signatures }) {
       n++;
       checkSpace(26);
       doc.moveDown(0.5);
-      doc.fontSize(12).fillColor(GREEN).font('Helvetica-Bold').text(`${n}. ${title}`);
+      doc.fontSize(12).fillColor(BLUE).font('Helvetica-Bold').text(`${n}. ${title}`);
       doc.moveDown(0.15);
       doc.fillColor('#111');
 
@@ -357,7 +357,7 @@ function generarDiagnosticoPDF({ data, docStatus, signatures }) {
     n++;
     checkSpace(30);
     doc.moveDown(0.5);
-    doc.fontSize(12).fillColor(GREEN).font('Helvetica-Bold').text(`${n}. Firmas`);
+    doc.fontSize(12).fillColor(BLUE).font('Helvetica-Bold').text(`${n}. Firmas`);
     doc.moveDown(0.2);
     doc.fillColor('#111');
     for (const role of ['tecnico', 'provincia', 'cfi']) {
