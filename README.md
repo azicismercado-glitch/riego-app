@@ -57,7 +57,7 @@ prototipo original):
 | Rol                  | Usuario | Contraseña |
 |----------------------|---------|------------|
 | Técnico de campo     | TecnicoMdz | 1234    |
-| Responsable provincial | mgomez | 1234      |
+| Responsable provincial | Gcuneo | 1234      |
 | Técnico CFI          | lcosta  | 1234       |
 
 ## 5. Correr la aplicación

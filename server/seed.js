@@ -13,7 +13,7 @@ const { emptyData, emptyIndicadores } = require('./constants');
 const DEMO_USERS = [
   { username: 'TecnicoMdz', password: '1234', role: 'tecnico', nombre: 'Técnico Demo', rol_label: 'Técnico de campo', email: 'tecnico@example.org', provincia: 'Mendoza' },
   { username: 'tecnicorn', password: '1234', role: 'tecnico', nombre: 'Técnico de campo', rol_label: 'Técnico de campo', email: 'tecnico.rn@example.org', provincia: 'Rio Negro' },
-  { username: 'mgomez', password: '1234', role: 'provincia', nombre: 'Responsable Provincial Demo', rol_label: 'Responsable provincial', email: 'provincia@example.org', provincia: 'Mendoza' },
+  { username: 'Gcuneo', password: '1234', role: 'provincia', nombre: 'Responsable Provincial Demo', rol_label: 'Responsable provincial', email: 'provincia@example.org', provincia: 'Mendoza' },
   { username: 'lcosta', password: '1234', role: 'cfi', nombre: 'Técnico CFI Demo', rol_label: 'Técnico CFI', email: 'cfi@example.org', provincia: null },
   // Usuarios de solo lectura: pueden ver el listado, cada diagnóstico y el panel,
   // pero no pueden crear, editar ni firmar nada (queda bloqueado automáticamente
