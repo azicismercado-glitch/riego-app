@@ -5,7 +5,6 @@
 const STAGES = ['borrador','firmado_tecnico','firmado_provincia','firmado_cfi'];
 const STAGE_LABELS = {borrador:'Borrador', firmado_tecnico:'Firmado por técnico', firmado_provincia:'Firmado por provincia', firmado_cfi:'Validado por CFI'};
 const STAGE_ROLE = ['tecnico','provincia','cfi'];
-const DEMO_HINT = {tecnico:{username:'TecnicoMdz', password:'1234'}, provincia:{username:'Gcuneo', password:'1234'}, cfi:{username:'lcosta', password:'1234'}, lector:{username:'invitado', password:'1234'}};
 const TABS = [['estab','Establec.'],['cultivos','Cultivos'],['suelo','Suelo'],['riego','Riego'],['problemas','Problemas'],['propuesta','Propuesta'],['impacto','Impacto'],['seguimiento','Seguim.'],['fotos','Fotos'],['resumen','Resumen'],['firmas','Firmas'],['historial','Historial']];
 const FUENTES_RIEGO_DERECHO = ['Río','Arroyo','Laguna','Vertiente','Subterránea (pozo)','Mixta','Otra'];
 const DESTINOS_CULTIVO = ['Industria','Consumo','Oleaginosa','Cereal','Otro'];
@@ -157,7 +156,6 @@ function renderLoginScreen() {
       <input type="text" id="loginUser" placeholder="Usuario" autocomplete="off">
       <input type="password" id="loginPass" placeholder="Contraseña">
       ${state.loginError ? `<div class="login-error"><i class="ti ti-alert-circle"></i> ${state.loginError}</div>` : ''}
-      <div class="login-hint"><i class="ti ti-info-circle"></i> Usuario demo sembrado por el backend: <b>${DEMO_HINT[r].username}</b> · contraseña: <b>${DEMO_HINT[r].password}</b></div>
       <button class="btn-login" ${state.loginBusy?'disabled':''} onclick="doLogin()">${state.loginBusy?'Ingresando…':'Ingresar'}</button>
     </div></div>`;
   const pass = document.getElementById('loginPass');

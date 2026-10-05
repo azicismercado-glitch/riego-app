@@ -211,7 +211,6 @@ details.informe-final pre{white-space:pre-wrap; font-family:var(--serif); font-s
 .login-role-tabs button{flex:1; border:none; background:none; padding:8px 4px; font-size:10.5px; font-weight:700; color:var(--lock); border-radius:8px; cursor:pointer;}
 .login-role-tabs button.active{background:var(--green); color:#fff;}
 .login-card input{width:100%; padding:10px 11px; border:1px solid var(--border); border-radius:8px; font-size:13.5px; font-family:inherit; margin-bottom:10px;}
-.login-hint{font-size:10.5px; color:var(--lock); background:var(--paper); border-radius:8px; padding:8px 10px; margin-bottom:14px;}
 .login-error{font-size:11.5px; color:var(--danger); font-weight:700; margin-bottom:10px;}
 .btn-login{width:100%; background:var(--green); color:#fff; border:none; padding:11px; border-radius:8px; font-size:13.5px; font-weight:700; cursor:pointer;}
 .btn-login:disabled{opacity:.6; cursor:not-allowed;}
