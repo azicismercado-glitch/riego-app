@@ -1270,9 +1270,29 @@ function renderResumen(dg) {
         <b>Plazo:</b> ${d.tiempoTotalMeses?d.tiempoTotalMeses+' meses':'—'}
       </div>
     </div>
-    <button class="print-btn" onclick="printDiag()"><i class="ti ti-printer"></i> Imprimir / guardar como PDF</button>
+    <div style="display:flex; gap:10px; flex-wrap:wrap">
+      <button class="print-btn" onclick="printDiag()"><i class="ti ti-printer"></i> Imprimir / guardar como PDF</button>
+      <button class="print-btn" onclick="descargarPDF(${dg.id})"><i class="ti ti-download"></i> Descargar PDF del diagnóstico</button>
+      ${dg.informeConformidad ? `<button class="print-btn" onclick="descargarConformidadPDF(${dg.id})"><i class="ti ti-download"></i> Descargar Conformidad Técnica</button>` : ''}
+    </div>
     ${navRow()}`;
 }
+async function descargarArchivo(url, filename) {
+  try {
+    const res = await fetch(url, { headers: state.token ? { Authorization: 'Bearer ' + state.token } : {} });
+    if (!res.ok) { const body = await res.json().catch(() => ({})); throw new Error(body.error || ('Error HTTP ' + res.status)); }
+    const blob = await res.blob();
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 4000);
+  } catch (e) {
+    alert('No se pudo descargar el PDF: ' + e.message);
+  }
+}
+function descargarPDF(id) { descargarArchivo(`/api/diagnosticos/${id}/pdf`, `diagnostico-${id}.pdf`); }
+function descargarConformidadPDF(id) { descargarArchivo(`/api/diagnosticos/${id}/conformidad-pdf`, `conformidad-tecnica-${id}.pdf`); }
 function printDiag() {
   const dg = cur(); const d = dg.data;
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));

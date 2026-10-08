@@ -204,6 +204,44 @@ router.get('/:id', async (req, res) => {
   res.json(await fullPayload(diag));
 });
 
+// ---------- descarga del PDF (con las firmas que haya hasta el momento) ----------
+router.get('/:id/pdf', async (req, res, next) => {
+  try {
+    const diag = await loadDiag(req.params.id);
+    if (!diag) return res.status(404).json({ error: 'No encontrado' });
+    const sigs = await loadSignatures(diag.id, ['tecnico', 'provincia', 'cfi']);
+    const pdf = await generarDiagnosticoPDF({ data: diag.data, docStatus: diag.doc_status, signatures: sigs });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="diagnostico-${diag.id}.pdf"`);
+    res.send(pdf);
+  } catch (e) { next(e); }
+});
+
+// ---------- descarga de la Conformidad Técnica (solo si CFI ya la redactó) ----------
+router.get('/:id/conformidad-pdf', async (req, res, next) => {
+  try {
+    const diag = await loadDiag(req.params.id);
+    if (!diag) return res.status(404).json({ error: 'No encontrado' });
+    if (!diag.informe_conformidad) return res.status(404).json({ error: 'Todavía no hay Conformidad Técnica redactada.' });
+    const sigs = await loadSignatures(diag.id, ['cfi']);
+    const cfiSig = sigs.cfi;
+    let signer = null;
+    if (cfiSig) {
+      const { rows } = await db.query('SELECT nombre FROM users WHERE username = $1', [cfiSig.usuario]);
+      signer = rows[0] && rows[0].nombre;
+    }
+    const pdf = await generarConformidadPDF({
+      informe: diag.informe_conformidad,
+      signer,
+      signedAt: cfiSig ? cfiSig.timestamp : null,
+      signatureImage: cfiSig ? cfiSig.image : null
+    });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="conformidad-tecnica-${diag.id}.pdf"`);
+    res.send(pdf);
+  } catch (e) { next(e); }
+});
+
 // ---------- editar datos del formulario (autosave) ----------
 router.put('/:id/data', async (req, res) => {
   const diag = await loadDiag(req.params.id);
