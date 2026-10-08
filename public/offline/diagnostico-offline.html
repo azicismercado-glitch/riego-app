@@ -272,7 +272,14 @@ if (!state.data.ganaderiaActividadManejo || typeof state.data.ganaderiaActividad
 /* ================= helpers de estado ================= */
 function d(){ return state.data; }
 function setField(key,val){ state.data[key]=val; scheduleSave(); }
-function setFieldR(key,val){ state.data[key]=val; scheduleSave(); render(); }
+function setFieldR(key,val){
+  state.data[key]=val;
+  if (key === 'analisisSuelo' && val !== 'Posee') {
+    state.data.anioAnalisisSuelo=''; state.data.analisisSueloAclaracion='';
+    state.data.materiaOrganicaPct=''; state.data.fosforoPpm=''; state.data.phSuelo='';
+  }
+  scheduleSave(); render();
+}
 function toggleArr(key,val){
   if (!Array.isArray(state.data[key])) state.data[key]=[];
   const arr = state.data[key]; const i = arr.indexOf(val);

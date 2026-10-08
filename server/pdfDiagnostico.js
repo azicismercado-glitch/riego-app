@@ -192,12 +192,14 @@ function generarDiagnosticoPDF({ data, docStatus, signatures }) {
 
     section('Suelo', (s) => {
       s.kv('Análisis de suelo', d.analisisSuelo);
-      s.kv('Año del último análisis', d.anioAnalisisSuelo);
-      s.kv('Archivo del análisis', d.analisisSueloArchivo && d.analisisSueloArchivo.originalName);
-      s.kv('Aclaración', d.analisisSueloAclaracion);
-      s.kv('Materia orgánica', d.materiaOrganicaPct, '%');
-      s.kv('Fósforo (Pe)', d.fosforoPpm, 'ppm');
-      s.kv('pH', d.phSuelo);
+      if (d.analisisSuelo === 'Posee') {
+        s.kv('Año del último análisis', d.anioAnalisisSuelo);
+        s.kv('Archivo del análisis', d.analisisSueloArchivo && d.analisisSueloArchivo.originalName);
+        s.kv('Aclaración', d.analisisSueloAclaracion);
+        s.kv('Materia orgánica', d.materiaOrganicaPct, '%');
+        s.kv('Fósforo (Pe)', d.fosforoPpm, 'ppm');
+        s.kv('pH', d.phSuelo);
+      }
       s.kv('Textura', d.textura);
       s.kv('Profundidad', d.profundidadLimitante);
       s.kv('Profundidad efectiva', d.profundidadEfectivaCm, 'cm');

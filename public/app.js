@@ -569,7 +569,19 @@ function chip(cv, value, label, key) {
   const sel = cv === value; const ed = canEdit();
   return `<div class="chip ${sel?'selected':''} ${ed?'':'disabled'}" ${ed?`onclick="setChip('${key}','${value}')"`:''}>${label}</div>`;
 }
-function setChip(key, val) { if (!canEdit()) return; cur().data[key] = val; flushSave(); render(); }
+function setChip(key, val) {
+  if (!canEdit()) return;
+  const d = cur().data;
+  d[key] = val;
+  // Al pasar a "No posee" se limpian los datos del análisis anterior, para
+  // que no queden colgados (y reaparezcan en el PDF/impresión) campos de
+  // un análisis que ya no corresponde.
+  if (key === 'analisisSuelo' && val !== 'Posee') {
+    d.anioAnalisisSuelo = ''; d.analisisSueloAclaracion = '';
+    d.materiaOrganicaPct = ''; d.fosforoPpm = ''; d.phSuelo = '';
+  }
+  flushSave(); render();
+}
 // Grupo de chips de selección múltiple genérico — evita repetir el mismo
 // bloque de HTML/escape en cada lista nueva del rediseño (Excel CFI).
 function chipMulti(list, key, d) {
@@ -1324,7 +1336,7 @@ function printDiag() {
   const cultivos = table(['Cultivo', 'Variedad', 'Destino', 'Año de plantación', 'Marco/densidad', 'Sup. (ha)', 'Rendimiento'], cultivosRows)
     + `<p>${kv('Aclaraciones sobre superficie/disponibilidad', d.aclaracionSuperficieCultivo)}${kv('Observaciones', d.obsCultivos)}${kv('Tipo de producción', d.tipoProduccion)}${d.tipoProduccion === 'Ganadería' ? kv('Animales', d.ganaderiaAnimalTipo) + kv('Cabezas', d.ganaderiaCabezas) + kv('Manejo', d.ganaderiaManejo) + kvList('Actividad (manejo)', arr(d.ganaderiaActividad).map((a) => a + ((d.ganaderiaActividadManejo || {})[a] ? ' — ' + d.ganaderiaActividadManejo[a] : ''))) + kvList('Categorías', d.ganaderiaCategorias) : ''}</p>`;
 
-  const suelo = `<p>${kv('Análisis de suelo', d.analisisSuelo)}${kv('Año del último análisis', d.anioAnalisisSuelo)}${kv('Archivo del análisis', d.analisisSueloArchivo)}${kv('Aclaración', d.analisisSueloAclaracion)}${kv('Materia orgánica', d.materiaOrganicaPct, '%')}${kv('Fósforo (Pe)', d.fosforoPpm, 'ppm')}${kv('pH', d.phSuelo)}${kv('Textura', d.textura)}
+  const suelo = `<p>${kv('Análisis de suelo', d.analisisSuelo)}${d.analisisSuelo==='Posee'?`${kv('Año del último análisis', d.anioAnalisisSuelo)}${kv('Archivo del análisis', d.analisisSueloArchivo)}${kv('Aclaración', d.analisisSueloAclaracion)}${kv('Materia orgánica', d.materiaOrganicaPct, '%')}${kv('Fósforo (Pe)', d.fosforoPpm, 'ppm')}${kv('pH', d.phSuelo)}`:''}${kv('Textura', d.textura)}
     ${kv('Profundidad', d.profundidadLimitante)}${kv('Profundidad efectiva', d.profundidadEfectivaCm, 'cm')}${kv('¿Hay piedras?', d.hayPiedras)}${kv('% de piedra', d.porcentajePiedra)}${kv('Nivel de salinidad', d.nivelSalinidadSuelo)}
     ${kv('Observaciones del suelo', d.problemasSuelo)}${kv('Descripción del perfil', d.descripcionPerfilSuelo)}${kv('Otras observaciones', d.obsSuelo)}${kv('¿Sugiere análisis previo?', d.requiereAnalisisPrevio)}${kvList('Análisis sugeridos', d.requiereAnalisisPrevioQue)}${kv('Salinidad (tipo)', d.salinidadTipo)}</p>`;
 
