@@ -161,12 +161,12 @@ function generarDiagnosticoPDF({ data, docStatus, signatures }) {
       s.kv('Localidad/Departamento', d.localidad);
       s.kv('RENSPA/RUT', d.renspa);
       s.kv('CUIT', d.cuit);
-      s.kv('Expediente SIGI', d.expedienteSigi);
       s.kv('Coordenadas', d.coordenadas);
       s.kv('Superficie total', d.superficieTotal, 'ha');
       s.kv('Superficie cultivada', d.superficieCultivada, 'ha');
       s.kv('Superficie inculta', d.superficieInculta, 'ha');
-      s.kv('Superficie bajo riego', d.superficieBajoRiego, 'ha');
+      s.kv('Superficie bajo riego superficial', d.superficieBajoRiegoSuperficial, 'ha');
+      s.kv('Superficie bajo riego subterráneo', d.superficieBajoRiegoSubterraneo, 'ha');
       s.kv('Superficie con derecho de riego', d.superficieDerecho, 'ha');
       s.kvList('Fuente de agua (derecho)', Array.isArray(d.fuenteRiegoDerecho) ? d.fuenteRiegoDerecho : (d.fuenteRiegoDerecho ? [d.fuenteRiegoDerecho] : []));
       s.kv('Detalle "Otra" fuente', d.fuenteRiegoDerechoOtroDetalle);
@@ -199,6 +199,7 @@ function generarDiagnosticoPDF({ data, docStatus, signatures }) {
         s.kv('Materia orgánica', d.materiaOrganicaPct, '%');
         s.kv('Fósforo (Pe)', d.fosforoPpm, 'ppm');
         s.kv('pH', d.phSuelo);
+        s.kv('Conductividad eléctrica', d.conductividadElectrica, 'dS/m');
       }
       s.kv('Textura', d.textura);
       s.kv('Profundidad', d.profundidadLimitante);
@@ -209,7 +210,7 @@ function generarDiagnosticoPDF({ data, docStatus, signatures }) {
       s.kv('Observaciones del suelo', d.problemasSuelo);
       s.kv('Descripción del perfil', d.descripcionPerfilSuelo);
       s.kv('Otras observaciones', d.obsSuelo);
-      s.kv('¿Sugiere análisis previo?', d.requiereAnalisisPrevio);
+      s.kv('Técnico sugiere análisis previo a la inversión', d.requiereAnalisisPrevio);
       s.kvList('Análisis sugeridos', d.requiereAnalisisPrevioQue);
       s.kv('Salinidad (tipo)', d.salinidadTipo);
     });
@@ -225,7 +226,7 @@ function generarDiagnosticoPDF({ data, docStatus, signatures }) {
         s.sub('Riego superficial (surcos/melgas)');
         s.kv('Fuente de agua', d.rsFuente);
         s.kv('Superficie regada', d.rsSuperficie, 'ha');
-        s.kv('Caudal medio', d.rsCaudal, 'l/s');
+        s.kv('Caudal medio (ingreso a la finca)', d.rsCaudal, 'l/s');
         s.kv('Frecuencia de turnado', d.rsFrecTurnado, 'días');
         s.kv('Duración de turnado', d.rsDuracionTurnado, 'hs');
         s.kv('Turnos por temporada', d.rsCantTurnos);
@@ -241,9 +242,6 @@ function generarDiagnosticoPDF({ data, docStatus, signatures }) {
         s.kvList('Tareas de mantenimiento', d.rsMantenimientoItems);
         s.kv('Nivelación: ¿cuándo se hizo?', d.rsNivelacionCuando);
         s.kv('Metodología de nivelación', d.rsMetodoNivelacion);
-        s.kvList('En la tapada', d.rsTapadaItems);
-        s.kv('Control de malezas', d.rsControlMalezas);
-        s.kv('Infraestructura de riego', d.rsInfraestructura);
       }
       if (presurizado) {
         s.sub('Riego presurizado (goteo/aspersión)');

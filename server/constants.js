@@ -69,12 +69,12 @@ function emptyData() {
   return {
     productor: '', finca: '', renspa: '', localidad: '', cuit: '', expedienteSigi: '',
     coordenadas: '',
-    superficieTotal: '', superficieCultivada: '', superficieInculta: '', superficieBajoRiego: '', superficieDerecho: '', fuenteRiegoDerecho: [], fuenteRiegoDerechoOtroDetalle: '',
+    superficieTotal: '', superficieCultivada: '', superficieInculta: '', superficieBajoRiego: '', superficieBajoRiegoSuperficial: '', superficieBajoRiegoSubterraneo: '', superficieDerecho: '', fuenteRiegoDerecho: [], fuenteRiegoDerechoOtroDetalle: '',
     ccpp: '', pozos: '', obsGenerales: '',
     cultivos: [emptyCultivo()], obsCultivos: '', aclaracionSuperficieCultivo: '',
     tipoProduccion: null, ganaderiaAnimalTipo: '', ganaderiaManejo: null, ganaderiaActividad: [], ganaderiaActividadManejo: {}, ganaderiaCabezas: '', ganaderiaCategorias: [],
     analisisSuelo: null, analisisSueloArchivo: null, anioAnalisisSuelo: '', analisisSueloAclaracion: '',
-    textura: '', materiaOrganicaPct: '', fosforoPpm: '', phSuelo: '', nivelSalinidadSuelo: '',
+    textura: '', materiaOrganicaPct: '', fosforoPpm: '', phSuelo: '', conductividadElectrica: '', nivelSalinidadSuelo: '',
     descripcionPerfilSuelo: '', problemasSuelo: '', obsSuelo: '',
     profundidadLimitante: '', profundidadEfectivaCm: '', salinidadTipo: '', hayPiedras: null, porcentajePiedra: '',
     requiereAnalisisPrevio: null, requiereAnalisisPrevioQue: [],
@@ -147,7 +147,7 @@ function completeness(data, fotosCount) {
   if (!superficial && !presurizado && !noRiega(d)) riegoReq.push(has(d.rsSuperficie) || has(d.rpSuperficie));
 
   const secs = {
-    estab: { label: 'Establecimiento', req: [has(d.productor), has(d.finca), has(d.localidad), has(d.renspa), has(d.superficieTotal), has(d.superficieCultivada)] },
+    estab: { label: 'Establecimiento', req: [has(d.productor), has(d.finca), has(d.localidad), has(d.renspa), has(d.superficieTotal), has(d.superficieCultivada), has(d.superficieBajoRiegoSuperficial) || has(d.superficieBajoRiegoSubterraneo)] },
     cultivos: { label: 'Cultivos', req: [(d.cultivos || []).some((c) => has(c.cultivo) && has(c.superficie))] },
     suelo: { label: 'Suelo', req: [has(d.analisisSuelo), has(d.textura)] },
     riego: { label: 'Sistema de riego', req: riegoReq },
@@ -171,8 +171,11 @@ function missingForSign(data) {
   const faltan = [];
   if (!has(d.productor)) faltan.push('Nombre del productor');
   if (!has(d.finca)) faltan.push('Nombre de la finca');
+  if (!has(d.renspa)) faltan.push('RENSPA / RUT');
   if (!has(d.localidad)) faltan.push('Localidad/Departamento');
   if (!has(d.superficieTotal)) faltan.push('Superficie total');
+  if (!has(d.superficieCultivada)) faltan.push('Superficie cultivada');
+  if (!has(d.superficieBajoRiegoSuperficial) && !has(d.superficieBajoRiegoSubterraneo)) faltan.push('Superficie bajo riego');
   if (!has(d.textura)) faltan.push('Textura del suelo');
   if (!(d.cultivos || []).some((c) => has(c.cultivo))) faltan.push('Al menos un cultivo');
   if (!noRiega(d) && (d.sistemasPresentes || []).length === 0) faltan.push('Sistema de riego presente');
