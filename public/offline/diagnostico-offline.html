@@ -277,6 +277,15 @@ if (!state.data.ganaderiaActividadManejo || typeof state.data.ganaderiaActividad
 /* ================= helpers de estado ================= */
 function d(){ return state.data; }
 function setField(key,val){ state.data[key]=val; scheduleSave(); }
+// Superficie inculta se calcula sola (total - cultivada), igual que en la app real.
+function setSuperficieBase(key,val){
+  const d = state.data;
+  d[key] = val;
+  const total = Number(d.superficieTotal) || 0;
+  const cultivada = Number(d.superficieCultivada) || 0;
+  d.superficieInculta = (d.superficieTotal || d.superficieCultivada) ? String(+(Math.max(0, total - cultivada)).toFixed(2)) : '';
+  scheduleSave(); render();
+}
 function setFieldR(key,val){
   state.data[key]=val;
   if (key === 'analisisSuelo' && val !== 'Posee') {
@@ -659,10 +668,10 @@ function renderTab(){
       <div class="field-group"><label>CUIT</label><input type="text" value="${escH(dd.cuit||'')}" placeholder="30-XXXXXXXX-X" oninput="setField('cuit',this.value)"></div>
       <div class="field-group"><label>Coordenadas <span class="hint" style="font-weight:400">(o adjuntar archivo KMZ/KML)</span></label><input type="text" value="${escH(dd.coordenadas||'')}" placeholder="Ej: -33.1234, -68.5678" oninput="setField('coordenadas',this.value)"></div>
       <div class="row2">
-        <div class="field-group"><label>Superficie total (ha) <span class="req">*</span></label><input type="number" value="${escH(dd.superficieTotal)}" oninput="setField('superficieTotal',this.value)"></div>
-        <div class="field-group"><label>Superficie cultivada (ha) <span class="req">*</span></label><input type="number" value="${escH(dd.superficieCultivada)}" oninput="setField('superficieCultivada',this.value)"></div>
+        <div class="field-group"><label>Superficie total (ha) <span class="req">*</span></label><input type="number" value="${escH(dd.superficieTotal)}" onchange="setSuperficieBase('superficieTotal',this.value)"></div>
+        <div class="field-group"><label>Superficie cultivada (ha) <span class="req">*</span></label><input type="number" value="${escH(dd.superficieCultivada)}" onchange="setSuperficieBase('superficieCultivada',this.value)"></div>
       </div>
-      <div class="field-group"><label>Superficie inculta (ha)</label><input type="number" value="${escH(dd.superficieInculta)}" oninput="setField('superficieInculta',this.value)"></div>
+      <div class="field-group"><label>Superficie inculta (ha) <span class="hint" style="font-weight:400">calculada: total − cultivada</span></label><input type="number" value="${escH(dd.superficieInculta)}" disabled></div>
       <div class="row2">
         <div class="field-group"><label>Superficie bajo riego superficial (ha) <span class="req">*</span></label><input type="number" value="${escH(dd.superficieBajoRiegoSuperficial||'')}" oninput="setField('superficieBajoRiegoSuperficial',this.value)"></div>
         <div class="field-group"><label>Superficie bajo riego subterráneo (ha) <span class="req">*</span></label><input type="number" value="${escH(dd.superficieBajoRiegoSubterraneo||'')}" oninput="setField('superficieBajoRiegoSubterraneo',this.value)"></div>
