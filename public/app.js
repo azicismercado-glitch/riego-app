@@ -1169,7 +1169,7 @@ function renderTabContent(dg) {
         <thead><tr><th>Indicador</th><th>Situación proyectada</th><th>Valor real logrado</th><th>Impacto logrado</th></tr></thead>
         <tbody>${rows.map(({it,i})=>`<tr><td>${it.indicador}${it.obs?` <span class="hint">(${it.obs})</span>`:''}</td><td>${it.proyectada?it.proyectada+(it.unidad?' '+it.unidad:''):'—'}</td>
           <td><input type="number" value="${escH(it.logradoValor||'')}" ${dis} style="width:90px" onchange="setIndicador(${i},'logradoValor',this.value)">${it.unidad?` ${escH(it.unidad)}`:''}</td>
-          <td><select ${dis} onchange="setIndicador(${i},'logrado',this.value)" style="width:100%;min-width:150px;padding:6px 7px;border:1px solid var(--border);border-radius:6px;font-size:11.5px;font-family:inherit"><option value="">Elegir…</option>${IMPACTO_LOGRADO_OPCIONES.map(o=>`<option value="${escH(o)}" ${it.logrado===o?'selected':''}>${o}</option>`).join('')}</select></td></tr>`).join('')}</tbody></table></div>` : '<div class="hint">Todavía no hay indicadores cargados en la pestaña Impacto.</div>'; })()}
+          <td>${it.logrado||'—'}</td></tr>`).join('')}</tbody></table></div>` : '<div class="hint">Todavía no hay indicadores cargados en la pestaña Impacto.</div>'; })()}
       <div class="field-group"><label>Criterios de éxito</label><textarea ${dis} oninput="setField('criteriosExito',this.value)">${escH(d.criteriosExito||'')}</textarea></div>
       <div class="hint">Al llegar la fecha de seguimiento, esta pestaña permite retomar el caso y comparar contra los indicadores declarados en la pestaña Impacto.</div>
     </div>${navRow()}`;
