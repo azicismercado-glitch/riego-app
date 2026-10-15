@@ -52,8 +52,6 @@ function bottomBand(doc) {
     `C${w * 0.72},${topY - WAVE_AMP} ${w * 0.5},${topY + WAVE_AMP * 1.3} ${w * 0.32},${topY} ` +
     `C${w * 0.14},${topY - WAVE_AMP} ${w * 0.04},${topY + WAVE_AMP} 0,${topY + WAVE_AMP * 0.5} Z`
   ).fill(grad);
-  doc.circle(w - 55, h - 38, 17).fillAndStroke('#fff', CYAN);
-  doc.fillColor(NAVY).font('Helvetica-Bold').fontSize(8.5).text('CFI', w - 72, h - 42, { width: 34, align: 'center', lineBreak: false });
   doc.restore();
 }
 
@@ -132,8 +130,15 @@ function generarConformidadPDF({ informe, signer, signedAt, signatureImage }) {
       if (blk.type === 'subtitle') {
         doc.font('Helvetica-Bold').fontSize(10.5).fillColor(CYAN).text(blk.text, left, doc.y, { width: W });
       } else if (blk.type === 'field') {
-        doc.font('Helvetica-Bold').fontSize(10).fillColor(INK).text(`${blk.label}: `, left, doc.y, { width: W, continued: true });
-        doc.font('Helvetica').text(blk.value);
+        // Si no hay valor (ej. "Objetivos específicos:" como título suelto),
+        // NO se usa continued:true — con texto vacío pdfkit deja la línea
+        // "colgada" sin avanzar el cursor, y lo siguiente queda pisado encima.
+        if (blk.value) {
+          doc.font('Helvetica-Bold').fontSize(10).fillColor(INK).text(`${blk.label}: `, left, doc.y, { width: W, continued: true });
+          doc.font('Helvetica').text(blk.value);
+        } else {
+          doc.font('Helvetica-Bold').fontSize(10).fillColor(INK).text(`${blk.label}:`, left, doc.y, { width: W });
+        }
       } else if (blk.type === 'bullet') {
         doc.font('Helvetica').fontSize(10).fillColor(INK).text('•  ' + blk.text, left + 10, doc.y, { width: W - 10, lineGap: 1.5 });
       } else {
