@@ -102,9 +102,33 @@ function generarConformidadPDF({ informe, signer, signedAt, signatureImage }) {
     doc.moveTo(left, doc.y).lineTo(right, doc.y).strokeColor(NAVY).lineWidth(1).stroke();
     doc.moveDown(0.6);
 
+    // Pdfkit pagina solo cuando un .text() se queda sin lugar en la página —
+    // y como acá las páginas no tienen margin (lo maneja todo el layout de
+    // las franjas), esa paginación automática deja texto mal ubicado. Por
+    // eso se mide la altura real de cada bloque ANTES de escribirlo y se
+    // agrega la página a mano si no entra entero, para que pdfkit nunca
+    // tenga que partir un bloque por su cuenta.
+    function blockHeight(blk) {
+      if (blk.type === 'subtitle') {
+        doc.font('Helvetica-Bold').fontSize(10.5);
+        return doc.heightOfString(blk.text, { width: W });
+      }
+      if (blk.type === 'field') {
+        doc.font('Helvetica').fontSize(10);
+        return doc.heightOfString(`${blk.label}: ${blk.value}`, { width: W });
+      }
+      if (blk.type === 'bullet') {
+        doc.font('Helvetica').fontSize(10);
+        return doc.heightOfString('•  ' + blk.text, { width: W - 10, lineGap: 1.5 });
+      }
+      doc.font('Helvetica').fontSize(10);
+      return doc.heightOfString(blk.text, { width: W, lineGap: 1.5 }) + 16;
+    }
+
     const blocks = parseInforme(informe);
     for (const blk of blocks) {
-      if (doc.y > bottomLimit() - 20) doc.addPage();
+      const h = blockHeight(blk);
+      if (doc.y + h > bottomLimit()) doc.addPage();
       if (blk.type === 'subtitle') {
         doc.font('Helvetica-Bold').fontSize(10.5).fillColor(CYAN).text(blk.text, left, doc.y, { width: W });
       } else if (blk.type === 'field') {
@@ -121,7 +145,7 @@ function generarConformidadPDF({ informe, signer, signedAt, signatureImage }) {
 
     // -------- fecha y firma --------
     const fecha = signedAt ? new Date(signedAt).toLocaleDateString('es-AR') : new Date().toLocaleDateString('es-AR');
-    if (doc.y > bottomLimit() - 90) doc.addPage();
+    if (doc.y > bottomLimit() - 130) doc.addPage();
     doc.moveDown(1);
     doc.font('Helvetica-Bold').fontSize(10).fillColor(INK).text('Fecha: ', left, doc.y, { continued: true });
     doc.font('Helvetica').text(fecha);
