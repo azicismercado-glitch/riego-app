@@ -44,7 +44,7 @@ const TIPO_INFRA_DEFICIENTE_ITEMS = ['Canales / acequias','Compuertas / marcos',
 // Indicadores de impacto (misma lista que emptyIndicadores() del servidor). "Otro" admite aclaración en Observaciones.
 const INDICADORES_BASE = ['Eficiencia de aplicación (%)','Uniformidad de aplicación (%)','Caudal aprovechado (L/s)','Superficie tecnificada (ha)','Incremento en rendimientos','Ahorro energético','Impacto ambiental','Aumento de la superficie bajo riego (ha)','Mejora de calidad (% descarte/calibre/color)','Ahorro de agua (volumen o %)','Disminución del consumo energético de la red','Mejora del margen ($/ha)','Reducción de escurrimiento / percolación','Mejora de salinidad del suelo','Reducción de erosión','Otro'];
 const UNIDADES_INDICADOR = ['ha','l/s','m³/h','m³','%','kWh','kg','kg/ha','$','USD'];
-const IMPACTO_LOGRADO_OPCIONES = ['Sin impacto','Bajo impacto','Impacto medio','Alto impacto','Superior al mencionado'];
+const IMPACTO_LOGRADO_OPCIONES = ['Mayor al proyectado','Igual al proyectado','Menor al proyectado'];
 const UNIDADES_MATERIAL = ['un.','kg','l','hs','m','m²','m³','bolsa','rollo','global'];
 const TIPO_SEGUIMIENTO_OPCIONES = ['Visita a campo','Auditoría documental','Telemetría / remoto','Mixto (campo y remoto)','Otro'];
 const METODOS_CONTROL_ITEMS = ['Auditoría de avance de obras','Registro de uso de agua vs. cultivos declarados','Realizar una medición del riego actual con inversión','Otro'];
@@ -652,7 +652,22 @@ function removeMaterial(i) { if (!canEdit()) return; cur().data.materiales.splic
 function setMaterial(i, key, val) { if (!canEdit()) return; cur().data.materiales[i][key] = val; scheduleSave(); }
 
 /* ---- Indicadores de impacto (filas fijas, solo se cargan los valores) ---- */
-function setIndicador(i, key, val) { if (!canEdit()) return; cur().data.indicadores[i][key] = val; scheduleSave(); }
+function setIndicador(i, key, val) {
+  if (!canEdit()) return;
+  const it = cur().data.indicadores[i];
+  it[key] = val;
+  // Al cargar el valor real logrado, se recalcula sola la comparación contra
+  // lo proyectado (mayor/igual/menor) — el técnico puede después pisarla a
+  // mano eligiendo otra opción en el desplegable.
+  if (key === 'logradoValor') {
+    const real = Number(it.logradoValor), proy = Number(it.proyectada);
+    if (it.logradoValor && it.proyectada && !isNaN(real) && !isNaN(proy)) {
+      it.logrado = real > proy ? 'Mayor al proyectado' : real === proy ? 'Igual al proyectado' : 'Menor al proyectado';
+    }
+    render();
+  }
+  scheduleSave();
+}
 
 /* ---- Presupuesto detallado (cantidad × precio unitario = subtotal) ---- */
 function addPresupuestoDet() { if (!canEdit()) return; cur().data.presupuestoDetallado.push({item:'',cantidad:'',unidad:'',precioUnitario:''}); flushSave(); render(); }
@@ -1152,16 +1167,9 @@ function renderTabContent(dg) {
       <div class="subsection-title">Impacto logrado por indicador</div>
       ${(()=>{ const rows = d.indicadores.map((it,i)=>({it,i})).filter(({it})=>it.actual||it.proyectada); return rows.length ? `<div class="table-scroll"><table class="dyn-table">
         <thead><tr><th>Indicador</th><th>Situación proyectada</th><th>Valor real logrado</th><th>Impacto logrado</th></tr></thead>
-        <tbody>${rows.map(({it,i})=>{
-          const real = Number(it.logradoValor), proy = Number(it.proyectada);
-          let comp = '';
-          if (it.logradoValor && it.proyectada && !isNaN(real) && !isNaN(proy)) {
-            comp = real > proy ? 'Superior al proyectado' : real === proy ? 'Igual al proyectado' : 'Inferior al proyectado';
-          }
-          return `<tr><td>${it.indicador}${it.obs?` <span class="hint">(${it.obs})</span>`:''}</td><td>${it.proyectada?it.proyectada+(it.unidad?' '+it.unidad:''):'—'}</td>
-          <td><input type="number" value="${escH(it.logradoValor||'')}" ${dis} style="width:90px" onchange="setIndicador(${i},'logradoValor',this.value)">${it.unidad?` ${escH(it.unidad)}`:''}${comp?`<div class="hint">${comp}</div>`:''}</td>
-          <td><select ${dis} onchange="setIndicador(${i},'logrado',this.value)" style="width:100%;min-width:150px;padding:6px 7px;border:1px solid var(--border);border-radius:6px;font-size:11.5px;font-family:inherit"><option value="">Elegir…</option>${IMPACTO_LOGRADO_OPCIONES.map(o=>`<option value="${escH(o)}" ${it.logrado===o?'selected':''}>${o}</option>`).join('')}</select></td></tr>`;
-        }).join('')}</tbody></table></div>` : '<div class="hint">Todavía no hay indicadores cargados en la pestaña Impacto.</div>'; })()}
+        <tbody>${rows.map(({it,i})=>`<tr><td>${it.indicador}${it.obs?` <span class="hint">(${it.obs})</span>`:''}</td><td>${it.proyectada?it.proyectada+(it.unidad?' '+it.unidad:''):'—'}</td>
+          <td><input type="number" value="${escH(it.logradoValor||'')}" ${dis} style="width:90px" onchange="setIndicador(${i},'logradoValor',this.value)">${it.unidad?` ${escH(it.unidad)}`:''}</td>
+          <td><select ${dis} onchange="setIndicador(${i},'logrado',this.value)" style="width:100%;min-width:150px;padding:6px 7px;border:1px solid var(--border);border-radius:6px;font-size:11.5px;font-family:inherit"><option value="">Elegir…</option>${IMPACTO_LOGRADO_OPCIONES.map(o=>`<option value="${escH(o)}" ${it.logrado===o?'selected':''}>${o}</option>`).join('')}</select></td></tr>`).join('')}</tbody></table></div>` : '<div class="hint">Todavía no hay indicadores cargados en la pestaña Impacto.</div>'; })()}
       <div class="field-group"><label>Criterios de éxito</label><textarea ${dis} oninput="setField('criteriosExito',this.value)">${escH(d.criteriosExito||'')}</textarea></div>
       <div class="hint">Al llegar la fecha de seguimiento, esta pestaña permite retomar el caso y comparar contra los indicadores declarados en la pestaña Impacto.</div>
     </div>${navRow()}`;
