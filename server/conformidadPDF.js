@@ -68,8 +68,12 @@ function parseInforme(text) {
     if (/^conformidad t[ée]cnica$/i.test(line)) continue; // el título lo dibujamos nosotros
     if (/^(programa de apoyo|provincia de)/i.test(line)) { flush(); blocks.push({ type: 'subtitle', text: line }); continue; }
     if (/^[•\-●]\s*/.test(line)) { flush(); blocks.push({ type: 'bullet', text: line.replace(/^[•\-●]\s*/, '') }); continue; }
-    const m = line.match(/^([A-ZÁÉÍÓÚÑa-záéíóúñ0-9 /.]{2,42}):\s*(.*)$/);
-    if (m && m[1].length < 42 && !/^(del an[áa]lisis|en funci[óo]n|la propuesta|la intervenci[óo]n|el diagn[óo]stico|el cronograma|el presupuesto|desde el punto)/i.test(m[1])) {
+    // Título de sección ("La propuesta contempla:", "Objetivos específicos:",
+    // etc.): termina en ":" y no tiene nada más en la misma línea — se
+    // detecta por forma, no por una lista de frases a mano.
+    if (/:\s*$/.test(line) && line.length < 100) { flush(); blocks.push({ type: 'heading', text: line.replace(/:\s*$/, '') }); continue; }
+    const m = line.match(/^([A-ZÁÉÍÓÚÑa-záéíóúñ0-9 /.]{2,42}):\s*(.+)$/);
+    if (m && m[1].length < 42) {
       flush();
       blocks.push({ type: 'field', label: m[1].trim(), value: m[2].trim() });
       continue;
@@ -111,6 +115,10 @@ function generarConformidadPDF({ informe, signer, signedAt, signatureImage }) {
         doc.font('Helvetica-Bold').fontSize(10.5);
         return doc.heightOfString(blk.text, { width: W });
       }
+      if (blk.type === 'heading') {
+        doc.font('Helvetica-Bold').fontSize(11);
+        return doc.heightOfString(blk.text, { width: W }) + 12; // + aire arriba
+      }
       if (blk.type === 'field') {
         doc.font('Helvetica').fontSize(10);
         return doc.heightOfString(`${blk.label}: ${blk.value}`, { width: W });
@@ -124,15 +132,24 @@ function generarConformidadPDF({ informe, signer, signedAt, signatureImage }) {
     }
 
     const blocks = parseInforme(informe);
-    for (const blk of blocks) {
-      const h = blockHeight(blk);
+    for (let idx = 0; idx < blocks.length; idx++) {
+      const blk = blocks[idx];
+      let h = blockHeight(blk);
+      // Un título de sección nunca debería quedar solo al pie de la página:
+      // si no entra junto con lo que sigue, se manda todo a la próxima.
+      if (blk.type === 'heading' && blocks[idx + 1]) h += blockHeight(blocks[idx + 1]);
       if (doc.y + h > bottomLimit()) doc.addPage();
       if (blk.type === 'subtitle') {
         doc.font('Helvetica-Bold').fontSize(10.5).fillColor(CYAN).text(blk.text, left, doc.y, { width: W });
+      } else if (blk.type === 'heading') {
+        doc.moveDown(0.5);
+        doc.font('Helvetica-Bold').fontSize(11).fillColor(NAVY).text(blk.text, left, doc.y, { width: W });
+        doc.moveDown(0.15);
       } else if (blk.type === 'field') {
-        // Si no hay valor (ej. "Objetivos específicos:" como título suelto),
-        // NO se usa continued:true — con texto vacío pdfkit deja la línea
-        // "colgada" sin avanzar el cursor, y lo siguiente queda pisado encima.
+        // Si no hay valor, NO se usa continued:true — con texto vacío pdfkit
+        // deja la línea "colgada" sin avanzar el cursor, y lo siguiente
+        // queda pisado encima (las líneas sin valor ya se clasifican como
+        // 'heading' más arriba, esto queda solo como resguardo).
         if (blk.value) {
           doc.font('Helvetica-Bold').fontSize(10).fillColor(INK).text(`${blk.label}: `, left, doc.y, { width: W, continued: true });
           doc.font('Helvetica').text(blk.value);
