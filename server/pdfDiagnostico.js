@@ -288,7 +288,7 @@ function generarDiagnosticoPDF({ data, docStatus, signatures }) {
       s.kvText('Objetivos específicos', d.objetivosMejora);
       const invRows = arr(d.presupuesto).filter((p) => has(p.inversion) || has(p.montoUSD) || has(p.monto)).map((p) => [p.inversion, p.tipo, p.codN2, has(p.montoUSD) ? money(p.montoUSD) : '', p.superficieAsociada, p.monto]);
       s.sub('Mejoras propuestas (Nomenclador CFI)');
-      s.rows(['Mejora', 'Categoría', 'Subcat.', 'Monto', 'Sup. asociada (ha)', 'Aclaración'], invRows);
+      s.rows(['Mejora', 'Categoría', 'Subcat.', 'Monto estimado', 'Sup. asociada (ha)', 'Aclaración'], invRows);
       if (invRows.length) s.kv('Total de mejoras propuestas', money(arr(d.presupuesto).reduce((acc, p) => acc + (Number(p.montoUSD) || 0), 0)));
     });
 
@@ -310,6 +310,7 @@ function generarDiagnosticoPDF({ data, docStatus, signatures }) {
         ? d.cronograma.filter((v) => has(v.etapa) && (has(v.desde) || has(v.hasta))).map((v) => [v.etapa, v.desde, v.hasta])
         : Object.keys(d.cronogramaGrid || {}).filter((k) => has(d.cronogramaGrid[k].desde) || has(d.cronogramaGrid[k].hasta)).map((k) => [k, d.cronogramaGrid[k].desde, d.cronogramaGrid[k].hasta]);
       s.rows(['Etapa', 'Mes desde', 'Mes hasta'], cronoRows);
+      s.kv('¿Cuenta con presupuesto?', d.cuentaConPresupuesto);
       const detRows = arr(d.presupuestoDetallado).filter((p) => has(p.item)).map((p) => [p.item, p.cantidad, p.unidad, has(p.precioUnitario) ? money(p.precioUnitario) : '', money((Number(p.cantidad) || 0) * (Number(p.precioUnitario) || 0))]);
       s.rows(['Ítem', 'Cantidad', 'Unidad', 'Precio unitario', 'Subtotal'], detRows);
       if (detRows.length) {
@@ -321,9 +322,10 @@ function generarDiagnosticoPDF({ data, docStatus, signatures }) {
     });
 
     section('Seguimiento y evaluación', (s) => {
-      const logrados = arr(d.indicadores).filter((i) => has(i.logrado)).map((i) => [i.indicador, i.proyectada, i.logrado]);
-      s.rows(['Indicador', 'Situación proyectada', 'Impacto logrado'], logrados);
+      const logrados = arr(d.indicadores).filter((i) => has(i.logrado) || has(i.logradoValor)).map((i) => [i.indicador, i.proyectada, has(i.logradoValor) ? i.logradoValor + (i.unidad ? ' ' + i.unidad : '') : '', i.logrado]);
+      s.rows(['Indicador', 'Situación proyectada', 'Valor real logrado', 'Impacto logrado'], logrados);
       s.kv('Tipo de seguimiento', d.tipoSeguimiento);
+      s.kv('Cantidad de visitas', d.cantidadVisitasSeguimiento);
       s.kv('Fecha estimada de seguimiento', d.fechaEstimadaSeguimiento);
       s.kv('Responsable técnico', d.responsableSeguimiento);
       s.kv('Recursos necesarios', d.recursosNecesariosSeguimiento);

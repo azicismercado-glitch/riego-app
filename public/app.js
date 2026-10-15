@@ -42,12 +42,12 @@ const PROBLEMAS_FRECUENTES_ITEMS = ['Obstrucciones','Baja presión','Pérdidas /
 const LIMITANTES_ITEMS = ['Infraestructura deficiente','Falta de financiamiento','Falta de asesoramiento','Falta de agua','Otro'];
 const TIPO_INFRA_DEFICIENTE_ITEMS = ['Canales / acequias','Compuertas / marcos','Equipo de bombeo','Sistema de filtrado','Automatización del sistema','Otro'];
 // Indicadores de impacto (misma lista que emptyIndicadores() del servidor). "Otro" admite aclaración en Observaciones.
-const INDICADORES_BASE = ['Eficiencia de aplicación (%)','Uniformidad de aplicación (%)','Caudal aprovechado (L/s)','Superficie tecnificada (ha)','Incremento en rendimientos','Ahorro energético','Impacto ambiental','Aumento de la superficie bajo riego (ha)','Mejora de calidad (% descarte/calibre/color)','Ahorro de agua (volumen o %)','Disminución de mano de obra','Mejora del margen ($/ha)','Reducción de escurrimiento / percolación','Mejora de salinidad del suelo','Reducción de erosión','Otro'];
+const INDICADORES_BASE = ['Eficiencia de aplicación (%)','Uniformidad de aplicación (%)','Caudal aprovechado (L/s)','Superficie tecnificada (ha)','Incremento en rendimientos','Ahorro energético','Impacto ambiental','Aumento de la superficie bajo riego (ha)','Mejora de calidad (% descarte/calibre/color)','Ahorro de agua (volumen o %)','Disminución del consumo energético de la red','Mejora del margen ($/ha)','Reducción de escurrimiento / percolación','Mejora de salinidad del suelo','Reducción de erosión','Otro'];
 const UNIDADES_INDICADOR = ['ha','l/s','m³/h','m³','%','kWh','kg','kg/ha','$','USD'];
 const IMPACTO_LOGRADO_OPCIONES = ['Sin impacto','Bajo impacto','Impacto medio','Alto impacto','Superior al mencionado'];
 const UNIDADES_MATERIAL = ['un.','kg','l','hs','m','m²','m³','bolsa','rollo','global'];
 const TIPO_SEGUIMIENTO_OPCIONES = ['Visita a campo','Auditoría documental','Telemetría / remoto','Mixto (campo y remoto)','Otro'];
-const METODOS_CONTROL_ITEMS = ['Auditoría de avance de obras','Registro de uso de agua vs. cultivos declarados','Visita técnica a campo','Realizar una medición del riego actual con inversión','Otro'];
+const METODOS_CONTROL_ITEMS = ['Auditoría de avance de obras','Registro de uso de agua vs. cultivos declarados','Realizar una medición del riego actual con inversión','Otro'];
 const PERIODICIDAD_OPCIONES = ['Mensual','Trimestral','Por campaña','Anual','Otro'];
 // Nomenclador de inversiones — Línea de Financiamiento Triple Impacto (CFI).
 // Nivel 1: 13 grandes categorías (A-M). Nivel 2: subcategorías dentro de cada
@@ -1053,7 +1053,7 @@ function renderTabContent(dg) {
   if (t === 'impacto') { const totalDet = d.presupuestoDetallado.reduce((s,p)=>s+((Number(p.cantidad)||0)*(Number(p.precioUnitario)||0)),0); return `
     ${lockedBanner(dg)}
     <div class="section-card">
-      <div class="section-title"><i class="ti ti-box"></i> Materiales e insumos requeridos <span class="req">*</span></div>
+      <div class="section-title"><i class="ti ti-box"></i> Materiales e insumos requeridos</div>
       <div class="table-scroll"><table class="dyn-table">
         <thead><tr><th>Ítem / insumo</th><th>Cantidad</th><th>Unidad</th><th>Observaciones</th><th></th></tr></thead>
         <tbody>${d.materiales.map((m,i)=>`<tr>
@@ -1110,6 +1110,9 @@ function renderTabContent(dg) {
       </table></div>
       <button class="add-row-btn" ${canEdit()?'':'disabled'} onclick="addCronograma()"><i class="ti ti-plus"></i> Agregar etapa</button>
 
+      <div class="field-group"><label>¿Cuenta con presupuesto?</label>
+        <div class="chip-group">${chip(d.cuentaConPresupuesto,'Sí','Sí','cuentaConPresupuesto')}${chip(d.cuentaConPresupuesto,'No','No','cuentaConPresupuesto')}</div></div>
+      ${d.cuentaConPresupuesto==='Sí'?`
       <div class="subsection-title">Presupuesto estimado</div>
       <div class="table-scroll"><table class="dyn-table">
         <thead><tr><th>Ítem</th><th>Cantidad</th><th>Unidad</th><th>Precio unitario ($)</th><th>Subtotal ($)</th><th></th></tr></thead>
@@ -1129,6 +1132,7 @@ function renderTabContent(dg) {
         <div class="field-group"><label>% de financiamiento solicitado</label><input type="number" value="${escH(d.financiamientoPorcentajeSolicitado||'')}" ${dis} oninput="setField('financiamientoPorcentajeSolicitado',this.value)"></div>
       </div>
       <div class="hint">El % de aporte del productor + % de financiamiento debería sumar 100%.</div>
+      `:''}
     </div>${navRow()}`; }
 
   if (t === 'seguimiento') return `
@@ -1140,15 +1144,24 @@ function renderTabContent(dg) {
         <div class="field-group"><label>Fecha estimada de seguimiento</label><input type="date" value="${escH(d.fechaEstimadaSeguimiento||'')}" ${dis} oninput="setField('fechaEstimadaSeguimiento',this.value)"></div>
         <div class="field-group"><label>Responsable técnico</label><input type="text" value="${escH(d.responsableSeguimiento)}" ${dis} oninput="setField('responsableSeguimiento',this.value)"></div>
       </div>
+      <div class="field-group"><label>Cantidad de visitas</label><input type="number" value="${escH(d.cantidadVisitasSeguimiento||'')}" ${dis} style="max-width:140px" oninput="setField('cantidadVisitasSeguimiento',this.value)"></div>
       <div class="field-group"><label>Recursos necesarios para el seguimiento</label><textarea ${dis} oninput="setField('recursosNecesariosSeguimiento',this.value)">${escH(d.recursosNecesariosSeguimiento||'')}</textarea></div>
       <div class="field-group"><label>Métodos de control</label>${chipMulti(METODOS_CONTROL_ITEMS,'metodosControl',d)}</div>
       ${(d.metodosControl||[]).includes('Otro')?`<div class="field-group"><label>Detalle "Otro"</label><input type="text" value="${escH(d.metodosControlOtro||'')}" ${dis} oninput="setField('metodosControlOtro',this.value)"></div>`:''}
       <div class="field-group"><label>Periodicidad</label>${selectHTML(PERIODICIDAD_OPCIONES,'periodicidad',d)}</div>
       <div class="subsection-title">Impacto logrado por indicador</div>
       ${(()=>{ const rows = d.indicadores.map((it,i)=>({it,i})).filter(({it})=>it.actual||it.proyectada); return rows.length ? `<div class="table-scroll"><table class="dyn-table">
-        <thead><tr><th>Indicador</th><th>Situación proyectada</th><th>Impacto logrado</th></tr></thead>
-        <tbody>${rows.map(({it,i})=>`<tr><td>${it.indicador}${it.obs?` <span class="hint">(${it.obs})</span>`:''}</td><td>${it.proyectada?it.proyectada+(it.unidad?' '+it.unidad:''):'—'}</td>
-          <td><select ${dis} onchange="setIndicador(${i},'logrado',this.value)" style="width:100%;min-width:150px;padding:6px 7px;border:1px solid var(--border);border-radius:6px;font-size:11.5px;font-family:inherit"><option value="">Elegir…</option>${IMPACTO_LOGRADO_OPCIONES.map(o=>`<option value="${escH(o)}" ${it.logrado===o?'selected':''}>${o}</option>`).join('')}</select></td></tr>`).join('')}</tbody></table></div>` : '<div class="hint">Todavía no hay indicadores cargados en la pestaña Impacto.</div>'; })()}
+        <thead><tr><th>Indicador</th><th>Situación proyectada</th><th>Valor real logrado</th><th>Impacto logrado</th></tr></thead>
+        <tbody>${rows.map(({it,i})=>{
+          const real = Number(it.logradoValor), proy = Number(it.proyectada);
+          let comp = '';
+          if (it.logradoValor && it.proyectada && !isNaN(real) && !isNaN(proy)) {
+            comp = real > proy ? 'Superior al proyectado' : real === proy ? 'Igual al proyectado' : 'Inferior al proyectado';
+          }
+          return `<tr><td>${it.indicador}${it.obs?` <span class="hint">(${it.obs})</span>`:''}</td><td>${it.proyectada?it.proyectada+(it.unidad?' '+it.unidad:''):'—'}</td>
+          <td><input type="number" value="${escH(it.logradoValor||'')}" ${dis} style="width:90px" onchange="setIndicador(${i},'logradoValor',this.value)">${it.unidad?` ${escH(it.unidad)}`:''}${comp?`<div class="hint">${comp}</div>`:''}</td>
+          <td><select ${dis} onchange="setIndicador(${i},'logrado',this.value)" style="width:100%;min-width:150px;padding:6px 7px;border:1px solid var(--border);border-radius:6px;font-size:11.5px;font-family:inherit"><option value="">Elegir…</option>${IMPACTO_LOGRADO_OPCIONES.map(o=>`<option value="${escH(o)}" ${it.logrado===o?'selected':''}>${o}</option>`).join('')}</select></td></tr>`;
+        }).join('')}</tbody></table></div>` : '<div class="hint">Todavía no hay indicadores cargados en la pestaña Impacto.</div>'; })()}
       <div class="field-group"><label>Criterios de éxito</label><textarea ${dis} oninput="setField('criteriosExito',this.value)">${escH(d.criteriosExito||'')}</textarea></div>
       <div class="hint">Al llegar la fecha de seguimiento, esta pestaña permite retomar el caso y comparar contra los indicadores declarados en la pestaña Impacto.</div>
     </div>${navRow()}`;
@@ -1163,15 +1176,14 @@ function renderTabContent(dg) {
       <div class="subsection-title">Justificación</div>
       <div class="field-group"><label>Justificación (detalle y relación con el diagnóstico)</label><textarea ${dis} oninput="setField('justificacionDetalle',this.value)">${escH(d.justificacionDetalle||'')}</textarea></div>
 
-      <div class="field-group"><label>3. Cronograma y plazos <span class="hint" style="font-weight:400">(resumen en texto — el detalle mes a mes está en la pestaña Impacto)</span></label><textarea ${dis} placeholder="Etapas: adquisición, instalación, calibración, capacitación" oninput="setField('cronogramaEtapas',this.value)">${escH(d.cronogramaEtapas)}</textarea></div>
       <div class="field-group"><label>Tiempo estimado total (meses) <span class="req">*</span></label><input type="number" value="${escH(d.tiempoTotalMeses)}" ${dis} oninput="setField('tiempoTotalMeses',this.value)"></div>
 
       <div class="subsection-title">4. Mejoras propuestas <span class="req">*</span> <span class="hint" style="font-weight:400">(según Nomenclador CFI)</span></div>
-      <div class="hint" style="margin-bottom:8px">El "Monto ($)" es un número simple, sin texto — se usa para el panel de totales del programa. El campo "Presupuesto estimado" queda libre para aclaraciones (IVA, moneda local, etc.).</div>
+      <div class="hint" style="margin-bottom:8px">El "Monto estimado ($)" es un número simple, sin texto — se usa para el panel de totales del programa. El campo "Presupuesto estimado" queda libre para aclaraciones (IVA, moneda local, etc.).</div>
       <div class="hint" style="margin-bottom:8px">Los indicadores de mejora se cargan en la pestaña Impacto.</div>
       <div class="hint" style="margin-bottom:8px">Elegí primero la categoría (nivel 1) y después la subcategoría específica (nivel 2).</div>
       <div class="table-scroll"><table class="dyn-table" style="min-width:100%">
-        <thead><tr><th>Mejora</th><th>Categoría (nivel 1)</th><th>Subcategoría (nivel 2)</th><th>Monto ($)</th><th>Sup. asociada (ha)</th><th>Presupuesto estimado (texto)</th><th></th></tr></thead>
+        <thead><tr><th>Mejora</th><th>Categoría (nivel 1)</th><th>Subcategoría (nivel 2)</th><th>Monto estimado ($)</th><th>Sup. asociada (ha)</th><th>Presupuesto estimado (texto)</th><th></th></tr></thead>
         <tbody>${d.presupuesto.map((p,i)=>{
           const cat = NOMENCLADOR.find(c=>c.n1===p.codN1);
           const legacyLabel = (!p.codN1 && p.tipo) ? p.tipo : '';
@@ -1329,7 +1341,7 @@ function printDiag() {
   const invRows = arr(d.presupuesto).filter((p) => has(p.inversion) || has(p.montoUSD) || has(p.monto)).map((p) => [p.inversion, p.tipo, p.codN2, has(p.montoUSD) ? money(p.montoUSD) : '', p.superficieAsociada, p.monto]);
   const propuesta = `<p>${kv('Descripción técnica', d.descripcionMejora)}${kvList('Cambio propuesto', d.cambioPropuestoItems)}${kvList('Problema que resuelve', d.problemaJustificacionItems)}${kv('Justificación', d.justificacionDetalle)}${kv('Plazo estimado', d.tiempoTotalMeses, 'meses')}${kv('Cronograma (resumen)', d.cronogramaEtapas)}</p>`
     + bullets('Objetivos específicos', d.objetivosMejora) + bullets('Indicadores de mejora (carga anterior)', d.indicadoresMejora)
-    + sub('Mejoras propuestas (Nomenclador CFI)', table(['Mejora', 'Categoría', 'Subcat.', 'Monto', 'Sup. asociada (ha)', 'Aclaración'], invRows)
+    + sub('Mejoras propuestas (Nomenclador CFI)', table(['Mejora', 'Categoría', 'Subcat.', 'Monto estimado', 'Sup. asociada (ha)', 'Aclaración'], invRows)
       + (invRows.length ? `<p><b>Total de mejoras propuestas:</b> ${money(arr(d.presupuesto).reduce((s, p) => s + (Number(p.montoUSD) || 0), 0))}</p>` : ''));
 
   const mats = arr(d.materiales).filter((m) => has(m.item)).map((m) => [m.item, m.cantidad, m.unidad, m.obs]);
@@ -1345,12 +1357,13 @@ function printDiag() {
   const detRows = arr(d.presupuestoDetallado).filter((p) => has(p.item)).map((p) => [p.item, p.cantidad, p.unidad, has(p.precioUnitario) ? money(p.precioUnitario) : '', money((Number(p.cantidad) || 0) * (Number(p.precioUnitario) || 0))]);
   const totalDet = arr(d.presupuestoDetallado).reduce((s, p) => s + (Number(p.cantidad) || 0) * (Number(p.precioUnitario) || 0), 0);
   const cronoPres = table(['Etapa', 'Mes desde', 'Mes hasta'], cronoRows)
+    + `<p>${kv('¿Cuenta con presupuesto?', d.cuentaConPresupuesto)}</p>`
     + table(['Ítem', 'Cantidad', 'Unidad', 'Precio unitario', 'Subtotal'], detRows)
     + (detRows.length ? `<p><b>Total solicitud programa de mejora:</b> ${money(totalDet)}</p>` : '')
     + `<p>${kv('% de aporte del productor', d.aportePorcentajeProductor)}${kv('% de financiamiento solicitado', d.financiamientoPorcentajeSolicitado)}</p>`;
 
-  const logrados = arr(d.indicadores).filter((i) => has(i.logrado)).map((i) => [i.indicador, i.proyectada, i.logrado]);
-  const seguimiento = table(['Indicador', 'Situación proyectada', 'Impacto logrado'], logrados) + `<p>${kv('Tipo de seguimiento', d.tipoSeguimiento)}${kv('Fecha estimada de seguimiento', d.fechaEstimadaSeguimiento)}${kv('Responsable técnico', d.responsableSeguimiento)}${kv('Recursos necesarios', d.recursosNecesariosSeguimiento)}${kvList('Métodos de control', d.metodosControl)}${kv('Detalle "Otro"', d.metodosControlOtro)}${kv('Periodicidad', d.periodicidad)}${kv('Criterios de éxito', d.criteriosExito)}</p>`;
+  const logrados = arr(d.indicadores).filter((i) => has(i.logrado) || has(i.logradoValor)).map((i) => [i.indicador, i.proyectada, has(i.logradoValor) ? i.logradoValor + (i.unidad ? ' ' + i.unidad : '') : '', i.logrado]);
+  const seguimiento = table(['Indicador', 'Situación proyectada', 'Valor real logrado', 'Impacto logrado'], logrados) + `<p>${kv('Tipo de seguimiento', d.tipoSeguimiento)}${kv('Cantidad de visitas', d.cantidadVisitasSeguimiento)}${kv('Fecha estimada de seguimiento', d.fechaEstimadaSeguimiento)}${kv('Responsable técnico', d.responsableSeguimiento)}${kv('Recursos necesarios', d.recursosNecesariosSeguimiento)}${kvList('Métodos de control', d.metodosControl)}${kv('Detalle "Otro"', d.metodosControlOtro)}${kv('Periodicidad', d.periodicidad)}${kv('Criterios de éxito', d.criteriosExito)}</p>`;
 
   const conformidad = dg.signatures.cfi && dg.signatures.cfi.informe ? `<p style="white-space:pre-wrap">${esc(dg.signatures.cfi.informe)}</p>` : '';
 

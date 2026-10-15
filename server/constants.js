@@ -49,7 +49,7 @@ function emptyIndicadores() {
     { indicador: 'Aumento de la superficie bajo riego (ha)', unidad: 'ha', actual: '', proyectada: '', obs: '' },
     { indicador: 'Mejora de calidad (% descarte/calibre/color)', unidad: '%', actual: '', proyectada: '', obs: '' },
     { indicador: 'Ahorro de agua (volumen o %)', unidad: '', actual: '', proyectada: '', obs: '' },
-    { indicador: 'Disminución de mano de obra', unidad: '', actual: '', proyectada: '', obs: '' },
+    { indicador: 'Disminución del consumo energético de la red', unidad: '', actual: '', proyectada: '', obs: '' },
     { indicador: 'Mejora del margen ($/ha)', unidad: '$', actual: '', proyectada: '', obs: '' },
     { indicador: 'Reducción de escurrimiento / percolación', unidad: '', actual: '', proyectada: '', obs: '' },
     { indicador: 'Mejora de salinidad del suelo', unidad: '', actual: '', proyectada: '', obs: '' },
@@ -102,8 +102,8 @@ function emptyData() {
     impactoAmbientalItems: [], impactoAmbientalDetalle: '',
     indicadoresMejora: '', cronogramaEtapas: '', cronograma: [emptyCronogramaItem()], tiempoTotalMeses: '',
     presupuesto: [emptyPresupuesto()], presupuestoDetallado: [emptyPresupuestoDetallado()],
-    aportePorcentajeProductor: '', financiamientoPorcentajeSolicitado: '',
-    tipoSeguimiento: '', fechaEstimadaSeguimiento: '', recursosNecesariosSeguimiento: '',
+    cuentaConPresupuesto: null, aportePorcentajeProductor: '', financiamientoPorcentajeSolicitado: '',
+    tipoSeguimiento: '', cantidadVisitasSeguimiento: '', fechaEstimadaSeguimiento: '', recursosNecesariosSeguimiento: '',
     responsableSeguimiento: '', metodosControl: [], metodosControlOtro: '', periodicidad: '', criteriosExito: ''
   };
 }
@@ -150,7 +150,7 @@ function completeness(data, fotosCount) {
     cultivos: { label: 'Cultivos', req: [(d.cultivos || []).some((c) => has(c.cultivo) && has(c.superficie))] },
     suelo: { label: 'Suelo', req: [has(d.analisisSuelo), has(d.textura)] },
     riego: { label: 'Sistema de riego', req: riegoReq },
-    propuesta: { label: 'Propuesta de mejora', req: [has(d.descripcionMejora), (d.materiales || []).some((m) => has(m.item)), hayIndicador(d), has(d.tiempoTotalMeses), (d.presupuesto || []).some((p) => has(p.inversion) && has(p.monto))] },
+    propuesta: { label: 'Propuesta de mejora', req: [has(d.descripcionMejora), hayIndicador(d), has(d.tiempoTotalMeses), (d.presupuesto || []).some((p) => has(p.inversion) && has(p.monto))] },
     fotos: { label: 'Fotos', req: [(fotosCount || 0) > 0] }
   };
   let done = 0, total = 0;
