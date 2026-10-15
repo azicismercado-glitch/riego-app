@@ -11,7 +11,7 @@ function escH(s) {
 const STAGES = ['borrador','firmado_tecnico','firmado_provincia','firmado_cfi'];
 const STAGE_LABELS = {borrador:'Borrador', firmado_tecnico:'Firmado por técnico', firmado_provincia:'Firmado por provincia', firmado_cfi:'Validado por CFI'};
 const STAGE_ROLE = ['tecnico','provincia','cfi'];
-const TABS = [['estab','Establec.'],['cultivos','Cultivos'],['suelo','Suelo'],['riego','Riego'],['problemas','Problemas'],['propuesta','Propuesta'],['impacto','Impacto'],['seguimiento','Seguim.'],['fotos','Fotos'],['resumen','Resumen'],['firmas','Firmas'],['historial','Historial']];
+const TABS = [['estab','Establec.'],['cultivos','Cultivos'],['suelo','Suelo'],['riego','Riego'],['propuesta','Propuesta'],['impacto','Impacto'],['seguimiento','Seguim.'],['fotos','Fotos'],['resumen','Resumen'],['firmas','Firmas'],['historial','Historial']];
 const FUENTES_RIEGO_DERECHO = ['Río','Arroyo','Laguna','Vertiente','Subterránea (pozo)','Mixta','Otra'];
 const DESTINOS_CULTIVO = ['Industria','Consumo','Consumo en fresco','Oleaginosa','Cereal','Forraje','Otro'];
 const RENDIMIENTO_UNIDADES = ['Kg/ha','Kg MS/ha','Materia seca/ha','Otros'];
@@ -999,7 +999,7 @@ function renderTabContent(dg) {
         <div class="chip-group">${chip(d.rpFuente,'Turno','Turno','rpFuente')}${chip(d.rpFuente,'Pozo','Pozo','rpFuente')}</div></div>
       <div class="row2">
         <div class="field-group"><label>Superficie regada (ha) <span class="req">*</span></label><input type="text" value="${escH(d.rpSuperficie)}" ${dis} oninput="setField('rpSuperficie',this.value)"></div>
-        <div class="field-group"><label>Caudal medio (mm/h)</label><input type="text" value="${escH(d.rpCaudal)}" ${dis} oninput="setField('rpCaudal',this.value)"></div>
+        <div class="field-group"><label>Pluviometría (mm/h)</label><input type="text" value="${escH(d.rpCaudal)}" ${dis} oninput="setField('rpCaudal',this.value)"></div>
       </div>
       <div class="row2">
         <div class="field-group"><label>Frecuencia por operación (días) <span class="req">*</span></label><input type="text" value="${escH(d.rpFrecuencia)}" ${dis} oninput="setField('rpFrecuencia',this.value)"></div>
@@ -1017,27 +1017,20 @@ function renderTabContent(dg) {
           <div class="chip-group">${chip(d.rpControlaHorasBombeo,'Sí','Sí','rpControlaHorasBombeo')}${chip(d.rpControlaHorasBombeo,'No','No','rpControlaHorasBombeo')}</div></div>
       </div>
       <div class="field-group"><label>Sistema de filtrado</label>${selectHTML(TIPO_FILTRADO_OPCIONES,'rpSistemaFiltrado',d)}</div>
-      <div class="row2">
-        <div class="field-group"><label>Frecuencia de limpieza — filtros primarios</label><input type="text" value="${escH(d.rpFrecLimpiezaPrimario||'')}" ${dis} oninput="setField('rpFrecLimpiezaPrimario',this.value)"></div>
-        <div class="field-group"><label>Frecuencia de limpieza — filtros secundarios</label><input type="text" value="${escH(d.rpFrecLimpiezaSecundario||'')}" ${dis} oninput="setField('rpFrecLimpiezaSecundario',this.value)"></div>
-      </div>
+      <div class="field-group"><label>Frecuencia de limpieza del sistema de filtrado</label><input type="text" value="${escH(d.rpFrecLimpiezaPrimario||'')}" ${dis} oninput="setField('rpFrecLimpiezaPrimario',this.value)"></div>
       <div class="field-group"><label>Parámetro para definir limpieza</label>${selectHTML(PARAMETRO_LIMPIEZA_OPCIONES,'rpParametroLimpieza',d)}</div>
       <div class="field-group"><label>¿Tiene manómetros?</label>
         <div class="chip-group">${chip(d.rpTieneManometros,'Sí','Sí','rpTieneManometros')}${chip(d.rpTieneManometros,'No','No','rpTieneManometros')}</div></div>
       ${d.rpTieneManometros==='Sí'?`<div class="field-group"><label>Puntos de medición de presión</label>${chipMulti(PUNTO_MEDICION_ITEMS,'rpPuntosMedicion',d)}</div>`:''}
 
       <div class="subsection-title">Mantenimiento del equipo</div>
-      <div class="field-group"><label>Componente / tarea con mantenimiento realizado</label>${chipMulti(MANT_EQUIPO_ITEMS,'rpMantenimientoItems',d)}</div>
+      <div class="field-group"><label>¿Se realizan tareas de mantenimiento?</label>
+        <div class="chip-group">${chip(d.rpRealizaMantenimiento,'Sí','Sí','rpRealizaMantenimiento')}${chip(d.rpRealizaMantenimiento,'No','No','rpRealizaMantenimiento')}</div></div>
+      ${d.rpRealizaMantenimiento==='Sí'?`
+      <div class="field-group"><label>¿Con qué frecuencia?</label><input type="text" value="${escH(d.rpMantenimientoFrecuencia||'')}" ${dis} oninput="setField('rpMantenimientoFrecuencia',this.value)"></div>
+      <div class="field-group"><label>Componente / tarea con mantenimiento realizado <span class="hint" style="font-weight:400">(si contás con esa información)</span></label>${chipMulti(MANT_EQUIPO_ITEMS,'rpMantenimientoItems',d)}</div>
       <div class="field-group"><label>Control de válvulas</label>${chipMulti(CONTROL_VALVULAS_ITEMS,'rpControlValvulasItems',d)}</div>
-
-      <div class="subsection-title">Cabezal de riego: cañería y accesorios</div>
-      <div class="field-group"><label>Cañerías (detalle)</label><input type="text" value="${escH(d.rpCanerias||'')}" ${dis} oninput="setField('rpCanerias',this.value)"></div>
-      <div class="field-group"><label>Laterales o cintas de riego (detalle)</label><input type="text" value="${escH(d.rpLaterales||'')}" ${dis} oninput="setField('rpLaterales',this.value)"></div>
-      <div class="field-group"><label>¿Realiza medición de caudal?</label>
-        <div class="chip-group">${chip(d.rpRealizaMedicionCaudal,'Sí','Sí','rpRealizaMedicionCaudal')}${chip(d.rpRealizaMedicionCaudal,'No','No','rpRealizaMedicionCaudal')}</div>
-        <div class="hint">El valor de caudal medido se carga arriba, en "Caudal medio (mm/h)".</div></div>
-      <div class="field-group"><label>Aclaración <span class="hint" style="font-weight:400">(turnado o equipo de riego)</span></label><input type="text" value="${escH(d.rpAclaracionCaudal||'')}" ${dis} oninput="setField('rpAclaracionCaudal',this.value)"></div>
-
+      `:''}
       `:''}
 
       ${noRiega ? '' : `
@@ -1056,25 +1049,6 @@ function renderTabContent(dg) {
       <div class="field-group"><label>Otras observaciones del riego</label><textarea ${dis} oninput="setField('obsRiego',this.value)">${escH(d.obsRiego)}</textarea></div>`}
     </div>${navRow()}`;
   }
-
-  if (t === 'problemas') return `
-    ${lockedBanner(dg)}
-    <div class="section-card">
-      <div class="section-title"><i class="ti ti-alert-triangle"></i> Problemas frecuentes y mantenimiento general</div>
-      <div class="field-group"><label>Problema que ocurre</label>${chipMulti(PROBLEMAS_FRECUENTES_ITEMS,'problemasFrecuentesItems',d)}</div>
-      <div class="field-group"><label>Observaciones generales</label><textarea ${dis} oninput="setField('problemasGeneralesObs',this.value)">${escH(d.problemasGeneralesObs||'')}</textarea></div>
-    </div>
-    <div class="section-card">
-      <div class="section-title"><i class="ti ti-forbid-2"></i> Limitantes e interés en mejoras</div>
-      <div class="field-group"><label>Principales limitantes para mejorar el sistema de riego</label>${chipMulti(LIMITANTES_ITEMS,'limitantesItems',d)}</div>
-      <div class="field-group"><label>Detalle</label><textarea ${dis} oninput="setField('limitantesDetalle',this.value)">${escH(d.limitantesDetalle||'')}</textarea></div>
-      ${(d.limitantesItems||[]).includes('Infraestructura deficiente')?`
-      <div class="field-group"><label>Si la infraestructura es deficiente, ¿en qué?</label>${chipMulti(TIPO_INFRA_DEFICIENTE_ITEMS,'infraDeficienteItems',d)}</div>`:''}
-      <div class="field-group"><label>Interés en implementar mejoras</label>
-        <div class="chip-group">${chip(d.interesMejoras,'Sí','Sí','interesMejoras')}${chip(d.interesMejoras,'No','No','interesMejoras')}</div></div>
-      ${d.interesMejoras==='Sí'?`<div class="field-group"><label>Tipo de mejora que le interesaría</label><input type="text" value="${escH(d.tipoMejoraInteres||'')}" ${dis} oninput="setField('tipoMejoraInteres',this.value)"></div>`:''}
-      <div class="field-group"><label>Observaciones</label><textarea ${dis} oninput="setField('limitantesObs',this.value)">${escH(d.limitantesObs||'')}</textarea></div>
-    </div>${navRow()}`;
 
   if (t === 'impacto') { const totalDet = d.presupuestoDetallado.reduce((s,p)=>s+((Number(p.cantidad)||0)*(Number(p.precioUnitario)||0)),0); return `
     ${lockedBanner(dg)}
@@ -1344,10 +1318,10 @@ function printDiag() {
     ${kv('Método para decidir cuándo regar', d.rsMetodoDecision)}${kv('¿Riega toda la propiedad en cada turno?', d.rsRiegaTodaPropiedad)}${kv('% de superficie por turno', d.rsPctSuperficiePorTurno)}${kvList('Método para determinar la lámina', d.rsMetodoLamina)}${kv('Detalle método de lámina', d.rsMetodoLaminaDetalle)}
     ${kv('Sistema de riego superficial', d.rsFormaRegar)}${kv('Hileras o surcos por tapada', d.rsCantHilerasSurcos)}${kv('¿Infraestructura para derivar el agua?', d.rsTieneInfraDerivar)}${kvList('Infraestructura utilizada', d.rsInfraDerivarItems)}
     ${kvList('Tareas de mantenimiento', d.rsMantenimientoItems)}${kv('Nivelación: ¿cuándo se hizo?', d.rsNivelacionCuando)}${kv('Metodología de nivelación', d.rsMetodoNivelacion)}</p>`) : '';
-  const riegoPres = presurizado ? sub('Riego presurizado (goteo/aspersión)', `<p>${kv('Fuente de agua', d.rpFuente)}${kv('Superficie regada', d.rpSuperficie, 'ha')}${kv('Tasa de precipitación', d.rpCaudal, 'mm/h')}${kv('Frecuencia por operación', d.rpFrecuencia, 'días')}${kv('Duración por operación', d.rpDuracion, 'hs')}
+  const riegoPres = presurizado ? sub('Riego presurizado (goteo/aspersión)', `<p>${kv('Fuente de agua', d.rpFuente)}${kv('Superficie regada', d.rpSuperficie, 'ha')}${kv('Pluviometría', d.rpCaudal, 'mm/h')}${kv('Frecuencia por operación', d.rpFrecuencia, 'días')}${kv('Duración por operación', d.rpDuracion, 'hs')}
     ${kvList('Método para determinar la lámina', d.rpMetodoLamina)}${kv('Detalle método de lámina', d.rpMetodoLaminaDetalle)}${kv('¿Caudalímetro en el equipo?', d.rpTieneCaudalimetro)}${kv('¿Controla horas de bombeo?', d.rpControlaHorasBombeo)}${kv('Sistema de filtrado', d.rpSistemaFiltrado)}
-    ${kv('Limpieza filtros primarios', d.rpFrecLimpiezaPrimario)}${kv('Limpieza filtros secundarios', d.rpFrecLimpiezaSecundario)}${kv('Parámetro de limpieza', d.rpParametroLimpieza)}${kv('¿Manómetros?', d.rpTieneManometros)}${kvList('Puntos de medición de presión', d.rpPuntosMedicion)}
-    ${kvList('Mantenimiento del equipo', d.rpMantenimientoItems)}${kvList('Control de válvulas', d.rpControlValvulasItems)}${kv('Cañerías', d.rpCanerias)}${kv('Laterales o cintas', d.rpLaterales)}${kv('¿Realiza medición de caudal?', d.rpRealizaMedicionCaudal)}${kv('Aclaración', d.rpAclaracionCaudal)}${has(d.rpProblemas) ? kv('Problemas y limitantes (presurizado)', d.rpProblemas) : ''}</p>`) : '';
+    ${kv('Frecuencia de limpieza del sistema de filtrado', d.rpFrecLimpiezaPrimario)}${kv('Parámetro de limpieza', d.rpParametroLimpieza)}${kv('¿Manómetros?', d.rpTieneManometros)}${kvList('Puntos de medición de presión', d.rpPuntosMedicion)}
+    ${kv('¿Realiza tareas de mantenimiento?', d.rpRealizaMantenimiento)}${kv('Frecuencia de mantenimiento', d.rpMantenimientoFrecuencia)}${kvList('Mantenimiento del equipo', d.rpMantenimientoItems)}${kvList('Control de válvulas', d.rpControlValvulasItems)}${has(d.rpProblemas) ? kv('Problemas y limitantes (presurizado)', d.rpProblemas) : ''}</p>`) : '';
   const riegoManejo = d.tipoRiegoGeneral === 'No riega' ? '' : sub('Infraestructura y manejo', `<p>${kv('Represa', d.represa)}${kv('Volumen represa', d.volumenRepresa, 'm³')}${kv('Medición de caudales', d.medicionCaudales)}${kv('Método de medición', d.metodoMedicion)}${kv('Asistencia técnica agronómica', d.asistenciaTecnica)}${kvList('Personal de riego', d.personalRiego)}${kv('Principales problemas y limitantes', d.rsProblemas)}${kv('Otras observaciones', d.obsRiego)}</p>`);
 
   const problemas = `<p>${kvList('Problemas frecuentes', d.problemasFrecuentesItems)}${kv('Observaciones generales', d.problemasGeneralesObs)}${kvList('Limitantes para mejorar el riego', d.limitantesItems)}${kv('Detalle de limitantes', d.limitantesDetalle)}${kvList('Infraestructura deficiente en', d.infraDeficienteItems)}${kv('Interés en implementar mejoras', d.interesMejoras)}${kv('Tipo de mejora de interés', d.tipoMejoraInteres)}${kv('Observaciones', d.limitantesObs)}</p>`;

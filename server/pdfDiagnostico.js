@@ -247,7 +247,7 @@ function generarDiagnosticoPDF({ data, docStatus, signatures }) {
         s.sub('Riego presurizado (goteo/aspersión)');
         s.kv('Fuente de agua', d.rpFuente);
         s.kv('Superficie regada', d.rpSuperficie, 'ha');
-        s.kv('Tasa de precipitación', d.rpCaudal, 'mm/h');
+        s.kv('Pluviometría', d.rpCaudal, 'mm/h');
         s.kv('Frecuencia por operación', d.rpFrecuencia, 'días');
         s.kv('Duración por operación', d.rpDuracion, 'hs');
         s.kvList('Método para determinar la lámina', d.rpMetodoLamina);
@@ -255,17 +255,14 @@ function generarDiagnosticoPDF({ data, docStatus, signatures }) {
         s.kv('¿Caudalímetro en el equipo?', d.rpTieneCaudalimetro);
         s.kv('¿Controla horas de bombeo?', d.rpControlaHorasBombeo);
         s.kv('Sistema de filtrado', d.rpSistemaFiltrado);
-        s.kv('Limpieza filtros primarios', d.rpFrecLimpiezaPrimario);
-        s.kv('Limpieza filtros secundarios', d.rpFrecLimpiezaSecundario);
+        s.kv('Frecuencia de limpieza del sistema de filtrado', d.rpFrecLimpiezaPrimario);
         s.kv('Parámetro de limpieza', d.rpParametroLimpieza);
         s.kv('¿Manómetros?', d.rpTieneManometros);
         s.kvList('Puntos de medición de presión', d.rpPuntosMedicion);
+        s.kv('¿Realiza tareas de mantenimiento?', d.rpRealizaMantenimiento);
+        s.kv('Frecuencia de mantenimiento', d.rpMantenimientoFrecuencia);
         s.kvList('Mantenimiento del equipo', d.rpMantenimientoItems);
         s.kvList('Control de válvulas', d.rpControlValvulasItems);
-        s.kv('Cañerías', d.rpCanerias);
-        s.kv('Laterales o cintas', d.rpLaterales);
-        s.kv('¿Realiza medición de caudal?', d.rpRealizaMedicionCaudal);
-        s.kv('Aclaración', d.rpAclaracionCaudal);
         s.kv('Problemas y limitantes (presurizado)', d.rpProblemas);
       }
       if (d.tipoRiegoGeneral !== 'No riega') {
@@ -279,17 +276,6 @@ function generarDiagnosticoPDF({ data, docStatus, signatures }) {
         s.kv('Principales problemas y limitantes', d.rsProblemas);
         s.kv('Otras observaciones', d.obsRiego);
       }
-    });
-
-    section('Problemas y limitantes', (s) => {
-      s.kvList('Problemas frecuentes', d.problemasFrecuentesItems);
-      s.kv('Observaciones generales', d.problemasGeneralesObs);
-      s.kvList('Limitantes para mejorar el riego', d.limitantesItems);
-      s.kv('Detalle de limitantes', d.limitantesDetalle);
-      s.kvList('Infraestructura deficiente en', d.infraDeficienteItems);
-      s.kv('Interés en implementar mejoras', d.interesMejoras);
-      s.kv('Tipo de mejora de interés', d.tipoMejoraInteres);
-      s.kv('Observaciones', d.limitantesObs);
     });
 
     section('Propuesta de mejora', (s) => {

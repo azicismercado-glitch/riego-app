@@ -146,7 +146,7 @@ const METODOS_CONTROL_ITEMS = ['Auditoría de avance de obras','Registro de uso 
 const PERIODICIDAD_OPCIONES = ['Mensual','Trimestral','Por campaña','Anual','Otro'];
 const NOMENCLADOR = [{"n1":"A","label":"Captación y fuente de agua","items":[{"n2":"A01","label":"Perforación de pozo nuevo"},{"n2":"A02","label":"Readecuación / rehabilitación de pozo existente"},{"n2":"A03","label":"Equipo de bombeo de pozo"},{"n2":"A04","label":"Obra de toma superficial"},{"n2":"A05","label":"Conexión a red o sistema colectivo"},{"n2":"A06","label":"Bombeo de refuerzo / rebombeo (booster)"},{"n2":"A07","label":"Captación de fuentes no convencionales"}]},{"n1":"B","label":"Almacenamiento y regulación","items":[{"n2":"B01","label":"Reservorio / represa de tierra"},{"n2":"B02","label":"Impermeabilización de reservorios"},{"n2":"B03","label":"Cisternas y tanques de regulación"},{"n2":"B04","label":"Obras de seguridad y control del reservorio"}]},{"n1":"C","label":"Conducción y distribución intrapredial","items":[{"n2":"C01","label":"Red de conducción entubada a presión"},{"n2":"C02","label":"Entubado o impermeabilización de canales intraprediales"},{"n2":"C03","label":"Obras de arte y regulación en la red"},{"n2":"C04","label":"Vinculación entre sectores y flexibilización de la red"}]},{"n1":"D","label":"Aplicación – Riego presurizado","items":[{"n2":"D01","label":"Riego por goteo superficial"},{"n2":"D02","label":"Riego por goteo subsuperficial (SDI)"},{"n2":"D03","label":"Microaspersión / microjet"},{"n2":"D04","label":"Aspersión fija o semifija"},{"n2":"D05","label":"Cañón regador / enrollador"},{"n2":"D06","label":"Pivote central"},{"n2":"D07","label":"Avance frontal (lateral move)"},{"n2":"D08","label":"Reconversión / repotenciación de equipos existentes"},{"n2":"D09","label":"Riego de precisión variable (VRI)"}]},{"n1":"E","label":"Aplicación – Riego gravitacional tecnificado","items":[{"n2":"E01","label":"Nivelación y sistematización con control láser o GPS"},{"n2":"E02","label":"Riego por mangas multicompuerta"},{"n2":"E03","label":"Riego intermitente (surge flow)"},{"n2":"E04","label":"Recirculación de agua de cola"},{"n2":"E05","label":"Automatización del riego por superficie"}]},{"n1":"F","label":"Energía y eficiencia energética","items":[{"n2":"F01","label":"Bombeo solar fotovoltaico"},{"n2":"F02","label":"Generación fotovoltaica conectada a red (on-grid)"},{"n2":"F03","label":"Almacenamiento de energía"},{"n2":"F04","label":"Sustitución o repotenciación de fuente energética"},{"n2":"F05","label":"Eficiencia eléctrica del equipo de bombeo"},{"n2":"F06","label":"Infraestructura de conexión eléctrica"},{"n2":"F07","label":"Optimización hidráulica para ahorro energético"},{"n2":"F08","label":"Otras fuentes renovables e híbridas"}]},{"n1":"G","label":"Cabezal, filtrado, fertirriego y calidad de agua","items":[{"n2":"G01","label":"Cabezal de filtrado"},{"n2":"G02","label":"Equipamiento de fertirriego"},{"n2":"G03","label":"Tratamiento y acondicionamiento de agua de riego"},{"n2":"G04","label":"Válvulas, hidrantes y accesorios de comando"},{"n2":"G05","label":"Sala de cabezal e instalaciones asociadas"}]},{"n1":"H","label":"Automatización, monitoreo y agricultura digital","items":[{"n2":"H01","label":"Sensores de humedad y estado hídrico"},{"n2":"H02","label":"Estaciones meteorológicas y cálculo de ETc"},{"n2":"H03","label":"Telemetría, control remoto y automatización"},{"n2":"H04","label":"Medición volumétrica y macromedición"},{"n2":"H05","label":"Software y plataformas de gestión de riego"},{"n2":"H06","label":"Sensoramiento remoto y relevamientos aéreos"},{"n2":"H07","label":"Mapeo de suelos y zonas de manejo"}]},{"n1":"I","label":"Suelos, drenaje y salinidad","items":[{"n2":"I01","label":"Sistematización y acondicionamiento del terreno"},{"n2":"I02","label":"Drenaje superficial"},{"n2":"I03","label":"Drenaje subsuperficial"},{"n2":"I04","label":"Recuperación de suelos salinos y sódicos"},{"n2":"I05","label":"Protección del sistema y control de viento"}]},{"n1":"J","label":"Gestión del recurso hídrico y sistemas colectivos","items":[{"n2":"J01","label":"Modernización de redes de sistemas colectivos"},{"n2":"J02","label":"Medición y telemetría a nivel de red o consorcio"},{"n2":"J03","label":"Sistemas de gestión de turnos y distribución"},{"n2":"J04","label":"Monitoreo de acuíferos y aguas superficiales"},{"n2":"J05","label":"Recarga gestionada de acuíferos (MAR)"},{"n2":"J06","label":"Balance hídrico y planificación zonal"},{"n2":"J07","label":"Reúso de agua y economía circular del recurso"},{"n2":"J08","label":"Fortalecimiento institucional de organizaciones de regantes"}]},{"n1":"K","label":"Reconversión productiva asociada a la puesta bajo riego","items":[{"n2":"K01","label":"Implantación o reconversión de cultivos bajo riego"},{"n2":"K02","label":"Estructuras de sostén y protección de cultivo"},{"n2":"K03","label":"Cultivo protegido con riego tecnificado"},{"n2":"K04","label":"Intensificación forrajera bajo riego"},{"n2":"K05","label":"Capital de trabajo asociado a la puesta en riego"}]},{"n1":"L","label":"Estudios, proyectos y servicios técnicos","items":[{"n2":"L01","label":"Estudios hidrogeológicos y prospección"},{"n2":"L02","label":"Análisis de agua y suelo"},{"n2":"L03","label":"Proyecto ejecutivo y dirección de obra"},{"n2":"L04","label":"Evaluación y auditoría de sistemas en operación"},{"n2":"L05","label":"Capacitación y puesta en marcha"},{"n2":"L06","label":"Regularización de derechos de uso del agua y permisos"},{"n2":"L07","label":"Gestión ambiental y certificaciones"}]},{"n1":"M","label":"Infraestructura y equipamiento complementario","items":[{"n2":"M01","label":"Instalación, montaje y puesta en marcha"},{"n2":"M02","label":"Fletes, seguros y gastos de importación"},{"n2":"M03","label":"Caminos internos y accesos"},{"n2":"M04","label":"Depósito, taller y guarda de equipamiento"},{"n2":"M05","label":"Seguridad de las instalaciones"},{"n2":"M06","label":"Maquinaria y equipamiento de apoyo"}]}];
 
-const TABS = [['estab','Establec.'],['cultivos','Cultivos'],['suelo','Suelo'],['riego','Riego'],['problemas','Problemas'],['propuesta','Propuesta'],['impacto','Impacto'],['seguimiento','Seguim.'],['fotos','Fotos'],['exportar','Exportar']];
+const TABS = [['estab','Establec.'],['cultivos','Cultivos'],['suelo','Suelo'],['riego','Riego'],['propuesta','Propuesta'],['impacto','Impacto'],['seguimiento','Seguim.'],['fotos','Fotos'],['exportar','Exportar']];
 
 function emptyCultivo(){ return {cultivo:'',variedad:'',destino:'',anio:'',marco:'',superficie:'',rendimiento:'',rendimientoUnidad:''}; }
 function emptyPresupuesto(){ return {inversion:'',codN1:'',codN2:'',tipo:'',monto:'',montoUSD:'',superficieAsociada:''}; }
@@ -198,8 +198,7 @@ function emptyData(){
     rpMetodoLamina:[],rpMetodoLaminaDetalle:'',
     rpTieneCaudalimetro:null,rpControlaHorasBombeo:null,rpSistemaFiltrado:'',
     rpFrecLimpiezaPrimario:'',rpFrecLimpiezaSecundario:'',rpParametroLimpieza:'',
-    rpTieneManometros:null,rpPuntosMedicion:[],rpMantenimientoItems:[],rpControlValvulasItems:[],
-    rpCanerias:'',rpLaterales:'',rpRealizaMedicionCaudal:null,rpAclaracionCaudal:'',
+    rpTieneManometros:null,rpPuntosMedicion:[],rpRealizaMantenimiento:null,rpMantenimientoFrecuencia:'',rpMantenimientoItems:[],rpControlValvulasItems:[],
     represa:null,volumenRepresa:'',medicionCaudales:null,metodoMedicion:'',asistenciaTecnica:null,personalRiego:[],obsRiego:'',
     problemasFrecuentesItems:[],problemasGeneralesObs:'',
     limitantesItems:[],limitantesDetalle:'',infraDeficienteItems:[],
@@ -523,7 +522,7 @@ function renderResumenCompleto(dd, fotosCount){
             + kv('Infraestructura', dd.rsInfraestructura) + kv('Observaciones', dd.rsObservaciones);
     }
     if ((dd.sistemasPresentes || []).some(s => ['Goteo', 'Aspersión'].includes(s))) {
-      html += kv('Riego presurizado — fuente', dd.rpFuente) + kv('Superficie regada', dd.rpSuperficie && dd.rpSuperficie + ' ha') + kv('Caudal medio', dd.rpCaudal && dd.rpCaudal + ' mm/h')
+      html += kv('Riego presurizado — fuente', dd.rpFuente) + kv('Superficie regada', dd.rpSuperficie && dd.rpSuperficie + ' ha') + kv('Pluviometría', dd.rpCaudal && dd.rpCaudal + ' mm/h')
             + kv('Frecuencia por operación', dd.rpFrecuencia && dd.rpFrecuencia + ' días') + kv('Duración por operación', dd.rpDuracion && dd.rpDuracion + ' hs')
             + kv('Problemas (presurizado)', dd.rpProblemas) + kv('Observaciones', dd.rpObservaciones);
     }
@@ -848,7 +847,7 @@ function renderTab(){
       <div class="field-group"><label>Fuente de agua</label><div class="chip-group">${chip(dd.rpFuente,'Turno','Turno','rpFuente')}${chip(dd.rpFuente,'Pozo','Pozo','rpFuente')}</div></div>
       <div class="row2">
         <div class="field-group"><label>Superficie regada (ha) <span class="req">*</span></label><input type="text" value="${escH(dd.rpSuperficie)}" oninput="setField('rpSuperficie',this.value)"></div>
-        <div class="field-group"><label>Caudal medio (mm/h)</label><input type="text" value="${escH(dd.rpCaudal)}" oninput="setField('rpCaudal',this.value)"></div>
+        <div class="field-group"><label>Pluviometría (mm/h)</label><input type="text" value="${escH(dd.rpCaudal)}" oninput="setField('rpCaudal',this.value)"></div>
       </div>
       <div class="row2">
         <div class="field-group"><label>Frecuencia por operación (días) <span class="req">*</span></label><input type="text" value="${escH(dd.rpFrecuencia)}" oninput="setField('rpFrecuencia',this.value)"></div>
@@ -866,26 +865,20 @@ function renderTab(){
           <div class="chip-group">${chip(dd.rpControlaHorasBombeo,'Sí','Sí','rpControlaHorasBombeo')}${chip(dd.rpControlaHorasBombeo,'No','No','rpControlaHorasBombeo')}</div></div>
       </div>
       <div class="field-group"><label>Sistema de filtrado</label>${selectHTML(TIPO_FILTRADO_OPCIONES,'rpSistemaFiltrado',dd)}</div>
-      <div class="row2">
-        <div class="field-group"><label>Frecuencia de limpieza — filtros primarios</label><input type="text" value="${escH(dd.rpFrecLimpiezaPrimario||'')}" oninput="setField('rpFrecLimpiezaPrimario',this.value)"></div>
-        <div class="field-group"><label>Frecuencia de limpieza — filtros secundarios</label><input type="text" value="${escH(dd.rpFrecLimpiezaSecundario||'')}" oninput="setField('rpFrecLimpiezaSecundario',this.value)"></div>
-      </div>
+      <div class="field-group"><label>Frecuencia de limpieza del sistema de filtrado</label><input type="text" value="${escH(dd.rpFrecLimpiezaPrimario||'')}" oninput="setField('rpFrecLimpiezaPrimario',this.value)"></div>
       <div class="field-group"><label>Parámetro para definir limpieza</label>${selectHTML(PARAMETRO_LIMPIEZA_OPCIONES,'rpParametroLimpieza',dd)}</div>
       <div class="field-group"><label>¿Tiene manómetros?</label>
         <div class="chip-group">${chip(dd.rpTieneManometros,'Sí','Sí','rpTieneManometros')}${chip(dd.rpTieneManometros,'No','No','rpTieneManometros')}</div></div>
       ${dd.rpTieneManometros==='Sí'?`<div class="field-group"><label>Puntos de medición de presión</label>${chipMultiList(PUNTO_MEDICION_ITEMS,'rpPuntosMedicion',dd)}</div>`:''}
 
       <div class="subsection-title">Mantenimiento del equipo</div>
-      <div class="field-group"><label>Componente / tarea con mantenimiento realizado</label>${chipMultiList(MANT_EQUIPO_ITEMS,'rpMantenimientoItems',dd)}</div>
+      <div class="field-group"><label>¿Se realizan tareas de mantenimiento?</label>
+        <div class="chip-group">${chip(dd.rpRealizaMantenimiento,'Sí','Sí','rpRealizaMantenimiento')}${chip(dd.rpRealizaMantenimiento,'No','No','rpRealizaMantenimiento')}</div></div>
+      ${dd.rpRealizaMantenimiento==='Sí'?`
+      <div class="field-group"><label>¿Con qué frecuencia?</label><input type="text" value="${escH(dd.rpMantenimientoFrecuencia||'')}" oninput="setField('rpMantenimientoFrecuencia',this.value)"></div>
+      <div class="field-group"><label>Componente / tarea con mantenimiento realizado <span class="hint" style="font-weight:400">(si contás con esa información)</span></label>${chipMultiList(MANT_EQUIPO_ITEMS,'rpMantenimientoItems',dd)}</div>
       <div class="field-group"><label>Control de válvulas</label>${chipMultiList(CONTROL_VALVULAS_ITEMS,'rpControlValvulasItems',dd)}</div>
-
-      <div class="subsection-title">Cabezal de riego: cañería y accesorios</div>
-      <div class="field-group"><label>Cañerías (detalle)</label><input type="text" value="${escH(dd.rpCanerias||'')}" oninput="setField('rpCanerias',this.value)"></div>
-      <div class="field-group"><label>Laterales o cintas de riego (detalle)</label><input type="text" value="${escH(dd.rpLaterales||'')}" oninput="setField('rpLaterales',this.value)"></div>
-      <div class="field-group"><label>¿Realiza medición de caudal?</label>
-        <div class="chip-group">${chip(dd.rpRealizaMedicionCaudal,'Sí','Sí','rpRealizaMedicionCaudal')}${chip(dd.rpRealizaMedicionCaudal,'No','No','rpRealizaMedicionCaudal')}</div>
-        <div class="hint">El valor de caudal medido se carga arriba, en "Caudal medio (mm/h)".</div></div>
-      <div class="field-group"><label>Aclaración <span class="hint" style="font-weight:400">(turnado o equipo de riego)</span></label><input type="text" value="${escH(dd.rpAclaracionCaudal||'')}" oninput="setField('rpAclaracionCaudal',this.value)"></div>
+      `:''}
 
       `:''}
 
@@ -902,24 +895,6 @@ function renderTab(){
       <div class="field-group"><label>Otras observaciones del riego</label><textarea oninput="setField('obsRiego',this.value)">${escH(dd.obsRiego)}</textarea></div>`}
     </div>${navRow()}`;
   }
-
-  if (t==='problemas') return `
-    <div class="section-card">
-      <div class="section-title">Problemas frecuentes y mantenimiento general</div>
-      <div class="field-group"><label>Problema que ocurre</label>${chipMultiList(PROBLEMAS_FRECUENTES_ITEMS,'problemasFrecuentesItems',dd)}</div>
-      <div class="field-group"><label>Observaciones generales</label><textarea oninput="setField('problemasGeneralesObs',this.value)">${escH(dd.problemasGeneralesObs||'')}</textarea></div>
-    </div>
-    <div class="section-card">
-      <div class="section-title">Limitantes e interés en mejoras</div>
-      <div class="field-group"><label>Principales limitantes para mejorar el sistema de riego</label>${chipMultiList(LIMITANTES_ITEMS,'limitantesItems',dd)}</div>
-      <div class="field-group"><label>Detalle</label><textarea oninput="setField('limitantesDetalle',this.value)">${escH(dd.limitantesDetalle||'')}</textarea></div>
-      ${(dd.limitantesItems||[]).includes('Infraestructura deficiente')?`
-      <div class="field-group"><label>Si la infraestructura es deficiente, ¿en qué?</label>${chipMultiList(TIPO_INFRA_DEFICIENTE_ITEMS,'infraDeficienteItems',dd)}</div>`:''}
-      <div class="field-group"><label>Interés en implementar mejoras</label>
-        <div class="chip-group">${chip(dd.interesMejoras,'Sí','Sí','interesMejoras')}${chip(dd.interesMejoras,'No','No','interesMejoras')}</div></div>
-      ${dd.interesMejoras==='Sí'?`<div class="field-group"><label>Tipo de mejora que le interesaría</label><input type="text" value="${escH(dd.tipoMejoraInteres||'')}" oninput="setField('tipoMejoraInteres',this.value)"></div>`:''}
-      <div class="field-group"><label>Observaciones</label><textarea oninput="setField('limitantesObs',this.value)">${escH(dd.limitantesObs||'')}</textarea></div>
-    </div>${navRow()}`;
 
   if (t==='propuesta') return `
     <div class="section-card">
