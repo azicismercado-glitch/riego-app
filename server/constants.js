@@ -192,6 +192,7 @@ function missingForSign(data) {
   if (!has(d.descripcionMejora)) faltan.push('Descripción de la mejora propuesta');
   if (!hayIndicador(d)) faltan.push('Al menos un indicador de mejora (pestaña Impacto)');
   if (!(d.presupuesto || []).some((p) => has(p.inversion))) faltan.push('Al menos un ítem de presupuesto');
+  if (d.tipoSeguimiento === 'Visita a campo' && !has(d.cantidadVisitasSeguimiento)) faltan.push('Cantidad de visitas (pestaña Seguimiento)');
   return faltan;
 }
 

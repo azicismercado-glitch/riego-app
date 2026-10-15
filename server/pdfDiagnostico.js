@@ -326,7 +326,7 @@ function generarDiagnosticoPDF({ data, docStatus, signatures }) {
       s.rows(['Indicador', 'Situación proyectada', 'Valor real logrado', 'Impacto logrado'], logrados);
       s.kv('Tipo de seguimiento', d.tipoSeguimiento);
       s.kv('Cantidad de visitas', d.cantidadVisitasSeguimiento);
-      s.kv('Fecha estimada de seguimiento', d.fechaEstimadaSeguimiento);
+      s.kv('Fecha estimada de inicio del seguimiento', d.fechaEstimadaSeguimiento);
       s.kv('Responsable técnico', d.responsableSeguimiento);
       s.kv('Recursos necesarios', d.recursosNecesariosSeguimiento);
       s.kvList('Métodos de control', d.metodosControl);

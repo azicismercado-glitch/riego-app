@@ -1141,10 +1141,10 @@ function renderTabContent(dg) {
       <div class="section-title"><i class="ti ti-clipboard-check"></i> Estrategia de seguimiento y evaluación</div>
       <div class="field-group"><label>Tipo de seguimiento</label>${selectHTML(TIPO_SEGUIMIENTO_OPCIONES,'tipoSeguimiento',d)}</div>
       <div class="row2">
-        <div class="field-group"><label>Fecha estimada de seguimiento</label><input type="date" value="${escH(d.fechaEstimadaSeguimiento||'')}" ${dis} oninput="setField('fechaEstimadaSeguimiento',this.value)"></div>
+        <div class="field-group"><label>Fecha estimada de inicio del seguimiento</label><input type="date" value="${escH(d.fechaEstimadaSeguimiento||'')}" ${dis} oninput="setField('fechaEstimadaSeguimiento',this.value)"></div>
         <div class="field-group"><label>Responsable técnico</label><input type="text" value="${escH(d.responsableSeguimiento)}" ${dis} oninput="setField('responsableSeguimiento',this.value)"></div>
       </div>
-      <div class="field-group"><label>Cantidad de visitas</label><input type="number" value="${escH(d.cantidadVisitasSeguimiento||'')}" ${dis} style="max-width:140px" oninput="setField('cantidadVisitasSeguimiento',this.value)"></div>
+      ${d.tipoSeguimiento==='Visita a campo'?`<div class="field-group"><label>Cantidad de visitas <span class="req">*</span></label><input type="number" value="${escH(d.cantidadVisitasSeguimiento||'')}" ${dis} style="max-width:140px" oninput="setField('cantidadVisitasSeguimiento',this.value)"></div>`:''}
       <div class="field-group"><label>Recursos necesarios para el seguimiento</label><textarea ${dis} oninput="setField('recursosNecesariosSeguimiento',this.value)">${escH(d.recursosNecesariosSeguimiento||'')}</textarea></div>
       <div class="field-group"><label>Métodos de control</label>${chipMulti(METODOS_CONTROL_ITEMS,'metodosControl',d)}</div>
       ${(d.metodosControl||[]).includes('Otro')?`<div class="field-group"><label>Detalle "Otro"</label><input type="text" value="${escH(d.metodosControlOtro||'')}" ${dis} oninput="setField('metodosControlOtro',this.value)"></div>`:''}
@@ -1363,7 +1363,7 @@ function printDiag() {
     + `<p>${kv('% de aporte del productor', d.aportePorcentajeProductor)}${kv('% de financiamiento solicitado', d.financiamientoPorcentajeSolicitado)}</p>`;
 
   const logrados = arr(d.indicadores).filter((i) => has(i.logrado) || has(i.logradoValor)).map((i) => [i.indicador, i.proyectada, has(i.logradoValor) ? i.logradoValor + (i.unidad ? ' ' + i.unidad : '') : '', i.logrado]);
-  const seguimiento = table(['Indicador', 'Situación proyectada', 'Valor real logrado', 'Impacto logrado'], logrados) + `<p>${kv('Tipo de seguimiento', d.tipoSeguimiento)}${kv('Cantidad de visitas', d.cantidadVisitasSeguimiento)}${kv('Fecha estimada de seguimiento', d.fechaEstimadaSeguimiento)}${kv('Responsable técnico', d.responsableSeguimiento)}${kv('Recursos necesarios', d.recursosNecesariosSeguimiento)}${kvList('Métodos de control', d.metodosControl)}${kv('Detalle "Otro"', d.metodosControlOtro)}${kv('Periodicidad', d.periodicidad)}${kv('Criterios de éxito', d.criteriosExito)}</p>`;
+  const seguimiento = table(['Indicador', 'Situación proyectada', 'Valor real logrado', 'Impacto logrado'], logrados) + `<p>${kv('Tipo de seguimiento', d.tipoSeguimiento)}${kv('Cantidad de visitas', d.cantidadVisitasSeguimiento)}${kv('Fecha estimada de inicio del seguimiento', d.fechaEstimadaSeguimiento)}${kv('Responsable técnico', d.responsableSeguimiento)}${kv('Recursos necesarios', d.recursosNecesariosSeguimiento)}${kvList('Métodos de control', d.metodosControl)}${kv('Detalle "Otro"', d.metodosControlOtro)}${kv('Periodicidad', d.periodicidad)}${kv('Criterios de éxito', d.criteriosExito)}</p>`;
 
   const conformidad = dg.signatures.cfi && dg.signatures.cfi.informe ? `<p style="white-space:pre-wrap">${esc(dg.signatures.cfi.informe)}</p>` : '';
 

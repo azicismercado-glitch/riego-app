@@ -1025,10 +1025,10 @@ function renderTab(){
       <div class="section-title">Estrategia de seguimiento y evaluación</div>
       <div class="field-group"><label>Tipo de seguimiento</label>${selectHTML(TIPO_SEGUIMIENTO_OPCIONES,'tipoSeguimiento',dd)}</div>
       <div class="row2">
-        <div class="field-group"><label>Fecha estimada de seguimiento</label><input type="date" value="${escH(dd.fechaEstimadaSeguimiento||'')}" oninput="setField('fechaEstimadaSeguimiento',this.value)"></div>
+        <div class="field-group"><label>Fecha estimada de inicio del seguimiento</label><input type="date" value="${escH(dd.fechaEstimadaSeguimiento||'')}" oninput="setField('fechaEstimadaSeguimiento',this.value)"></div>
         <div class="field-group"><label>Responsable técnico</label><input type="text" value="${escH(dd.responsableSeguimiento)}" oninput="setField('responsableSeguimiento',this.value)"></div>
       </div>
-      <div class="field-group"><label>Cantidad de visitas</label><input type="number" value="${escH(dd.cantidadVisitasSeguimiento||'')}" style="max-width:140px" oninput="setField('cantidadVisitasSeguimiento',this.value)"></div>
+      ${dd.tipoSeguimiento==='Visita a campo'?`<div class="field-group"><label>Cantidad de visitas <span class="req">*</span></label><input type="number" value="${escH(dd.cantidadVisitasSeguimiento||'')}" style="max-width:140px" oninput="setField('cantidadVisitasSeguimiento',this.value)"></div>`:''}
       <div class="field-group"><label>Recursos necesarios para el seguimiento</label><textarea oninput="setField('recursosNecesariosSeguimiento',this.value)">${escH(dd.recursosNecesariosSeguimiento||'')}</textarea></div>
       <div class="field-group"><label>Métodos de control</label>${chipMultiList(METODOS_CONTROL_ITEMS,'metodosControl',dd)}</div>
       ${(dd.metodosControl||[]).includes('Otro')?`<div class="field-group"><label>Detalle "Otro"</label><input type="text" value="${escH(dd.metodosControlOtro||'')}" oninput="setField('metodosControlOtro',this.value)"></div>`:''}
