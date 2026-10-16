@@ -139,6 +139,8 @@ router.post('/import', requireRole('tecnico'), async (req, res, next) => {
     // aparte y se procesa después de crear el diagnóstico, que es cuando existe el id.
     const sueloDocOffline = data.analisisSueloArchivo && data.analisisSueloArchivo.dataUrl ? data.analisisSueloArchivo : null;
     if (sueloDocOffline) data.analisisSueloArchivo = null;
+    const presupuestoDocOffline = data.presupuestoArchivo && data.presupuestoArchivo.dataUrl ? data.presupuestoArchivo : null;
+    if (presupuestoDocOffline) data.presupuestoArchivo = null;
 
     const { rows } = await db.query(
       `INSERT INTO diagnosticos (data, doc_status, created_by) VALUES ($1,'borrador',$2) RETURNING *`,
@@ -186,6 +188,28 @@ router.post('/import', requireRole('tecnico'), async (req, res, next) => {
           url: subida.secure_url
         };
         const newData = { ...diag.data, analisisSueloArchivo: archivo };
+        await db.query('UPDATE diagnosticos SET data = $1, updated_at = now() WHERE id = $2', [newData, diag.id]);
+      }
+    }
+
+    if (presupuestoDocOffline) {
+      const m = /^data:([a-zA-Z0-9.+/-]+);base64,(.+)$/.exec(presupuestoDocOffline.dataUrl || '');
+      if (m) {
+        const mimetype = m[1];
+        const buffer = Buffer.from(m[2], 'base64');
+        const esImagen = /^image\//.test(mimetype);
+        const extFromName = presupuestoDocOffline.originalName ? path.extname(presupuestoDocOffline.originalName) : '';
+        const ext = esImagen ? '' : (extFromName || '.pdf');
+        const publicId = `presupuesto-${Date.now()}${ext}`;
+        const subida = await subirBuffer(buffer, { folder: `riego-app/${diag.id}`, publicId, mimetype });
+        const archivo = {
+          filename: subida.public_id,
+          originalName: presupuestoDocOffline.originalName || 'presupuesto',
+          mimetype,
+          url: subida.secure_url
+        };
+        const { rows: curRows } = await db.query('SELECT data FROM diagnosticos WHERE id = $1', [diag.id]);
+        const newData = { ...curRows[0].data, presupuestoArchivo: archivo };
         await db.query('UPDATE diagnosticos SET data = $1, updated_at = now() WHERE id = $2', [newData, diag.id]);
       }
     }

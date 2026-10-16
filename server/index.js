@@ -12,6 +12,7 @@ const creditosSigiRoutes = require('./routes/creditosSigi');
 const adminRoutes = require('./routes/admin');
 const consultasRoutes = require('./routes/consultas');
 const documentoSueloRoutes = require('./routes/documentoSuelo');
+const documentoPresupuestoRoutes = require('./routes/documentoPresupuesto');
 
 const app = express();
 app.use(cors());
@@ -30,6 +31,7 @@ app.use('/api/creditos-sigi', creditosSigiRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/consultas', consultasRoutes);
 app.use('/api/diagnosticos', documentoSueloRoutes);
+app.use('/api/diagnosticos', documentoPresupuestoRoutes);
 
 app.use(express.static(path.join(__dirname, '..', 'public')));
 

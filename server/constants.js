@@ -37,23 +37,24 @@ function emptyPresupuesto() {
 function emptyMaterial() {
   return { item: '', cantidad: '', unidad: '', obs: '' };
 }
+// Orden alfabético (con "Otro" siempre al final, sin importar el alfabeto).
 function emptyIndicadores() {
   return [
-    { indicador: 'Eficiencia de aplicación (%)', unidad: '%', actual: '', proyectada: '', obs: '' },
-    { indicador: 'Uniformidad de aplicación (%)', unidad: '%', actual: '', proyectada: '', obs: '' },
-    { indicador: 'Caudal aprovechado (L/s)', unidad: 'l/s', actual: '', proyectada: '', obs: '' },
-    { indicador: 'Superficie tecnificada (ha)', unidad: 'ha', actual: '', proyectada: '', obs: '' },
-    { indicador: 'Incremento en rendimientos', unidad: '', actual: '', proyectada: '', obs: '' },
-    { indicador: 'Ahorro energético', unidad: '', actual: '', proyectada: '', obs: '' },
-    { indicador: 'Impacto ambiental', unidad: '', actual: '', proyectada: '', obs: '' },
-    { indicador: 'Aumento de la superficie bajo riego (ha)', unidad: 'ha', actual: '', proyectada: '', obs: '' },
-    { indicador: 'Mejora de calidad (% descarte/calibre/color)', unidad: '%', actual: '', proyectada: '', obs: '' },
     { indicador: 'Ahorro de agua (volumen o %)', unidad: '', actual: '', proyectada: '', obs: '' },
-    { indicador: 'Disminución del consumo energético de la red', unidad: '', actual: '', proyectada: '', obs: '' },
-    { indicador: 'Mejora del margen ($/ha)', unidad: '$', actual: '', proyectada: '', obs: '' },
-    { indicador: 'Reducción de escurrimiento / percolación', unidad: '', actual: '', proyectada: '', obs: '' },
+    { indicador: 'Ahorro energético', unidad: '', actual: '', proyectada: '', obs: '' },
+    { indicador: 'Aumento de la superficie bajo riego (ha)', unidad: 'ha', actual: '', proyectada: '', obs: '' },
+    { indicador: 'Caudal aprovechado (L/s)', unidad: 'l/s', actual: '', proyectada: '', obs: '' },
+    { indicador: 'Eficiencia de aplicación (%)', unidad: '%', actual: '', proyectada: '', obs: '' },
+    { indicador: 'Impacto ambiental', unidad: '', actual: '', proyectada: '', obs: '' },
+    { indicador: 'Incremento en rendimientos', unidad: '', actual: '', proyectada: '', obs: '' },
+    { indicador: 'Mejora de calidad (% descarte/calibre/color)', unidad: '%', actual: '', proyectada: '', obs: '' },
     { indicador: 'Mejora de salinidad del suelo', unidad: '', actual: '', proyectada: '', obs: '' },
+    { indicador: 'Mejora del margen ($/ha)', unidad: '$', actual: '', proyectada: '', obs: '' },
     { indicador: 'Reducción de erosión', unidad: '', actual: '', proyectada: '', obs: '' },
+    { indicador: 'Reducción de escurrimiento / percolación', unidad: '', actual: '', proyectada: '', obs: '' },
+    { indicador: 'Reemplazo de energía convencional por fuentes renovables', unidad: '', actual: '', proyectada: '', obs: '' },
+    { indicador: 'Superficie tecnificada (ha)', unidad: 'ha', actual: '', proyectada: '', obs: '' },
+    { indicador: 'Uniformidad de aplicación (%)', unidad: '%', actual: '', proyectada: '', obs: '' },
     { indicador: 'Otro', unidad: '', actual: '', proyectada: '', obs: '' }
   ];
 }
@@ -83,7 +84,7 @@ function emptyData() {
     rsMetodoDecision: '', rsRiegaTodaPropiedad: null, rsPctSuperficiePorTurno: '',
     rsMetodoLamina: [], rsMetodoLaminaDetalle: '', rsFormaRegar: '', rsCantHilerasSurcos: '',
     rsTieneInfraDerivar: null, rsInfraDerivarItems: [], rsMantenimientoItems: [],
-    rsNivelacionCuando: '', rsMetodoNivelacion: '', rsTapadaItems: [], rsControlMalezas: '',
+    rsRealizaNivelacion: null, rsNivelacionCuando: '', rsMetodoNivelacion: '', rsObsMantenimiento: '', rsTapadaItems: [], rsControlMalezas: '',
     rpFuente: null, rpSuperficie: '', rpCaudal: '', rpFrecuencia: '', rpDuracion: '', rpProblemas: '',
     rpMetodoLamina: [], rpMetodoLaminaDetalle: '',
     rpTieneCaudalimetro: null, rpControlaHorasBombeo: null, rpSistemaFiltrado: '',
@@ -102,7 +103,7 @@ function emptyData() {
     impactoAmbientalItems: [], impactoAmbientalDetalle: '',
     indicadoresMejora: '', cronogramaEtapas: '', cronograma: [emptyCronogramaItem()], tiempoTotalMeses: '',
     presupuesto: [emptyPresupuesto()], presupuestoDetallado: [emptyPresupuestoDetallado()],
-    cuentaConPresupuesto: null, aportePorcentajeProductor: '', financiamientoPorcentajeSolicitado: '',
+    cuentaConPresupuesto: null, presupuestoCarga: null, presupuestoArchivo: null, aportePorcentajeProductor: '', financiamientoPorcentajeSolicitado: '',
     tipoSeguimiento: '', cantidadVisitasSeguimiento: '', fechaEstimadaSeguimiento: '', recursosNecesariosSeguimiento: '',
     responsableSeguimiento: '', metodosControl: [], metodosControlOtro: '', periodicidad: '', criteriosExito: ''
   };

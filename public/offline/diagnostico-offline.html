@@ -114,9 +114,9 @@ function escH(s) {
 
 const FUENTES_RIEGO_DERECHO = ['Río','Arroyo','Laguna','Vertiente','Subterránea (pozo)','Mixta','Otra'];
 const DESTINOS_CULTIVO = ['Industria','Consumo','Consumo en fresco','Oleaginosa','Cereal','Forraje','Otro'];
-const RENDIMIENTO_UNIDADES = ['Kg/ha','Kg MS/ha','Materia seca/ha','Otros'];
+const RENDIMIENTO_UNIDADES = ['Kg/ha','Kg MS/ha','Otros'];
 const ACTIVIDAD_GANADERA = ['Cría','Invernada','Ciclo completo'];
-const INDICADORES_BASE = ['Eficiencia de aplicación (%)','Uniformidad de aplicación (%)','Caudal aprovechado (L/s)','Superficie tecnificada (ha)','Incremento en rendimientos','Ahorro energético','Impacto ambiental','Aumento de la superficie bajo riego (ha)','Mejora de calidad (% descarte/calibre/color)','Ahorro de agua (volumen o %)','Disminución del consumo energético de la red','Mejora del margen ($/ha)','Reducción de escurrimiento / percolación','Mejora de salinidad del suelo','Reducción de erosión','Otro'];
+const INDICADORES_BASE = ['Ahorro de agua (volumen o %)','Ahorro energético','Aumento de la superficie bajo riego (ha)','Caudal aprovechado (L/s)','Eficiencia de aplicación (%)','Impacto ambiental','Incremento en rendimientos','Mejora de calidad (% descarte/calibre/color)','Mejora de salinidad del suelo','Mejora del margen ($/ha)','Reducción de erosión','Reducción de escurrimiento / percolación','Reemplazo de energía convencional por fuentes renovables','Superficie tecnificada (ha)','Uniformidad de aplicación (%)','Otro'];
 const UNIDADES_INDICADOR = ['ha','l/s','m³/h','m³','%','kWh','kg','kg/ha','$','USD'];
 const IMPACTO_LOGRADO_OPCIONES = ['Mayor al proyectado','Igual al proyectado','Menor al proyectado'];
 const MANEJO_GANADERO = ['A campo','Confinado (feedlot/corral)'];
@@ -142,7 +142,7 @@ const LIMITANTES_ITEMS = ['Infraestructura deficiente','Falta de financiamiento'
 const TIPO_INFRA_DEFICIENTE_ITEMS = ['Canales / acequias','Compuertas / marcos','Equipo de bombeo','Sistema de filtrado','Automatización del sistema','Otro'];
 const UNIDADES_MATERIAL = ['un.','kg','l','hs','m','m²','m³','bolsa','rollo','global'];
 const TIPO_SEGUIMIENTO_OPCIONES = ['Visita a campo','Auditoría documental','Telemetría / remoto','Mixto (campo y remoto)','Otro'];
-const METODOS_CONTROL_ITEMS = ['Auditoría de avance de obras','Registro de uso de agua vs. cultivos declarados','Realizar una medición del riego actual con inversión','Otro'];
+const METODOS_CONTROL_ITEMS = ['Auditoría de avance de obras','Registro de uso de agua vs. cultivos declarados','Realizar una medición del riego actual con inversión','Medición de caudales','Medición de eficiencia de riego','Registro de consumos eléctricos','Otro'];
 const PERIODICIDAD_OPCIONES = ['Mensual','Trimestral','Por campaña','Anual','Otro'];
 const NOMENCLADOR = [{"n1":"A","label":"Captación y fuente de agua","items":[{"n2":"A01","label":"Perforación de pozo nuevo"},{"n2":"A02","label":"Readecuación / rehabilitación de pozo existente"},{"n2":"A03","label":"Equipo de bombeo de pozo"},{"n2":"A04","label":"Obra de toma superficial"},{"n2":"A05","label":"Conexión a red o sistema colectivo"},{"n2":"A06","label":"Bombeo de refuerzo / rebombeo (booster)"},{"n2":"A07","label":"Captación de fuentes no convencionales"}]},{"n1":"B","label":"Almacenamiento y regulación","items":[{"n2":"B01","label":"Reservorio / represa de tierra"},{"n2":"B02","label":"Impermeabilización de reservorios"},{"n2":"B03","label":"Cisternas y tanques de regulación"},{"n2":"B04","label":"Obras de seguridad y control del reservorio"}]},{"n1":"C","label":"Conducción y distribución intrapredial","items":[{"n2":"C01","label":"Red de conducción entubada a presión"},{"n2":"C02","label":"Entubado o impermeabilización de canales intraprediales"},{"n2":"C03","label":"Obras de arte y regulación en la red"},{"n2":"C04","label":"Vinculación entre sectores y flexibilización de la red"}]},{"n1":"D","label":"Aplicación – Riego presurizado","items":[{"n2":"D01","label":"Riego por goteo superficial"},{"n2":"D02","label":"Riego por goteo subsuperficial (SDI)"},{"n2":"D03","label":"Microaspersión / microjet"},{"n2":"D04","label":"Aspersión fija o semifija"},{"n2":"D05","label":"Cañón regador / enrollador"},{"n2":"D06","label":"Pivote central"},{"n2":"D07","label":"Avance frontal (lateral move)"},{"n2":"D08","label":"Reconversión / repotenciación de equipos existentes"},{"n2":"D09","label":"Riego de precisión variable (VRI)"}]},{"n1":"E","label":"Aplicación – Riego gravitacional tecnificado","items":[{"n2":"E01","label":"Nivelación y sistematización con control láser o GPS"},{"n2":"E02","label":"Riego por mangas multicompuerta"},{"n2":"E03","label":"Riego intermitente (surge flow)"},{"n2":"E04","label":"Recirculación de agua de cola"},{"n2":"E05","label":"Automatización del riego por superficie"}]},{"n1":"F","label":"Energía y eficiencia energética","items":[{"n2":"F01","label":"Bombeo solar fotovoltaico"},{"n2":"F02","label":"Generación fotovoltaica conectada a red (on-grid)"},{"n2":"F03","label":"Almacenamiento de energía"},{"n2":"F04","label":"Sustitución o repotenciación de fuente energética"},{"n2":"F05","label":"Eficiencia eléctrica del equipo de bombeo"},{"n2":"F06","label":"Infraestructura de conexión eléctrica"},{"n2":"F07","label":"Optimización hidráulica para ahorro energético"},{"n2":"F08","label":"Otras fuentes renovables e híbridas"}]},{"n1":"G","label":"Cabezal, filtrado, fertirriego y calidad de agua","items":[{"n2":"G01","label":"Cabezal de filtrado"},{"n2":"G02","label":"Equipamiento de fertirriego"},{"n2":"G03","label":"Tratamiento y acondicionamiento de agua de riego"},{"n2":"G04","label":"Válvulas, hidrantes y accesorios de comando"},{"n2":"G05","label":"Sala de cabezal e instalaciones asociadas"}]},{"n1":"H","label":"Automatización, monitoreo y agricultura digital","items":[{"n2":"H01","label":"Sensores de humedad y estado hídrico"},{"n2":"H02","label":"Estaciones meteorológicas y cálculo de ETc"},{"n2":"H03","label":"Telemetría, control remoto y automatización"},{"n2":"H04","label":"Medición volumétrica y macromedición"},{"n2":"H05","label":"Software y plataformas de gestión de riego"},{"n2":"H06","label":"Sensoramiento remoto y relevamientos aéreos"},{"n2":"H07","label":"Mapeo de suelos y zonas de manejo"}]},{"n1":"I","label":"Suelos, drenaje y salinidad","items":[{"n2":"I01","label":"Sistematización y acondicionamiento del terreno"},{"n2":"I02","label":"Drenaje superficial"},{"n2":"I03","label":"Drenaje subsuperficial"},{"n2":"I04","label":"Recuperación de suelos salinos y sódicos"},{"n2":"I05","label":"Protección del sistema y control de viento"}]},{"n1":"J","label":"Gestión del recurso hídrico y sistemas colectivos","items":[{"n2":"J01","label":"Modernización de redes de sistemas colectivos"},{"n2":"J02","label":"Medición y telemetría a nivel de red o consorcio"},{"n2":"J03","label":"Sistemas de gestión de turnos y distribución"},{"n2":"J04","label":"Monitoreo de acuíferos y aguas superficiales"},{"n2":"J05","label":"Recarga gestionada de acuíferos (MAR)"},{"n2":"J06","label":"Balance hídrico y planificación zonal"},{"n2":"J07","label":"Reúso de agua y economía circular del recurso"},{"n2":"J08","label":"Fortalecimiento institucional de organizaciones de regantes"}]},{"n1":"K","label":"Reconversión productiva asociada a la puesta bajo riego","items":[{"n2":"K01","label":"Implantación o reconversión de cultivos bajo riego"},{"n2":"K02","label":"Estructuras de sostén y protección de cultivo"},{"n2":"K03","label":"Cultivo protegido con riego tecnificado"},{"n2":"K04","label":"Intensificación forrajera bajo riego"},{"n2":"K05","label":"Capital de trabajo asociado a la puesta en riego"}]},{"n1":"L","label":"Estudios, proyectos y servicios técnicos","items":[{"n2":"L01","label":"Estudios hidrogeológicos y prospección"},{"n2":"L02","label":"Análisis de agua y suelo"},{"n2":"L03","label":"Proyecto ejecutivo y dirección de obra"},{"n2":"L04","label":"Evaluación y auditoría de sistemas en operación"},{"n2":"L05","label":"Capacitación y puesta en marcha"},{"n2":"L06","label":"Regularización de derechos de uso del agua y permisos"},{"n2":"L07","label":"Gestión ambiental y certificaciones"}]},{"n1":"M","label":"Infraestructura y equipamiento complementario","items":[{"n2":"M01","label":"Instalación, montaje y puesta en marcha"},{"n2":"M02","label":"Fletes, seguros y gastos de importación"},{"n2":"M03","label":"Caminos internos y accesos"},{"n2":"M04","label":"Depósito, taller y guarda de equipamiento"},{"n2":"M05","label":"Seguridad de las instalaciones"},{"n2":"M06","label":"Maquinaria y equipamiento de apoyo"}]}];
 
@@ -153,21 +153,21 @@ function emptyPresupuesto(){ return {inversion:'',codN1:'',codN2:'',tipo:'',mont
 function emptyMaterial(){ return {item:'',cantidad:'',unidad:'',obs:''}; }
 function emptyIndicadores(){
   return [
-    { indicador:'Eficiencia de aplicación (%)', unidad:'%', actual:'', proyectada:'', obs:'' },
-    { indicador:'Uniformidad de aplicación (%)', unidad:'%', actual:'', proyectada:'', obs:'' },
-    { indicador:'Caudal aprovechado (L/s)', unidad:'l/s', actual:'', proyectada:'', obs:'' },
-    { indicador:'Superficie tecnificada (ha)', unidad:'ha', actual:'', proyectada:'', obs:'' },
-    { indicador:'Incremento en rendimientos', unidad:'', actual:'', proyectada:'', obs:'' },
-    { indicador:'Ahorro energético', unidad:'', actual:'', proyectada:'', obs:'' },
-    { indicador:'Impacto ambiental', unidad:'', actual:'', proyectada:'', obs:'' },
-    { indicador:'Aumento de la superficie bajo riego (ha)', unidad:'ha', actual:'', proyectada:'', obs:'' },
-    { indicador:'Mejora de calidad (% descarte/calibre/color)', unidad:'%', actual:'', proyectada:'', obs:'' },
     { indicador:'Ahorro de agua (volumen o %)', unidad:'', actual:'', proyectada:'', obs:'' },
-    { indicador:'Disminución del consumo energético de la red', unidad:'', actual:'', proyectada:'', obs:'' },
-    { indicador:'Mejora del margen ($/ha)', unidad:'$', actual:'', proyectada:'', obs:'' },
-    { indicador:'Reducción de escurrimiento / percolación', unidad:'', actual:'', proyectada:'', obs:'' },
+    { indicador:'Ahorro energético', unidad:'', actual:'', proyectada:'', obs:'' },
+    { indicador:'Aumento de la superficie bajo riego (ha)', unidad:'ha', actual:'', proyectada:'', obs:'' },
+    { indicador:'Caudal aprovechado (L/s)', unidad:'l/s', actual:'', proyectada:'', obs:'' },
+    { indicador:'Eficiencia de aplicación (%)', unidad:'%', actual:'', proyectada:'', obs:'' },
+    { indicador:'Impacto ambiental', unidad:'', actual:'', proyectada:'', obs:'' },
+    { indicador:'Incremento en rendimientos', unidad:'', actual:'', proyectada:'', obs:'' },
+    { indicador:'Mejora de calidad (% descarte/calibre/color)', unidad:'%', actual:'', proyectada:'', obs:'' },
     { indicador:'Mejora de salinidad del suelo', unidad:'', actual:'', proyectada:'', obs:'' },
+    { indicador:'Mejora del margen ($/ha)', unidad:'$', actual:'', proyectada:'', obs:'' },
     { indicador:'Reducción de erosión', unidad:'', actual:'', proyectada:'', obs:'' },
+    { indicador:'Reducción de escurrimiento / percolación', unidad:'', actual:'', proyectada:'', obs:'' },
+    { indicador:'Reemplazo de energía convencional por fuentes renovables', unidad:'', actual:'', proyectada:'', obs:'' },
+    { indicador:'Superficie tecnificada (ha)', unidad:'ha', actual:'', proyectada:'', obs:'' },
+    { indicador:'Uniformidad de aplicación (%)', unidad:'%', actual:'', proyectada:'', obs:'' },
     { indicador:'Otro', unidad:'', actual:'', proyectada:'', obs:'' }
   ];
 }
@@ -193,7 +193,7 @@ function emptyData(){
     rsMetodoDecision:'',rsRiegaTodaPropiedad:null,rsPctSuperficiePorTurno:'',
     rsMetodoLamina:[],rsMetodoLaminaDetalle:'',rsFormaRegar:'',rsCantHilerasSurcos:'',
     rsTieneInfraDerivar:null,rsInfraDerivarItems:[],rsMantenimientoItems:[],
-    rsNivelacionCuando:'',rsMetodoNivelacion:'',rsTapadaItems:[],rsControlMalezas:'',
+    rsRealizaNivelacion:null,rsNivelacionCuando:'',rsMetodoNivelacion:'',rsObsMantenimiento:'',rsTapadaItems:[],rsControlMalezas:'',
     rpFuente:null,rpSuperficie:'',rpCaudal:'',rpFrecuencia:'',rpDuracion:'',rpProblemas:'',
     rpMetodoLamina:[],rpMetodoLaminaDetalle:'',
     rpTieneCaudalimetro:null,rpControlaHorasBombeo:null,rpSistemaFiltrado:'',
@@ -212,7 +212,7 @@ function emptyData(){
     impactoAmbientalItems:[],impactoAmbientalDetalle:'',
     indicadoresMejora:'',cronogramaEtapas:'',cronograma:[emptyCronogramaItem()],tiempoTotalMeses:'',
     presupuesto:[emptyPresupuesto()],presupuestoDetallado:[emptyPresupuestoDetallado()],
-    cuentaConPresupuesto:null,aportePorcentajeProductor:'',financiamientoPorcentajeSolicitado:'',
+    cuentaConPresupuesto:null,presupuestoCarga:null,presupuestoArchivo:null,aportePorcentajeProductor:'',financiamientoPorcentajeSolicitado:'',
     tipoSeguimiento:'',cantidadVisitasSeguimiento:'',fechaEstimadaSeguimiento:'',recursosNecesariosSeguimiento:'',
     responsableSeguimiento:'',metodosControl:[],metodosControlOtro:'',periodicidad:'',criteriosExito:''
   };
@@ -420,6 +420,22 @@ async function onSueloDocSelected(input){
   render();
 }
 function removeSueloDoc(){ state.data.analisisSueloArchivo = null; scheduleSave(); render(); }
+async function onPresupuestoDocSelected(input){
+  const file = input.files && input.files[0];
+  if (!file) return;
+  showToast('Procesando archivo…');
+  try {
+    const dataUrl = file.type === 'application/pdf' ? await fileToDataUrl(file) : await fileToCompressedDataUrl(file, 1600, 0.75);
+    state.data.presupuestoArchivo = { dataUrl, originalName: file.name, mimetype: file.type || 'application/octet-stream' };
+    scheduleSave();
+    showToast('Archivo cargado');
+  } catch(e) {
+    showToast('No se pudo procesar el archivo: ' + (e.message||e), true);
+  }
+  input.value = '';
+  render();
+}
+function removePresupuestoDoc(){ state.data.presupuestoArchivo = null; scheduleSave(); render(); }
 function getGeo(){
   return new Promise((resolve) => {
     if (!navigator.geolocation) return resolve({ str:'Sin geolocalización (no soportada)', lat:null, lng:null });
@@ -847,10 +863,13 @@ function renderTab(){
 
       <div class="subsection-title">Mantenimiento y nivelación</div>
       <div class="field-group"><label>Tareas de mantenimiento realizadas</label>${chipMultiList(MANT_SUPERFICIAL_ITEMS,'rsMantenimientoItems',dd)}</div>
-      <div class="row2">
+      <div class="field-group"><label>¿Se realizó nivelación del cuartel?</label>
+        <div class="chip-group">${chip(dd.rsRealizaNivelacion,'Sí','Sí','rsRealizaNivelacion')}${chip(dd.rsRealizaNivelacion,'No','No','rsRealizaNivelacion')}</div></div>
+      ${dd.rsRealizaNivelacion==='Sí'?`<div class="row2">
         <div class="field-group"><label>Nivelación del cuartel: ¿cuándo se hizo?</label>${selectHTML(NIVELACION_CUARTEL_OPCIONES,'rsNivelacionCuando',dd)}</div>
         <div class="field-group"><label>Metodología de nivelación</label>${selectHTML(METODO_NIVELACION_OPCIONES,'rsMetodoNivelacion',dd)}</div>
-      </div>
+      </div>`:''}
+      <div class="field-group"><label>Observaciones y limitantes</label><textarea oninput="setField('rsObsMantenimiento',this.value)">${escH(dd.rsObsMantenimiento||'')}</textarea></div>
       `:''}
 
       ${showPresurizado?`
@@ -897,7 +916,7 @@ function renderTab(){
       <div class="subsection-title">Infraestructura y manejo</div>
       <div class="field-group"><label>Represa</label><div class="chip-group">${chip(dd.represa,'Posee','Posee','represa')}${chip(dd.represa,'No posee','No posee','represa')}</div></div>
       ${dd.represa==='Posee'?`<div class="field-group"><label>Volumen (m³)</label><input type="text" value="${escH(dd.volumenRepresa)}" oninput="setField('volumenRepresa',this.value)"></div>`:''}
-      <div class="field-group"><label>Medición de caudales</label><div class="chip-group">${chip(dd.medicionCaudales,'Realiza','Realiza','medicionCaudales')}${chip(dd.medicionCaudales,'No realiza','No realiza','medicionCaudales')}</div></div>
+      <div class="field-group"><label>Medición de caudales <span class="hint" style="font-weight:400">(se refiere a caudales de pozo o turno)</span></label><div class="chip-group">${chip(dd.medicionCaudales,'Realiza','Realiza','medicionCaudales')}${chip(dd.medicionCaudales,'No realiza','No realiza','medicionCaudales')}</div></div>
       ${dd.medicionCaudales==='Realiza'?`<div class="field-group"><label>Método</label><input type="text" value="${escH(dd.metodoMedicion)}" placeholder="Ej: caudalímetro" oninput="setField('metodoMedicion',this.value)"></div>`:''}
       <div class="field-group"><label>Asistencia técnica agronómica</label><div class="chip-group">${chip(dd.asistenciaTecnica,'Posee','Posee','asistenciaTecnica')}${chip(dd.asistenciaTecnica,'No posee','No posee','asistenciaTecnica')}</div></div>
       <div class="field-group"><label>Personal dedicado a tareas de riego</label>
@@ -947,27 +966,9 @@ function renderTab(){
       <div class="hint" style="margin-top:6px">Total inversiones propuestas: ${fmtARS(dd.presupuesto.reduce((s,p)=>s+(Number(p.montoUSD)||0),0))}.</div>
     </div>${navRow()}`;
 
-  if (t==='impacto') { const totalDet = dd.presupuestoDetallado.reduce((s,p)=>s+((Number(p.cantidad)||0)*(Number(p.precioUnitario)||0)),0); return `
+  if (t==='impacto') { const totalDet = dd.presupuestoDetallado.reduce((s,p)=>s+((Number(p.cantidad)||0)*(Number(p.precioUnitario)||0)),0); const presArchivo = dd.presupuestoArchivo; return `
     <div class="section-card">
-      <div class="section-title">Materiales e insumos requeridos</div>
-      <div class="table-scroll"><table class="dyn-table">
-        <thead><tr><th>Ítem / insumo</th><th>Cantidad</th><th>Unidad</th><th>Observaciones</th><th></th></tr></thead>
-        <tbody>${dd.materiales.map((m,i)=>`<tr>
-          <td><input type="text" value="${escH(m.item)}" onchange="setMaterial(${i},'item',this.value)"></td>
-          <td><input type="number" value="${escH(m.cantidad)}" style="width:70px" onchange="setMaterial(${i},'cantidad',this.value)"></td>
-          <td><select onchange="setMaterial(${i},'unidad',this.value)" style="min-width:80px">
-            <option value="">—</option>
-            ${UNIDADES_MATERIAL.map(u=>`<option value="${escH(u)}" ${m.unidad===u?'selected':''}>${u}</option>`).join('')}
-          </select></td>
-          <td><input type="text" value="${escH(m.obs)}" onchange="setMaterial(${i},'obs',this.value)"></td>
-          <td class="row-remove">${dd.materiales.length>1?`<button onclick="removeMaterial(${i})">×</button>`:''}</td>
-        </tr>`).join('')}</tbody>
-      </table></div>
-      <button class="add-row-btn" onclick="addMaterial()">+ Agregar ítem</button>
-    </div>
-
-    <div class="section-card">
-      <div class="section-title">Indicadores de mejora en riego <span class="req">*</span></div>
+      <div class="section-title">Indicadores de mejora <span class="req">*</span></div>
       <div class="hint" style="margin-bottom:6px">Completá al menos un indicador (situación actual y/o proyectada). En "Otro", aclará cuál en Observaciones.</div>
       <div class="table-scroll"><table class="dyn-table">
         <thead><tr><th>Indicador</th><th>Unidad</th><th>Situación actual</th><th>Situación proyectada</th><th>Observaciones</th></tr></thead>
@@ -994,6 +995,24 @@ function renderTab(){
     </div>
 
     <div class="section-card">
+      <div class="section-title">Materiales e insumos requeridos</div>
+      <div class="table-scroll"><table class="dyn-table">
+        <thead><tr><th>Ítem / insumo</th><th>Cantidad</th><th>Unidad</th><th>Observaciones</th><th></th></tr></thead>
+        <tbody>${dd.materiales.map((m,i)=>`<tr>
+          <td><input type="text" value="${escH(m.item)}" onchange="setMaterial(${i},'item',this.value)"></td>
+          <td><input type="number" value="${escH(m.cantidad)}" style="width:70px" onchange="setMaterial(${i},'cantidad',this.value)"></td>
+          <td><select onchange="setMaterial(${i},'unidad',this.value)" style="min-width:80px">
+            <option value="">—</option>
+            ${UNIDADES_MATERIAL.map(u=>`<option value="${escH(u)}" ${m.unidad===u?'selected':''}>${u}</option>`).join('')}
+          </select></td>
+          <td><input type="text" value="${escH(m.obs)}" onchange="setMaterial(${i},'obs',this.value)"></td>
+          <td class="row-remove">${dd.materiales.length>1?`<button onclick="removeMaterial(${i})">×</button>`:''}</td>
+        </tr>`).join('')}</tbody>
+      </table></div>
+      <button class="add-row-btn" onclick="addMaterial()">+ Agregar ítem</button>
+    </div>
+
+    <div class="section-card">
       <div class="section-title">Cronograma de implementación</div>
       <div class="table-scroll"><table class="dyn-table">
         <thead><tr><th>Etapa</th><th>Mes desde</th><th>Mes hasta</th><th></th></tr></thead>
@@ -1010,6 +1029,19 @@ function renderTab(){
         <div class="chip-group">${chip(dd.cuentaConPresupuesto,'Sí','Sí','cuentaConPresupuesto')}${chip(dd.cuentaConPresupuesto,'No','No','cuentaConPresupuesto')}</div></div>
       ${dd.cuentaConPresupuesto==='Sí'?`
       <div class="subsection-title">Presupuesto estimado</div>
+      <div class="field-group"><label>¿Cómo cargás el presupuesto?</label>
+        <div class="chip-group">${chip(dd.presupuestoCarga,'Adjuntar archivo','Archivo','presupuestoCarga')}${chip(dd.presupuestoCarga,'Cargar ítem por ítem','Item por item','presupuestoCarga')}</div></div>
+      ${dd.presupuestoCarga==='Archivo'?`
+      <div class="field-group"><label>Archivo de presupuesto</label>
+        ${presArchivo?`
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <a href="${presArchivo.dataUrl}" target="_blank" rel="noopener">${presArchivo.originalName||'Ver archivo'}</a>
+          <button class="add-row-btn" onclick="removePresupuestoDoc()" type="button" style="margin:0">Quitar</button>
+        </div>` : `
+        <input type="file" accept="image/*,.pdf" onchange="onPresupuestoDocSelected(this)">
+        <div class="hint">Subí el PDF o la foto/imagen del presupuesto. No es necesario cargar los ítems abajo si adjuntás el archivo.</div>`}
+      </div>` : ''}
+      ${dd.presupuestoCarga!=='Archivo'?`
       <div class="table-scroll"><table class="dyn-table">
         <thead><tr><th>Ítem</th><th>Cantidad</th><th>Unidad</th><th>Precio unit. ($)</th><th>Subtotal ($)</th><th></th></tr></thead>
         <tbody>${dd.presupuestoDetallado.map((p,i)=>`<tr>
@@ -1023,6 +1055,7 @@ function renderTab(){
       </table></div>
       <button class="add-row-btn" onclick="addPresupuestoDet()">+ Agregar ítem</button>
       <div class="hint" style="margin-top:6px">TOTAL SOLICITUD PROGRAMA DE MEJORA: <b>${fmtARS(totalDet)}</b></div>
+      `:''}
       <div class="row2" style="margin-top:8px">
         <div class="field-group"><label>% de aporte del productor</label><input type="number" value="${escH(dd.aportePorcentajeProductor||'')}" oninput="setField('aportePorcentajeProductor',this.value)"></div>
         <div class="field-group"><label>% de financiamiento solicitado</label><input type="number" value="${escH(dd.financiamientoPorcentajeSolicitado||'')}" oninput="setField('financiamientoPorcentajeSolicitado',this.value)"></div>

@@ -240,8 +240,10 @@ function generarDiagnosticoPDF({ data, docStatus, signatures }) {
         s.kv('¿Infraestructura para derivar el agua?', d.rsTieneInfraDerivar);
         s.kvList('Infraestructura utilizada', d.rsInfraDerivarItems);
         s.kvList('Tareas de mantenimiento', d.rsMantenimientoItems);
+        s.kv('¿Se realizó nivelación del cuartel?', d.rsRealizaNivelacion);
         s.kv('Nivelación: ¿cuándo se hizo?', d.rsNivelacionCuando);
         s.kv('Metodología de nivelación', d.rsMetodoNivelacion);
+        s.kv('Observaciones y limitantes', d.rsObsMantenimiento);
       }
       if (presurizado) {
         s.sub('Riego presurizado (goteo/aspersión)');
@@ -269,7 +271,7 @@ function generarDiagnosticoPDF({ data, docStatus, signatures }) {
         s.sub('Infraestructura y manejo');
         s.kv('Represa', d.represa);
         s.kv('Volumen represa', d.volumenRepresa, 'm³');
-        s.kv('Medición de caudales', d.medicionCaudales);
+        s.kv('Medición de caudales (pozo o turno)', d.medicionCaudales);
         s.kv('Método de medición', d.metodoMedicion);
         s.kv('Asistencia técnica agronómica', d.asistenciaTecnica);
         s.kvList('Personal de riego', d.personalRiego);
@@ -292,11 +294,6 @@ function generarDiagnosticoPDF({ data, docStatus, signatures }) {
       if (invRows.length) s.kv('Total de mejoras propuestas', money(arr(d.presupuesto).reduce((acc, p) => acc + (Number(p.montoUSD) || 0), 0)));
     });
 
-    section('Materiales e insumos', (s) => {
-      const mats = arr(d.materiales).filter((m) => has(m.item)).map((m) => [m.item, m.cantidad, m.unidad, m.obs]);
-      s.rows(['Ítem / insumo', 'Cantidad', 'Unidad', 'Observaciones'], mats);
-    });
-
     section('Indicadores e impacto esperado', (s) => {
       const inds = arr(d.indicadores).filter((i) => has(i.actual) || has(i.proyectada) || has(i.obs)).map((i) => [i.indicador, i.unidad, i.actual, i.proyectada, i.obs]);
       s.rows(['Indicador', 'Unidad', 'Situación actual', 'Situación proyectada', 'Observaciones'], inds);
@@ -305,12 +302,19 @@ function generarDiagnosticoPDF({ data, docStatus, signatures }) {
       s.kv('Detalle ambiental', d.impactoAmbientalDetalle);
     });
 
+    section('Materiales e insumos', (s) => {
+      const mats = arr(d.materiales).filter((m) => has(m.item)).map((m) => [m.item, m.cantidad, m.unidad, m.obs]);
+      s.rows(['Ítem / insumo', 'Cantidad', 'Unidad', 'Observaciones'], mats);
+    });
+
     section('Cronograma y presupuesto', (s) => {
       const cronoRows = Array.isArray(d.cronograma)
         ? d.cronograma.filter((v) => has(v.etapa) && (has(v.desde) || has(v.hasta))).map((v) => [v.etapa, v.desde, v.hasta])
         : Object.keys(d.cronogramaGrid || {}).filter((k) => has(d.cronogramaGrid[k].desde) || has(d.cronogramaGrid[k].hasta)).map((k) => [k, d.cronogramaGrid[k].desde, d.cronogramaGrid[k].hasta]);
       s.rows(['Etapa', 'Mes desde', 'Mes hasta'], cronoRows);
       s.kv('¿Cuenta con presupuesto?', d.cuentaConPresupuesto);
+      s.kv('Forma de carga', d.presupuestoCarga);
+      s.kv('Archivo de presupuesto', d.presupuestoArchivo && d.presupuestoArchivo.originalName);
       const detRows = arr(d.presupuestoDetallado).filter((p) => has(p.item)).map((p) => [p.item, p.cantidad, p.unidad, has(p.precioUnitario) ? money(p.precioUnitario) : '', money((Number(p.cantidad) || 0) * (Number(p.precioUnitario) || 0))]);
       s.rows(['Ítem', 'Cantidad', 'Unidad', 'Precio unitario', 'Subtotal'], detRows);
       if (detRows.length) {
