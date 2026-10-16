@@ -240,7 +240,7 @@ function generarDiagnosticoPDF({ data, docStatus, signatures }) {
         s.kv('¿Infraestructura para derivar el agua?', d.rsTieneInfraDerivar);
         s.kvList('Infraestructura utilizada', d.rsInfraDerivarItems);
         s.kvList('Tareas de mantenimiento', d.rsMantenimientoItems);
-        s.kv('¿Se realizó nivelación del cuartel?', d.rsRealizaNivelacion);
+        s.kv('¿Se realizó mantenimiento y nivelación?', d.rsRealizaNivelacion);
         s.kv('Nivelación: ¿cuándo se hizo?', d.rsNivelacionCuando);
         s.kv('Metodología de nivelación', d.rsMetodoNivelacion);
         s.kv('Observaciones y limitantes', d.rsObsMantenimiento);

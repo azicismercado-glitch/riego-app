@@ -1025,10 +1025,11 @@ function renderTabContent(dg) {
       ${d.rsTieneInfraDerivar==='Sí'?`<div class="field-group"><label>Infraestructura utilizada</label>${chipMulti(INFRA_DERIVAR_AGUA_ITEMS,'rsInfraDerivarItems',d)}</div>`:''}
 
       <div class="subsection-title">Mantenimiento y nivelación</div>
-      <div class="field-group"><label>Tareas de mantenimiento realizadas</label>${chipMulti(MANT_SUPERFICIAL_ITEMS,'rsMantenimientoItems',d)}</div>
-      <div class="field-group"><label>¿Se realizó nivelación del cuartel?</label>
+      <div class="field-group"><label>¿Se realizó mantenimiento y nivelación?</label>
         <div class="chip-group">${chip(d.rsRealizaNivelacion,'Sí','Sí','rsRealizaNivelacion')}${chip(d.rsRealizaNivelacion,'No','No','rsRealizaNivelacion')}</div></div>
-      ${d.rsRealizaNivelacion==='Sí'?`<div class="row2">
+      ${d.rsRealizaNivelacion==='Sí'?`
+      <div class="field-group"><label>Tareas de mantenimiento realizadas</label>${chipMulti(MANT_SUPERFICIAL_ITEMS,'rsMantenimientoItems',d)}</div>
+      <div class="row2">
         <div class="field-group"><label>Nivelación del cuartel: ¿cuándo se hizo?</label>${selectHTML(NIVELACION_CUARTEL_OPCIONES,'rsNivelacionCuando',d)}</div>
         <div class="field-group"><label>Metodología de nivelación</label>${selectHTML(METODO_NIVELACION_OPCIONES,'rsMetodoNivelacion',d)}</div>
       </div>`:''}
@@ -1378,7 +1379,7 @@ function printDiag() {
   const riegoSup = superficial ? sub('Riego superficial (surcos/melgas)', `<p>${kv('Fuente de agua', d.rsFuente)}${kv('Superficie regada', d.rsSuperficie, 'ha')}${kv('Caudal medio (ingreso a la finca)', d.rsCaudal, 'l/s')}${kv('Frecuencia de turnado', d.rsFrecTurnado, 'días')}${kv('Duración de turnado', d.rsDuracionTurnado, 'hs')}${kv('Turnos por temporada', d.rsCantTurnos)}
     ${kv('Método para decidir cuándo regar', d.rsMetodoDecision)}${kv('¿Riega toda la propiedad en cada turno?', d.rsRiegaTodaPropiedad)}${kv('% de superficie por turno', d.rsPctSuperficiePorTurno)}${kvList('Método para determinar la lámina', d.rsMetodoLamina)}${kv('Detalle método de lámina', d.rsMetodoLaminaDetalle)}
     ${kv('Sistema de riego superficial', d.rsFormaRegar)}${kv('Hileras o surcos por tapada', d.rsCantHilerasSurcos)}${kv('¿Infraestructura para derivar el agua?', d.rsTieneInfraDerivar)}${kvList('Infraestructura utilizada', d.rsInfraDerivarItems)}
-    ${kvList('Tareas de mantenimiento', d.rsMantenimientoItems)}${kv('¿Se realizó nivelación del cuartel?', d.rsRealizaNivelacion)}${kv('Nivelación: ¿cuándo se hizo?', d.rsNivelacionCuando)}${kv('Metodología de nivelación', d.rsMetodoNivelacion)}${kv('Observaciones y limitantes', d.rsObsMantenimiento)}</p>`) : '';
+    ${kvList('Tareas de mantenimiento', d.rsMantenimientoItems)}${kv('¿Se realizó mantenimiento y nivelación?', d.rsRealizaNivelacion)}${kv('Nivelación: ¿cuándo se hizo?', d.rsNivelacionCuando)}${kv('Metodología de nivelación', d.rsMetodoNivelacion)}${kv('Observaciones y limitantes', d.rsObsMantenimiento)}</p>`) : '';
   const riegoPres = presurizado ? sub('Riego presurizado (goteo/aspersión)', `<p>${kv('Fuente de agua', d.rpFuente)}${kv('Superficie regada', d.rpSuperficie, 'ha')}${kv('Pluviometría', d.rpCaudal, 'mm/h')}${kv('Frecuencia por operación', d.rpFrecuencia, 'días')}${kv('Duración por operación', d.rpDuracion, 'hs')}
     ${kvList('Método para determinar la lámina', d.rpMetodoLamina)}${kv('Detalle método de lámina', d.rpMetodoLaminaDetalle)}${kv('¿Caudalímetro en el equipo?', d.rpTieneCaudalimetro)}${kv('¿Controla horas de bombeo?', d.rpControlaHorasBombeo)}${kv('Sistema de filtrado', d.rpSistemaFiltrado)}
     ${kv('Frecuencia de limpieza del sistema de filtrado', d.rpFrecLimpiezaPrimario)}${kv('Parámetro de limpieza', d.rpParametroLimpieza)}${kv('¿Manómetros?', d.rpTieneManometros)}${kvList('Puntos de medición de presión', d.rpPuntosMedicion)}

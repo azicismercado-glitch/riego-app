@@ -862,10 +862,11 @@ function renderTab(){
       ${dd.rsTieneInfraDerivar==='Sí'?`<div class="field-group"><label>Infraestructura utilizada</label>${chipMultiList(INFRA_DERIVAR_AGUA_ITEMS,'rsInfraDerivarItems',dd)}</div>`:''}
 
       <div class="subsection-title">Mantenimiento y nivelación</div>
-      <div class="field-group"><label>Tareas de mantenimiento realizadas</label>${chipMultiList(MANT_SUPERFICIAL_ITEMS,'rsMantenimientoItems',dd)}</div>
-      <div class="field-group"><label>¿Se realizó nivelación del cuartel?</label>
+      <div class="field-group"><label>¿Se realizó mantenimiento y nivelación?</label>
         <div class="chip-group">${chip(dd.rsRealizaNivelacion,'Sí','Sí','rsRealizaNivelacion')}${chip(dd.rsRealizaNivelacion,'No','No','rsRealizaNivelacion')}</div></div>
-      ${dd.rsRealizaNivelacion==='Sí'?`<div class="row2">
+      ${dd.rsRealizaNivelacion==='Sí'?`
+      <div class="field-group"><label>Tareas de mantenimiento realizadas</label>${chipMultiList(MANT_SUPERFICIAL_ITEMS,'rsMantenimientoItems',dd)}</div>
+      <div class="row2">
         <div class="field-group"><label>Nivelación del cuartel: ¿cuándo se hizo?</label>${selectHTML(NIVELACION_CUARTEL_OPCIONES,'rsNivelacionCuando',dd)}</div>
         <div class="field-group"><label>Metodología de nivelación</label>${selectHTML(METODO_NIVELACION_OPCIONES,'rsMetodoNivelacion',dd)}</div>
       </div>`:''}
