@@ -1371,7 +1371,7 @@ function printDiag() {
   const cultivos = table(['Cultivo', 'Variedad', 'Destino', 'Año de plantación', 'Marco/densidad', 'Sup. (ha)', 'Rendimiento'], cultivosRows)
     + `<p>${kv('Aclaraciones sobre superficie/disponibilidad', d.aclaracionSuperficieCultivo)}${kv('Observaciones', d.obsCultivos)}${kv('Tipo de producción', d.tipoProduccion)}${d.tipoProduccion === 'Ganadería' ? kv('Animales', d.ganaderiaAnimalTipo) + kv('Cabezas', d.ganaderiaCabezas) + kv('Manejo', d.ganaderiaManejo) + kvList('Actividad (manejo)', arr(d.ganaderiaActividad).map((a) => a + ((d.ganaderiaActividadManejo || {})[a] ? ' — ' + d.ganaderiaActividadManejo[a] : ''))) + kvList('Categorías', d.ganaderiaCategorias) : ''}</p>`;
 
-  const suelo = `<p>${kv('Análisis de suelo', d.analisisSuelo)}${d.analisisSuelo==='Posee'?`${kv('Año del último análisis', d.anioAnalisisSuelo)}${kv('Archivo del análisis', d.analisisSueloArchivo)}${kv('Aclaración', d.analisisSueloAclaracion)}${kv('Materia orgánica', d.materiaOrganicaPct, '%')}${kv('Fósforo (Pe)', d.fosforoPpm, 'ppm')}${kv('pH', d.phSuelo)}${kv('Conductividad eléctrica', d.conductividadElectrica, 'dS/m')}`:''}${kv('Textura', d.textura)}
+  const suelo = `<p>${kv('Análisis de suelo', d.analisisSuelo)}${d.analisisSuelo==='Posee'?`${kv('Año del último análisis', d.anioAnalisisSuelo)}${kv('Archivo del análisis', d.analisisSueloArchivo && d.analisisSueloArchivo.originalName)}${kv('Aclaración', d.analisisSueloAclaracion)}${kv('Materia orgánica', d.materiaOrganicaPct, '%')}${kv('Fósforo (Pe)', d.fosforoPpm, 'ppm')}${kv('pH', d.phSuelo)}${kv('Conductividad eléctrica', d.conductividadElectrica, 'dS/m')}`:''}${kv('Textura', d.textura)}
     ${kv('Profundidad', d.profundidadLimitante)}${kv('Profundidad efectiva', d.profundidadEfectivaCm, 'cm')}${kv('¿Hay piedras?', d.hayPiedras)}${kv('% de piedra', d.porcentajePiedra)}${kv('Nivel de salinidad', d.nivelSalinidadSuelo)}
     ${kv('Observaciones del suelo', d.problemasSuelo)}${kv('Descripción del perfil', d.descripcionPerfilSuelo)}${kv('Otras observaciones', d.obsSuelo)}${kv('Técnico sugiere análisis previo a la inversión', d.requiereAnalisisPrevio)}${kvList('Análisis sugeridos', d.requiereAnalisisPrevioQue)}${kv('Salinidad (tipo)', d.salinidadTipo)}</p>`;
 
@@ -1407,7 +1407,7 @@ function printDiag() {
   const detRows = arr(d.presupuestoDetallado).filter((p) => has(p.item)).map((p) => [p.item, p.cantidad, p.unidad, has(p.precioUnitario) ? money(p.precioUnitario) : '', money((Number(p.cantidad) || 0) * (Number(p.precioUnitario) || 0))]);
   const totalDet = arr(d.presupuestoDetallado).reduce((s, p) => s + (Number(p.cantidad) || 0) * (Number(p.precioUnitario) || 0), 0);
   const cronoPres = table(['Etapa', 'Mes desde', 'Mes hasta'], cronoRows)
-    + `<p>${kv('¿Cuenta con presupuesto?', d.cuentaConPresupuesto)}${kv('Forma de carga', d.presupuestoCarga)}${kv('Archivo de presupuesto', d.presupuestoArchivo)}</p>`
+    + `<p>${kv('¿Cuenta con presupuesto?', d.cuentaConPresupuesto)}${kv('Forma de carga', d.presupuestoCarga)}${kv('Archivo de presupuesto', d.presupuestoArchivo && d.presupuestoArchivo.originalName)}</p>`
     + table(['Ítem', 'Cantidad', 'Unidad', 'Precio unitario', 'Subtotal'], detRows)
     + (detRows.length ? `<p><b>Total solicitud programa de mejora:</b> ${money(totalDet)}</p>` : '')
     + `<p>${kv('% de aporte del productor', d.aportePorcentajeProductor)}${kv('% de financiamiento solicitado', d.financiamientoPorcentajeSolicitado)}</p>`;
