@@ -33,7 +33,11 @@ app.use('/api/consultas', consultasRoutes);
 app.use('/api/diagnosticos', documentoSueloRoutes);
 app.use('/api/diagnosticos', documentoPresupuestoRoutes);
 
-app.use(express.static(path.join(__dirname, '..', 'public')));
+// no-cache: el navegador revalida en cada carga (304 si no cambió), así los
+// cambios de app.js/offline se ven sin tener que forzar la recarga.
+app.use(express.static(path.join(__dirname, '..', 'public'), {
+  setHeaders: (res) => res.setHeader('Cache-Control', 'no-cache')
+}));
 
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {

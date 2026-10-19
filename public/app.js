@@ -788,6 +788,16 @@ async function removePresupuestoDoc() {
   render();
 }
 
+// Saca el indicador discontinuado si está vacío, agrega los que falten y
+// ordena según INDICADORES_BASE (alfabético, "Otro" al final).
+function normalizarIndicadores(d) {
+  const vacio = (i) => !String(i.actual||'').trim() && !String(i.proyectada||'').trim() && !String(i.obs||'').trim() && !String(i.logradoValor||'').trim();
+  d.indicadores = d.indicadores.filter(i => !(i.indicador === 'Disminución del consumo energético de la red' && vacio(i)));
+  INDICADORES_BASE.forEach(nombre => { if (!d.indicadores.some(i => i.indicador === nombre)) d.indicadores.push({indicador:nombre, unidad:'', actual:'', proyectada:'', obs:''}); });
+  const pos = (n) => { const k = INDICADORES_BASE.indexOf(n); return k >= 0 ? k : INDICADORES_BASE.length - 1.5; };
+  d.indicadores.sort((a, b) => pos(a.indicador) - pos(b.indicador));
+}
+
 function renderTabContent(dg) {
   const t = state.activeTab; const d = dg.data;
   const dis = canEdit() ? '' : 'disabled';
@@ -796,8 +806,7 @@ function renderTabContent(dg) {
   // para que las pestañas nuevas no se rompan al abrir un diagnóstico viejo.
   if (!d.materiales) d.materiales = [{item:'',cantidad:'',unidad:'',obs:''}];
   if (!Array.isArray(d.indicadores)) d.indicadores = [];
-  // Diagnósticos con una grilla de indicadores más vieja/corta: se completan los que faltan (por nombre).
-  INDICADORES_BASE.forEach(nombre => { if (!d.indicadores.some(i => i.indicador === nombre)) d.indicadores.push({indicador:nombre, unidad:'', actual:'', proyectada:'', obs:''}); });
+  normalizarIndicadores(d);
   d.indicadores.forEach(i => { if (i.unidad === undefined) i.unidad = ''; });
   if (!Array.isArray(d.fuenteRiegoDerecho)) d.fuenteRiegoDerecho = d.fuenteRiegoDerecho ? [d.fuenteRiegoDerecho] : [];
   if (!d.ganaderiaActividadManejo || typeof d.ganaderiaActividadManejo !== 'object') d.ganaderiaActividadManejo = {};
@@ -1158,7 +1167,7 @@ function renderTabContent(dg) {
       ${d.cuentaConPresupuesto==='Sí'?`
       <div class="subsection-title">Presupuesto estimado</div>
       <div class="field-group"><label>¿Cómo cargás el presupuesto?</label>
-        <div class="chip-group">${chip(d.presupuestoCarga,'Adjuntar archivo','Archivo','presupuestoCarga')}${chip(d.presupuestoCarga,'Cargar ítem por ítem','Item por item','presupuestoCarga')}</div></div>
+        <div class="chip-group">${chip(d.presupuestoCarga,'Archivo','Adjuntar archivo','presupuestoCarga')}${chip(d.presupuestoCarga,'Item por item','Cargar ítem por ítem','presupuestoCarga')}</div></div>
       ${d.presupuestoCarga==='Archivo'?`
       <div class="field-group"><label>Archivo de presupuesto</label>
         ${presArchivo?`
@@ -1169,7 +1178,7 @@ function renderTabContent(dg) {
         <input type="file" accept="image/*,.pdf" ${dis} onchange="onPresupuestoDocSelected(this)">
         <div class="hint">Subí el PDF o la foto/imagen del presupuesto. No es necesario cargar los ítems abajo si adjuntás el archivo.</div>`}
       </div>` : ''}
-      ${d.presupuestoCarga!=='Archivo'?`
+      ${d.presupuestoCarga==='Item por item'?`
       <div class="table-scroll"><table class="dyn-table">
         <thead><tr><th>Ítem</th><th>Cantidad</th><th>Unidad</th><th>Precio unitario ($)</th><th>Subtotal ($)</th><th></th></tr></thead>
         <tbody>${d.presupuestoDetallado.map((p,i)=>`<tr>

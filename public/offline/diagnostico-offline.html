@@ -258,7 +258,13 @@ state.data = { ...emptyData(), ...state.data };
 if (!Array.isArray(state.data.metodosControl)) state.data.metodosControl = [];
 // Borradores con la grilla vieja de indicadores: se completan los que faltan.
 if (!Array.isArray(state.data.indicadores)) state.data.indicadores = [];
-INDICADORES_BASE.forEach(n => { if (!state.data.indicadores.some(i => i.indicador === n)) state.data.indicadores.push({indicador:n, unidad:'', actual:'', proyectada:'', obs:''}); });
+(function(){
+  const vacio = (i) => !String(i.actual||'').trim() && !String(i.proyectada||'').trim() && !String(i.obs||'').trim() && !String(i.logradoValor||'').trim();
+  state.data.indicadores = state.data.indicadores.filter(i => !(i.indicador === 'Disminución del consumo energético de la red' && vacio(i)));
+  INDICADORES_BASE.forEach(n => { if (!state.data.indicadores.some(i => i.indicador === n)) state.data.indicadores.push({indicador:n, unidad:'', actual:'', proyectada:'', obs:''}); });
+  const pos = (n) => { const k = INDICADORES_BASE.indexOf(n); return k >= 0 ? k : INDICADORES_BASE.length - 1.5; };
+  state.data.indicadores.sort((a, b) => pos(a.indicador) - pos(b.indicador));
+})();
 state.data.indicadores.forEach(i => { if (i.unidad === undefined) i.unidad = ''; });
 if (!Array.isArray(state.data.fuenteRiegoDerecho)) state.data.fuenteRiegoDerecho = state.data.fuenteRiegoDerecho ? [state.data.fuenteRiegoDerecho] : [];
 // El merge con emptyData() de arriba ya rellenó "cronograma" con una fila vacía por
@@ -1031,7 +1037,7 @@ function renderTab(){
       ${dd.cuentaConPresupuesto==='Sí'?`
       <div class="subsection-title">Presupuesto estimado</div>
       <div class="field-group"><label>¿Cómo cargás el presupuesto?</label>
-        <div class="chip-group">${chip(dd.presupuestoCarga,'Adjuntar archivo','Archivo','presupuestoCarga')}${chip(dd.presupuestoCarga,'Cargar ítem por ítem','Item por item','presupuestoCarga')}</div></div>
+        <div class="chip-group">${chip(dd.presupuestoCarga,'Archivo','Adjuntar archivo','presupuestoCarga')}${chip(dd.presupuestoCarga,'Item por item','Cargar ítem por ítem','presupuestoCarga')}</div></div>
       ${dd.presupuestoCarga==='Archivo'?`
       <div class="field-group"><label>Archivo de presupuesto</label>
         ${presArchivo?`
@@ -1042,7 +1048,7 @@ function renderTab(){
         <input type="file" accept="image/*,.pdf" onchange="onPresupuestoDocSelected(this)">
         <div class="hint">Subí el PDF o la foto/imagen del presupuesto. No es necesario cargar los ítems abajo si adjuntás el archivo.</div>`}
       </div>` : ''}
-      ${dd.presupuestoCarga!=='Archivo'?`
+      ${dd.presupuestoCarga==='Item por item'?`
       <div class="table-scroll"><table class="dyn-table">
         <thead><tr><th>Ítem</th><th>Cantidad</th><th>Unidad</th><th>Precio unit. ($)</th><th>Subtotal ($)</th><th></th></tr></thead>
         <tbody>${dd.presupuestoDetallado.map((p,i)=>`<tr>
