@@ -134,13 +134,19 @@ router.post('/import', requireRole('tecnico'), async (req, res, next) => {
     const data = payload.data;
     if (!data || typeof data !== 'object') return res.status(400).json({ error: 'Archivo inválido: falta "data".' });
 
-    // El documento de análisis de suelo cargado offline viaja como dataUrl (base64) en
-    // vez del { filename, url } que produce la carga directa a la app — se guarda
-    // aparte y se procesa después de crear el diagnóstico, que es cuando existe el id.
-    const sueloDocOffline = data.analisisSueloArchivo && data.analisisSueloArchivo.dataUrl ? data.analisisSueloArchivo : null;
-    if (sueloDocOffline) data.analisisSueloArchivo = null;
-    const presupuestoDocOffline = data.presupuestoArchivo && data.presupuestoArchivo.dataUrl ? data.presupuestoArchivo : null;
-    if (presupuestoDocOffline) data.presupuestoArchivo = null;
+    // Los archivos adjuntos cargados offline viajan como dataUrl (base64) en vez
+    // del { filename, url } que produce la carga directa a la app — se apartan y
+    // se suben después de crear el diagnóstico, que es cuando existe el id.
+    const DOCS_OFFLINE = [
+      { campo: 'analisisSueloArchivo', prefijo: 'analisis-suelo' },
+      { campo: 'presupuestoArchivo', prefijo: 'presupuesto' },
+      { campo: 'ubicacionArchivo', prefijo: 'ubicacion' }
+    ];
+    const docsOffline = [];
+    for (const doc of DOCS_OFFLINE) {
+      const a = data[doc.campo];
+      if (a && a.dataUrl) { docsOffline.push({ ...doc, archivo: a }); data[doc.campo] = null; }
+    }
 
     const { rows } = await db.query(
       `INSERT INTO diagnosticos (data, doc_status, created_by) VALUES ($1,'borrador',$2) RETURNING *`,
@@ -171,47 +177,19 @@ router.post('/import', requireRole('tecnico'), async (req, res, next) => {
       );
     }
 
-    if (sueloDocOffline) {
-      const m = /^data:([a-zA-Z0-9.+/-]+);base64,(.+)$/.exec(sueloDocOffline.dataUrl || '');
-      if (m) {
-        const mimetype = m[1];
-        const buffer = Buffer.from(m[2], 'base64');
-        const esImagen = /^image\//.test(mimetype);
-        const extFromName = sueloDocOffline.originalName ? path.extname(sueloDocOffline.originalName) : '';
-        const ext = esImagen ? '' : (extFromName || '.pdf');
-        const publicId = `analisis-suelo-${Date.now()}${ext}`;
-        const subida = await subirBuffer(buffer, { folder: `riego-app/${diag.id}`, publicId, mimetype });
-        const archivo = {
-          filename: subida.public_id,
-          originalName: sueloDocOffline.originalName || 'analisis-suelo',
-          mimetype,
-          url: subida.secure_url
-        };
-        const newData = { ...diag.data, analisisSueloArchivo: archivo };
-        await db.query('UPDATE diagnosticos SET data = $1, updated_at = now() WHERE id = $2', [newData, diag.id]);
-      }
-    }
-
-    if (presupuestoDocOffline) {
-      const m = /^data:([a-zA-Z0-9.+/-]+);base64,(.+)$/.exec(presupuestoDocOffline.dataUrl || '');
-      if (m) {
-        const mimetype = m[1];
-        const buffer = Buffer.from(m[2], 'base64');
-        const esImagen = /^image\//.test(mimetype);
-        const extFromName = presupuestoDocOffline.originalName ? path.extname(presupuestoDocOffline.originalName) : '';
-        const ext = esImagen ? '' : (extFromName || '.pdf');
-        const publicId = `presupuesto-${Date.now()}${ext}`;
-        const subida = await subirBuffer(buffer, { folder: `riego-app/${diag.id}`, publicId, mimetype });
-        const archivo = {
-          filename: subida.public_id,
-          originalName: presupuestoDocOffline.originalName || 'presupuesto',
-          mimetype,
-          url: subida.secure_url
-        };
-        const { rows: curRows } = await db.query('SELECT data FROM diagnosticos WHERE id = $1', [diag.id]);
-        const newData = { ...curRows[0].data, presupuestoArchivo: archivo };
-        await db.query('UPDATE diagnosticos SET data = $1, updated_at = now() WHERE id = $2', [newData, diag.id]);
-      }
+    let dataActual = diag.data;
+    for (const doc of docsOffline) {
+      // Un archivo sin tipo conocido (p. ej. KMZ) puede venir como "data:;base64,...".
+      const m = /^data:([^;,]*)(?:;[^,]*)?;base64,(.+)$/.exec(doc.archivo.dataUrl || '');
+      if (!m) continue;
+      const mimetype = doc.archivo.mimetype || m[1] || 'application/octet-stream';
+      const buffer = Buffer.from(m[2], 'base64');
+      const esImagen = /^image\//.test(mimetype);
+      const extFromName = doc.archivo.originalName ? path.extname(doc.archivo.originalName) : '';
+      const ext = esImagen ? '' : (extFromName || '.pdf');
+      const subida = await subirBuffer(buffer, { folder: `riego-app/${diag.id}`, publicId: `${doc.prefijo}-${Date.now()}${ext}`, mimetype });
+      dataActual = { ...dataActual, [doc.campo]: { filename: subida.public_id, originalName: doc.archivo.originalName || doc.prefijo, mimetype, url: subida.secure_url } };
+      await db.query('UPDATE diagnosticos SET data = $1, updated_at = now() WHERE id = $2', [dataActual, diag.id]);
     }
 
     const full = await loadDiag(diag.id);

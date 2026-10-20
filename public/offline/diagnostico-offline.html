@@ -178,7 +178,7 @@ function emptyPresupuestoDetallado(){ return {item:'',cantidad:'',unidad:'',prec
 function emptyData(){
   return {
     productor:'',finca:'',renspa:'',localidad:'',cuit:'',expedienteSigi:'',
-    coordenadas:'',
+    coordenadas:'',ubicacionArchivo:null,
     superficieTotal:'',superficieCultivada:'',superficieInculta:'',superficieBajoRiego:'',superficieBajoRiegoSuperficial:'',superficieBajoRiegoSubterraneo:'',superficieDerecho:'',fuenteRiegoDerecho:[],fuenteRiegoDerechoOtroDetalle:'',
     ccpp:'',pozos:'',obsGenerales:'',
     cultivos:[emptyCultivo()],obsCultivos:'',aclaracionSuperficieCultivo:'',
@@ -227,10 +227,10 @@ function loadDraft(){
 }
 let saveTimer = null;
 let lastSaveOk = true;
-function scheduleSave(){ clearTimeout(saveTimer); saveTimer = setTimeout(saveDraft, 450); }
+function scheduleSave(){ state.sinExportar = true; clearTimeout(saveTimer); saveTimer = setTimeout(saveDraft, 450); }
 function saveDraft(){
   try {
-    localStorage.setItem(DRAFT_KEY, JSON.stringify({ data: state.data, fotos: state.fotos }));
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({ data: state.data, fotos: state.fotos, sinExportar: state.sinExportar }));
     lastSaveOk = true;
   } catch(e) {
     // Almacenamiento lleno o no disponible (modo privado, etc.) — no se
@@ -250,8 +250,11 @@ const draft = loadDraft();
 let state = {
   tab: 'estab',
   data: (draft && draft.data) || emptyData(),
-  fotos: (draft && draft.fotos) || {}
+  fotos: (draft && draft.fotos) || {},
+  sinExportar: !!(draft && draft.sinExportar)
 };
+normalizarEstado();
+function normalizarEstado(){
 // Un borrador guardado antes de este rediseño no tiene las claves nuevas —
 // se completan con los valores por defecto para que ninguna pestaña se rompa.
 state.data = { ...emptyData(), ...state.data };
@@ -278,6 +281,7 @@ if (state.data.cronogramaGrid && typeof state.data.cronogramaGrid === 'object' &
 }
 if (!Array.isArray(state.data.cronograma) || !state.data.cronograma.length) state.data.cronograma = [{ etapa:'', desde:'', hasta:'' }];
 if (!state.data.ganaderiaActividadManejo || typeof state.data.ganaderiaActividadManejo !== 'object') state.data.ganaderiaActividadManejo = {};
+}
 
 /* ================= helpers de estado ================= */
 function d(){ return state.data; }
@@ -373,9 +377,37 @@ function navRow(){
 
 function nuevoDiagnostico(){
   if (!confirm('¿Empezar un diagnóstico nuevo? Se borra el formulario actual de este dispositivo.\n\nSi ya generaste el archivo de este diagnóstico, no se pierde nada — quedó guardado en tus Descargas.')) return;
-  state.data = emptyData(); state.fotos = {}; state.tab = 'estab';
+  state.data = emptyData(); state.fotos = {}; state.tab = 'estab'; state.sinExportar = false;
   try { localStorage.removeItem(DRAFT_KEY); } catch(e){}
   render();
+}
+
+// Retoma un diagnóstico a partir del .json que generó "Exportar" (el mismo
+// archivo que se importa en la app), para seguir cargándolo sin conexión.
+function abrirArchivo(input){
+  const file = input.files && input.files[0];
+  input.value = '';
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    let payload;
+    try { payload = JSON.parse(reader.result); } catch(e) { showToast('El archivo no es un diagnóstico válido', true); return; }
+    if (!payload || typeof payload.data !== 'object' || !payload.data) { showToast('El archivo no es un diagnóstico válido', true); return; }
+    if (state.sinExportar && !confirm('El diagnóstico que tenés en pantalla tiene cambios sin exportar y se va a reemplazar.\n\nSi querés conservarlo, cancelá y generá su archivo primero en la pestaña Exportar.\n\n¿Abrir el archivo igual?')) return;
+    state.data = payload.data;
+    state.fotos = {};
+    (Array.isArray(payload.fotos) ? payload.fotos : []).forEach(f => {
+      if (f && f.dataUrl && f.slotIndex != null) state.fotos[f.slotIndex] = { dataUrl: f.dataUrl, mimetype: f.mimetype, lat: f.lat, lng: f.lng };
+    });
+    normalizarEstado();
+    state.tab = 'estab';
+    state.sinExportar = false;
+    saveDraft();
+    render(); window.scrollTo(0,0);
+    showToast('Diagnóstico abierto: ' + (state.data.finca || state.data.productor || file.name));
+  };
+  reader.onerror = () => showToast('No se pudo leer el archivo', true);
+  reader.readAsText(file);
 }
 
 /* ================= fotos: compresión local + geolocalización best-effort ================= */
@@ -442,6 +474,23 @@ async function onPresupuestoDocSelected(input){
   render();
 }
 function removePresupuestoDoc(){ state.data.presupuestoArchivo = null; scheduleSave(); render(); }
+async function onKmzSelected(input){
+  const file = input.files && input.files[0];
+  input.value = '';
+  if (!file) return;
+  if (!/\.(kmz|kml)$/i.test(file.name)) { showToast('Elegí un archivo .kmz o .kml', true); return; }
+  try {
+    const dataUrl = await fileToDataUrl(file);
+    const mimetype = /\.kml$/i.test(file.name) ? 'application/vnd.google-earth.kml+xml' : 'application/vnd.google-earth.kmz';
+    state.data.ubicacionArchivo = { dataUrl, originalName: file.name, mimetype };
+    scheduleSave();
+    showToast('Archivo cargado');
+  } catch(e) {
+    showToast('No se pudo procesar el archivo: ' + (e.message||e), true);
+  }
+  render();
+}
+function removeKmz(){ state.data.ubicacionArchivo = null; scheduleSave(); render(); }
 function getGeo(){
   return new Promise((resolve) => {
     if (!navigator.geolocation) return resolve({ str:'Sin geolocalización (no soportada)', lat:null, lng:null });
@@ -515,7 +564,7 @@ function renderResumenCompleto(dd, fotosCount){
 
   html += `<div class="subsection-title" style="margin-top:4px">Establecimiento</div>`;
   html += kv('Productor', dd.productor) + kv('Finca', dd.finca) + kv('RENSPA', dd.renspa) + kv('Localidad', dd.localidad)
-        + kv('CUIT', dd.cuit)
+        + kv('CUIT', dd.cuit) + kv('Archivo KMZ/KML', dd.ubicacionArchivo && dd.ubicacionArchivo.originalName)
         + kv('Superficie total', dd.superficieTotal && dd.superficieTotal + ' ha') + kv('Superficie cultivada', dd.superficieCultivada && dd.superficieCultivada + ' ha')
         + kv('Superficie inculta', dd.superficieInculta && dd.superficieInculta + ' ha')
         + kv('Superficie bajo riego superficial', dd.superficieBajoRiegoSuperficial && dd.superficieBajoRiegoSuperficial + ' ha') + kv('Superficie bajo riego subterráneo', dd.superficieBajoRiegoSubterraneo && dd.superficieBajoRiegoSubterraneo + ' ha')
@@ -629,6 +678,7 @@ function exportarArchivo(){
   a.download = `diagnostico_${base}_${stamp}.json`;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
+  state.sinExportar = false; saveDraft();
   showToast('Archivo generado. Buscalo en Descargas.');
 }
 
@@ -672,7 +722,11 @@ function render(){
     <div class="topbar">
       <div class="brand">
         <div><h1>Diagnóstico de Riego</h1><span class="prog">Carga sin conexión</span></div>
-        <button class="btn-nuevo" onclick="nuevoDiagnostico()">+ Nuevo</button>
+        <div style="display:flex;gap:6px">
+          <button class="btn-nuevo" onclick="document.getElementById('abrirInput').click()" title="Seguir cargando un diagnóstico exportado">Abrir archivo</button>
+          <button class="btn-nuevo" onclick="nuevoDiagnostico()">+ Nuevo</button>
+        </div>
+        <input type="file" id="abrirInput" accept=".json,application/json" style="display:none" onchange="abrirArchivo(this)">
       </div>
       <div class="savebadge" id="saveBadge">Guardado en este dispositivo</div>
     </div>
@@ -699,6 +753,15 @@ function renderTab(){
       </div>
       <div class="field-group"><label>CUIT</label><input type="text" value="${escH(dd.cuit||'')}" placeholder="30-XXXXXXXX-X" oninput="setField('cuit',this.value)"></div>
       <div class="field-group"><label>Coordenadas <span class="hint" style="font-weight:400">(o adjuntar archivo KMZ/KML)</span></label><input type="text" value="${escH(dd.coordenadas||'')}" placeholder="Ej: -33.1234, -68.5678" oninput="setField('coordenadas',this.value)"></div>
+      <div class="field-group"><label>Archivo KMZ/KML de la finca</label>
+        ${dd.ubicacionArchivo?`
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span>📍 ${escH(dd.ubicacionArchivo.originalName||'archivo')}</span>
+          <button class="add-row-btn" onclick="removeKmz()" type="button" style="margin:0">Quitar</button>
+        </div>` : `
+        <input type="file" accept=".kmz,.kml" onchange="onKmzSelected(this)">
+        <div class="hint">El polígono o la ubicación de la finca exportado de Google Earth. Queda guardado en el .json que exportás.</div>`}
+      </div>
       <div class="row2">
         <div class="field-group"><label>Superficie total (ha) <span class="req">*</span></label><input type="number" value="${escH(dd.superficieTotal)}" onchange="setSuperficieBase('superficieTotal',this.value)"></div>
         <div class="field-group"><label>Superficie cultivada (ha) <span class="req">*</span></label><input type="number" value="${escH(dd.superficieCultivada)}" onchange="setSuperficieBase('superficieCultivada',this.value)"></div>
@@ -1136,6 +1199,7 @@ function renderTab(){
         <div class="hint"><b>${dd.productor||'(sin productor)'}</b> — ${dd.finca||'(sin finca)'} · ${dd.localidad||'(sin localidad)'}</div>
       </div>
       <button class="export-btn" onclick="exportarArchivo()">Generar y descargar archivo (.json)</button>
+      <div class="hint" style="margin-top:10px">¿Lo dejás a medias? Generá el archivo igual: después lo retomás con <b>"Abrir archivo"</b> (arriba) y seguís cargándolo, en este u otro dispositivo. Así podés tener varios diagnósticos a medias, uno por archivo.</div>
     </div>
     ${navRow()}`;
   }

@@ -12,7 +12,7 @@ const creditosSigiRoutes = require('./routes/creditosSigi');
 const adminRoutes = require('./routes/admin');
 const consultasRoutes = require('./routes/consultas');
 const documentoSueloRoutes = require('./routes/documentoSuelo');
-const documentoPresupuestoRoutes = require('./routes/documentoPresupuesto');
+const documentosRoutes = require('./routes/documentos');
 
 const app = express();
 app.use(cors());
@@ -31,7 +31,7 @@ app.use('/api/creditos-sigi', creditosSigiRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/consultas', consultasRoutes);
 app.use('/api/diagnosticos', documentoSueloRoutes);
-app.use('/api/diagnosticos', documentoPresupuestoRoutes);
+app.use('/api/diagnosticos', documentosRoutes);
 
 // no-cache: el navegador revalida en cada carga (304 si no cambió), así los
 // cambios de app.js/offline se ven sin tener que forzar la recarga.

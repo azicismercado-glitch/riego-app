@@ -764,29 +764,33 @@ async function removeSueloDoc() {
   render();
 }
 
-/* ================= archivo de presupuesto (subida real) ================= */
-async function onPresupuestoDocSelected(input) {
+/* ================= archivos adjuntos únicos: presupuesto y KMZ (subida real) ================= */
+async function subirDocumento(ruta, input, okMsg) {
   const file = input.files && input.files[0];
   if (!file || !canEdit()) return;
   const fd = new FormData();
   fd.append('archivo', file);
   try {
-    await api(`/diagnosticos/${state.currentId}/documento-presupuesto`, { method: 'POST', body: fd });
+    await api(`/diagnosticos/${state.currentId}/${ruta}`, { method: 'POST', body: fd });
     await refreshCurrentDiag();
-    showToast('Presupuesto cargado');
+    showToast(okMsg);
   } catch (e) {
     showToast(e.message || 'Error al subir el archivo', true);
   }
   render();
 }
-async function removePresupuestoDoc() {
+async function quitarDocumento(ruta) {
   if (!canEdit()) return;
   try {
-    await api(`/diagnosticos/${state.currentId}/documento-presupuesto`, { method: 'DELETE' });
+    await api(`/diagnosticos/${state.currentId}/${ruta}`, { method: 'DELETE' });
     await refreshCurrentDiag();
   } catch (e) { showToast(e.message || 'Error al borrar el archivo', true); }
   render();
 }
+const onPresupuestoDocSelected = (input) => subirDocumento('documento-presupuesto', input, 'Presupuesto cargado');
+const removePresupuestoDoc = () => quitarDocumento('documento-presupuesto');
+const onKmzSelected = (input) => subirDocumento('documento-kmz', input, 'Archivo KMZ/KML cargado');
+const removeKmz = () => quitarDocumento('documento-kmz');
 
 // Saca el indicador discontinuado si está vacío, agrega los que falten y
 // ordena según INDICADORES_BASE (alfabético, "Otro" al final).
@@ -839,6 +843,15 @@ function renderTabContent(dg) {
         <div class="hint">Para cruzar este diagnóstico con la carga de provincia y el crédito en SIGI.</div>
       </div>
       <div class="field-group"><label>Coordenadas <span class="hint" style="font-weight:400">(o adjuntar archivo KMZ/KML)</span></label><input type="text" value="${escH(d.coordenadas||'')}" ${dis} placeholder="Ej: -33.1234, -68.5678" oninput="setField('coordenadas',this.value)"></div>
+      <div class="field-group"><label>Archivo KMZ/KML de la finca</label>
+        ${d.ubicacionArchivo?`
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <a href="${escH(d.ubicacionArchivo.url)}" target="_blank" rel="noopener"><i class="ti ti-map-pin"></i> ${escH(d.ubicacionArchivo.originalName||'Ver archivo')}</a>
+          ${canEdit()?`<button class="mail-btn" onclick="removeKmz()" type="button">Quitar</button>`:''}
+        </div>` : `
+        <input type="file" accept=".kmz,.kml" ${dis} onchange="onKmzSelected(this)">
+        <div class="hint">El polígono o la ubicación de la finca exportado de Google Earth.</div>`}
+      </div>
       <div class="row2">
         <div class="field-group"><label>Superficie total (ha) <span class="req">*</span></label><input type="number" value="${escH(d.superficieTotal)}" ${dis} onchange="setSuperficieBase('superficieTotal',this.value)"></div>
         <div class="field-group"><label>Superficie cultivada (ha) <span class="req">*</span></label><input type="number" value="${escH(d.superficieCultivada)}" ${dis} onchange="setSuperficieBase('superficieCultivada',this.value)"></div>
@@ -1372,7 +1385,7 @@ function printDiag() {
   const superficial = sp.some((s) => ['Surcos', 'Melgas'].includes(s));
   const presurizado = sp.some((s) => ['Goteo', 'Aspersión'].includes(s));
 
-  const generales = `<p>${kv('Productor', d.productor)}${kv('Finca', d.finca)}${kv('Localidad/Departamento', d.localidad)}${kv('RENSPA/RUT', d.renspa)}${kv('CUIT', d.cuit)}${kv('Coordenadas', d.coordenadas)}
+  const generales = `<p>${kv('Productor', d.productor)}${kv('Finca', d.finca)}${kv('Localidad/Departamento', d.localidad)}${kv('RENSPA/RUT', d.renspa)}${kv('CUIT', d.cuit)}${kv('Coordenadas', d.coordenadas)}${kv('Archivo KMZ/KML', d.ubicacionArchivo && d.ubicacionArchivo.originalName)}
     ${kv('Superficie total', d.superficieTotal, 'ha')}${kv('Superficie cultivada', d.superficieCultivada, 'ha')}${kv('Superficie inculta', d.superficieInculta, 'ha')}${kv('Superficie bajo riego superficial', d.superficieBajoRiegoSuperficial, 'ha')}${kv('Superficie bajo riego subterráneo', d.superficieBajoRiegoSubterraneo, 'ha')}${kv('Superficie con derecho de riego', d.superficieDerecho, 'ha')}${kvList('Fuente de agua (derecho)', Array.isArray(d.fuenteRiegoDerecho) ? d.fuenteRiegoDerecho : (d.fuenteRiegoDerecho ? [d.fuenteRiegoDerecho] : []))}${kv('Detalle "Otra" fuente', d.fuenteRiegoDerechoOtroDetalle)}
     ${kv('Padrón', d.ccpp)}${kv('Pozos', d.pozos)}${kv('Observaciones', d.obsGenerales)}</p>`;
 
