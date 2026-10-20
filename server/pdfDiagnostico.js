@@ -163,6 +163,7 @@ function generarDiagnosticoPDF({ data, docStatus, signatures }) {
       s.kv('CUIT', d.cuit);
       s.kv('Coordenadas', d.coordenadas);
       s.kv('Archivo KMZ/KML', d.ubicacionArchivo && d.ubicacionArchivo.originalName);
+      s.kv('Contorno marcado con GPS', arr(d.contornoGps).length ? arr(d.contornoGps).map((p) => p.lat + ', ' + p.lng).join(' / ') : '');
       s.kv('Superficie total', d.superficieTotal, 'ha');
       s.kv('Superficie cultivada', d.superficieCultivada, 'ha');
       s.kv('Superficie inculta', d.superficieInculta, 'ha');

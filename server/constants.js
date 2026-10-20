@@ -69,7 +69,7 @@ function emptyPresupuestoDetallado() {
 function emptyData() {
   return {
     productor: '', finca: '', renspa: '', localidad: '', cuit: '', expedienteSigi: '',
-    coordenadas: '', ubicacionArchivo: null,
+    coordenadas: '', ubicacionArchivo: null, contornoGps: [],
     superficieTotal: '', superficieCultivada: '', superficieInculta: '', superficieBajoRiego: '', superficieBajoRiegoSuperficial: '', superficieBajoRiegoSubterraneo: '', superficieDerecho: '', fuenteRiegoDerecho: [], fuenteRiegoDerechoOtroDetalle: '',
     ccpp: '', pozos: '', obsGenerales: '',
     cultivos: [emptyCultivo()], obsCultivos: '', aclaracionSuperficieCultivo: '',

@@ -792,6 +792,85 @@ const removePresupuestoDoc = () => quitarDocumento('documento-presupuesto');
 const onKmzSelected = (input) => subirDocumento('documento-kmz', input, 'Archivo KMZ/KML cargado');
 const removeKmz = () => quitarDocumento('documento-kmz');
 
+/* ================= ubicación y contorno con el GPS del dispositivo ================= */
+// El GPS del celular no necesita internet, así que esto funciona igual sin señal.
+let ubiBuscando = false;
+function gpsActual() {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) return reject(new Error('Este dispositivo no tiene GPS disponible'));
+    navigator.geolocation.getCurrentPosition(
+      (p) => resolve(p.coords),
+      (e) => reject(new Error(e.code === 1 ? 'Permiso de ubicación denegado: habilitalo en el navegador' : 'No se pudo obtener la ubicación. Probá al aire libre.')),
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+    );
+  });
+}
+// Superficie aproximada del polígono sobre una proyección plana local:
+// a escala de una finca la curvatura de la tierra no pesa.
+function areaContornoHa(puntos) {
+  if (!puntos || puntos.length < 3) return 0;
+  const lat0 = puntos.reduce((s, p) => s + p.lat, 0) / puntos.length * Math.PI / 180;
+  const xy = puntos.map((p) => [p.lng * 111320 * Math.cos(lat0), p.lat * 110540]);
+  let a = 0;
+  for (let i = 0; i < xy.length; i++) { const [x1, y1] = xy[i], [x2, y2] = xy[(i + 1) % xy.length]; a += x1 * y2 - x2 * y1; }
+  return Math.abs(a) / 2 / 10000;
+}
+function kmlContorno(puntos, nombre) {
+  const x = (s) => String(s || '').replace(/[<>&'"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' }[c]));
+  const coords = [...puntos, puntos[0]].map((p) => `${p.lng},${p.lat},0`).join(' ');
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>${x(nombre)}</name>
+<Placemark><name>Contorno ${x(nombre)}</name><Style><LineStyle><color>ffe1a700</color><width>2</width></LineStyle><PolyStyle><color>40e1a700</color></PolyStyle></Style>
+<Polygon><outerBoundaryIs><LinearRing><coordinates>${coords}</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark>
+</Document></kml>`;
+}
+async function usarMiUbicacion() {
+  if (!ubiPuedeEditar() || ubiBuscando) return;
+  ubiBuscando = true; showToast('Buscando ubicación…');
+  try {
+    const c = await gpsActual();
+    ubiData().coordenadas = `${c.latitude.toFixed(6)}, ${c.longitude.toFixed(6)}`;
+    ubiGuardar();
+    showToast(`Ubicación cargada (precisión ±${Math.round(c.accuracy)} m)`);
+  } catch (e) { showToast(e.message, true); }
+  finally { ubiBuscando = false; }
+}
+async function marcarPuntoContorno() {
+  if (!ubiPuedeEditar() || ubiBuscando) return;
+  ubiBuscando = true; showToast('Buscando ubicación…');
+  try {
+    const c = await gpsActual();
+    const d = ubiData();
+    d.contornoGps = [...(d.contornoGps || []), { lat: +c.latitude.toFixed(7), lng: +c.longitude.toFixed(7), precision: Math.round(c.accuracy) }];
+    ubiGuardar();
+    showToast(`Punto ${d.contornoGps.length} marcado (±${Math.round(c.accuracy)} m)`);
+  } catch (e) { showToast(e.message, true); }
+  finally { ubiBuscando = false; }
+}
+function deshacerPuntoContorno() {
+  if (!ubiPuedeEditar()) return;
+  const d = ubiData(); d.contornoGps = (d.contornoGps || []).slice(0, -1); ubiGuardar();
+}
+function borrarContorno() {
+  if (!ubiPuedeEditar() || !confirm('¿Borrar todos los puntos del contorno?')) return;
+  ubiData().contornoGps = []; ubiGuardar();
+}
+function bajarContornoKml() {
+  const d = ubiData();
+  if ((d.contornoGps || []).length < 3) return;
+  const nombre = d.finca || d.productor || 'finca';
+  const archivo = String(nombre).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-+|-+$)/g, '') || 'finca';
+  const url = URL.createObjectURL(new Blob([kmlContorno(d.contornoGps, nombre)], { type: 'application/vnd.google-earth.kml+xml' }));
+  const a = document.createElement('a');
+  a.href = url; a.download = `contorno_${archivo}.kml`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+const ubiData = () => cur().data;
+const ubiGuardar = () => { flushSave(); render(); };
+const ubiPuedeEditar = () => canEdit();
+
+
 // Saca el indicador discontinuado si está vacío, agrega los que falten y
 // ordena según INDICADORES_BASE (alfabético, "Otro" al final).
 function normalizarIndicadores(d) {
@@ -842,16 +921,32 @@ function renderTabContent(dg) {
       <div class="field-group"><label>CUIT</label><input type="text" value="${escH(d.cuit||'')}" ${dis} placeholder="30-XXXXXXXX-X" oninput="setField('cuit',this.value)">
         <div class="hint">Para cruzar este diagnóstico con la carga de provincia y el crédito en SIGI.</div>
       </div>
-      <div class="field-group"><label>Coordenadas <span class="hint" style="font-weight:400">(o adjuntar archivo KMZ/KML)</span></label><input type="text" value="${escH(d.coordenadas||'')}" ${dis} placeholder="Ej: -33.1234, -68.5678" oninput="setField('coordenadas',this.value)"></div>
-      <div class="field-group"><label>Archivo KMZ/KML de la finca</label>
+      <div class="field-group"><label>Coordenadas</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <input type="text" style="flex:1;min-width:180px" value="${escH(d.coordenadas||'')}" ${dis} placeholder="Ej: -33.1234, -68.5678" oninput="setField('coordenadas',this.value)">
+          ${canEdit()?`<button class="add-row-btn" style="margin:0" type="button" onclick="usarMiUbicacion()"><i class="ti ti-current-location"></i> Usar mi ubicación</button>`:''}
+        </div></div>
+
+      <div class="subsection-title">Contorno de la finca</div>
+      <div class="hint" style="margin-bottom:6px">Subí el archivo KMZ/KML (por ejemplo, hecho en Google Earth) o marcalo ahora con el GPS del dispositivo.</div>
+      <div class="field-group"><label>Opción 1: subir archivo KMZ/KML</label>
         ${d.ubicacionArchivo?`
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <a href="${escH(d.ubicacionArchivo.url)}" target="_blank" rel="noopener"><i class="ti ti-map-pin"></i> ${escH(d.ubicacionArchivo.originalName||'Ver archivo')}</a>
           ${canEdit()?`<button class="mail-btn" onclick="removeKmz()" type="button">Quitar</button>`:''}
         </div>` : `
-        <input type="file" accept=".kmz,.kml" ${dis} onchange="onKmzSelected(this)">
-        <div class="hint">El polígono o la ubicación de la finca exportado de Google Earth.</div>`}
+        <input type="file" accept=".kmz,.kml" ${dis} onchange="onKmzSelected(this)">`}
       </div>
+      ${(()=>{ const pts = d.contornoGps||[]; return `<div class="field-group"><label>Opción 2: marcarlo con el GPS</label>
+        ${canEdit()?`<div class="hint" style="margin-bottom:6px">Recorré el perímetro y tocá "Marcar punto" en cada esquina (mínimo 3). La precisión del celular es de 5 a 10 m aprox.</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="add-row-btn" style="margin:0" type="button" onclick="marcarPuntoContorno()"><i class="ti ti-map-pin-plus"></i> Marcar punto</button>
+          ${pts.length?`<button class="add-row-btn" style="margin:0" type="button" onclick="deshacerPuntoContorno()"><i class="ti ti-arrow-back-up"></i> Deshacer último</button>
+          <button class="add-row-btn" style="margin:0" type="button" onclick="borrarContorno()"><i class="ti ti-trash"></i> Borrar contorno</button>`:''}
+        </div>`:''}
+        <div class="hint" style="margin-top:6px">${pts.length ? `<b>${pts.length} punto${pts.length>1?'s':''} marcado${pts.length>1?'s':''}</b>${pts.length>=3?` · superficie aprox. <b>${areaContornoHa(pts).toFixed(1)} ha</b>`:' · faltan puntos para cerrar el contorno'}` : 'Todavía no hay puntos marcados.'}</div>
+        ${pts.length>=3?`<button class="add-row-btn" style="margin-top:6px" type="button" onclick="bajarContornoKml()"><i class="ti ti-download"></i> Bajar contorno (.kml)</button>`:''}
+      </div>`; })()}
       <div class="row2">
         <div class="field-group"><label>Superficie total (ha) <span class="req">*</span></label><input type="number" value="${escH(d.superficieTotal)}" ${dis} onchange="setSuperficieBase('superficieTotal',this.value)"></div>
         <div class="field-group"><label>Superficie cultivada (ha) <span class="req">*</span></label><input type="number" value="${escH(d.superficieCultivada)}" ${dis} onchange="setSuperficieBase('superficieCultivada',this.value)"></div>
@@ -1385,7 +1480,7 @@ function printDiag() {
   const superficial = sp.some((s) => ['Surcos', 'Melgas'].includes(s));
   const presurizado = sp.some((s) => ['Goteo', 'Aspersión'].includes(s));
 
-  const generales = `<p>${kv('Productor', d.productor)}${kv('Finca', d.finca)}${kv('Localidad/Departamento', d.localidad)}${kv('RENSPA/RUT', d.renspa)}${kv('CUIT', d.cuit)}${kv('Coordenadas', d.coordenadas)}${kv('Archivo KMZ/KML', d.ubicacionArchivo && d.ubicacionArchivo.originalName)}
+  const generales = `<p>${kv('Productor', d.productor)}${kv('Finca', d.finca)}${kv('Localidad/Departamento', d.localidad)}${kv('RENSPA/RUT', d.renspa)}${kv('CUIT', d.cuit)}${kv('Coordenadas', d.coordenadas)}${kv('Archivo KMZ/KML', d.ubicacionArchivo && d.ubicacionArchivo.originalName)}${kv('Contorno marcado con GPS', arr(d.contornoGps).length ? arr(d.contornoGps).length + ' puntos' : '')}
     ${kv('Superficie total', d.superficieTotal, 'ha')}${kv('Superficie cultivada', d.superficieCultivada, 'ha')}${kv('Superficie inculta', d.superficieInculta, 'ha')}${kv('Superficie bajo riego superficial', d.superficieBajoRiegoSuperficial, 'ha')}${kv('Superficie bajo riego subterráneo', d.superficieBajoRiegoSubterraneo, 'ha')}${kv('Superficie con derecho de riego', d.superficieDerecho, 'ha')}${kvList('Fuente de agua (derecho)', Array.isArray(d.fuenteRiegoDerecho) ? d.fuenteRiegoDerecho : (d.fuenteRiegoDerecho ? [d.fuenteRiegoDerecho] : []))}${kv('Detalle "Otra" fuente', d.fuenteRiegoDerechoOtroDetalle)}
     ${kv('Padrón', d.ccpp)}${kv('Pozos', d.pozos)}${kv('Observaciones', d.obsGenerales)}</p>`;
 
