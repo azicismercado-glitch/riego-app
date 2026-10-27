@@ -44,7 +44,6 @@ const TIPO_INFRA_DEFICIENTE_ITEMS = ['Canales / acequias','Compuertas / marcos',
 // Indicadores de impacto (misma lista que emptyIndicadores() del servidor). "Otro" admite aclaración en Observaciones.
 const INDICADORES_BASE = ['Ahorro de agua (volumen o %)','Ahorro energético','Aumento de la superficie bajo riego (ha)','Caudal aprovechado (L/s)','Eficiencia de aplicación (%)','Impacto ambiental','Incremento en rendimientos','Mejora de calidad (% descarte/calibre/color)','Mejora de salinidad del suelo','Mejora del margen ($/ha)','Reducción de erosión','Reducción de escurrimiento / percolación','Reemplazo de energía convencional por fuentes renovables','Superficie tecnificada (ha)','Uniformidad de aplicación (%)','Otro'];
 const UNIDADES_INDICADOR = ['ha','l/s','m³/h','m³','%','kWh','kg','kg/ha','$','USD'];
-const IMPACTO_LOGRADO_OPCIONES = ['Mayor al proyectado','Igual al proyectado','Menor al proyectado'];
 const UNIDADES_MATERIAL = ['un.','kg','l','hs','m','m²','m³','bolsa','rollo','global'];
 const TIPO_SEGUIMIENTO_OPCIONES = ['Visita a campo','Auditoría documental','Telemetría / remoto','Mixto (campo y remoto)','Otro'];
 const METODOS_CONTROL_ITEMS = ['Auditoría de avance de obras','Registro de uso de agua vs. cultivos declarados','Realizar una medición del riego actual con inversión','Medición de caudales','Medición de eficiencia de riego','Registro de consumos eléctricos','Otro'];
@@ -233,7 +232,7 @@ function renderHome() {
 async function createDiag() {
   try {
     const diag = await api('/diagnosticos', { method: 'POST' });
-    state.currentId = diag.id; state.currentDiag = diag; state.view = 'detail'; state.activeTab = 'estab';
+    state.currentId = diag.id; state.currentDiag = diag; state.view = 'detail'; state.activeTab = 'estab'; state.visitaForm = null;
     render();
   } catch (e) { handleAuthError(e); }
 }
@@ -246,7 +245,7 @@ async function importDiagnosticoOffline(input) {
     try { payload = JSON.parse(text); } catch (e) { throw new Error('El archivo no es un JSON válido.'); }
     const diag = await api('/diagnosticos/import', { method: 'POST', body: JSON.stringify(payload) });
     showToast('Diagnóstico importado: ' + (diag.data.finca || diag.data.productor || ('#' + diag.id)));
-    state.currentId = diag.id; state.currentDiag = diag; state.view = 'detail'; state.activeTab = 'estab';
+    state.currentId = diag.id; state.currentDiag = diag; state.view = 'detail'; state.activeTab = 'estab'; state.visitaForm = null;
     render();
   } catch (e) {
     showToast(e.message || 'Error al importar el diagnóstico', true);
@@ -256,7 +255,7 @@ async function importDiagnosticoOffline(input) {
 async function openDiag(id) {
   try {
     state.currentDiag = await api('/diagnosticos/' + id);
-    state.currentId = id; state.view = 'detail'; state.activeTab = 'estab';
+    state.currentId = id; state.view = 'detail'; state.activeTab = 'estab'; state.visitaForm = null;
     render();
   } catch (e) { handleAuthError(e); }
 }
@@ -654,19 +653,127 @@ function setMaterial(i, key, val) { if (!canEdit()) return; cur().data.materiale
 /* ---- Indicadores de impacto (filas fijas, solo se cargan los valores) ---- */
 function setIndicador(i, key, val) {
   if (!canEdit()) return;
-  const it = cur().data.indicadores[i];
-  it[key] = val;
-  // Al cargar el valor real logrado, se recalcula sola la comparación contra
-  // lo proyectado (mayor/igual/menor) — el técnico puede después pisarla a
-  // mano eligiendo otra opción en el desplegable.
-  if (key === 'logradoValor') {
-    const real = Number(it.logradoValor), proy = Number(it.proyectada);
-    if (it.logradoValor && it.proyectada && !isNaN(real) && !isNaN(proy)) {
-      it.logrado = real > proy ? 'Mayor al proyectado' : real === proy ? 'Igual al proyectado' : 'Menor al proyectado';
-    }
-    render();
-  }
+  cur().data.indicadores[i][key] = val;
   scheduleSave();
+}
+
+/* ---- Registro de visitas de seguimiento (se habilita con el diagnóstico validado por CFI) ---- */
+function puedeCargarVisitas() {
+  const dg = cur();
+  return !!(dg && state.session && state.session.role === 'tecnico' && dg.docStatus === 'firmado_cfi');
+}
+const indicadoresDeclarados = (d) => (d.indicadores || []).filter((i) => i.actual || i.proyectada);
+function compararConProyectado(valor, proyectada) {
+  const real = Number(valor), proy = Number(proyectada);
+  if (String(valor ?? '').trim() === '' || String(proyectada ?? '').trim() === '' || isNaN(real) || isNaN(proy)) return '';
+  return real > proy ? 'Mayor al proyectado' : real === proy ? 'Igual al proyectado' : 'Menor al proyectado';
+}
+function hoyISO() {
+  const h = new Date();
+  return `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, '0')}-${String(h.getDate()).padStart(2, '0')}`;
+}
+function nuevaVisita() {
+  if (!puedeCargarVisitas()) return;
+  state.visitaForm = { fecha: hoyISO(), avanceObra: '', valores: {}, observaciones: '' };
+  render();
+}
+function editarVisita(id) {
+  if (!puedeCargarVisitas()) return;
+  const v = (cur().visitas || []).find((x) => x.id === id);
+  if (!v) return;
+  const valores = {};
+  (v.indicadores || []).forEach((i) => { valores[i.indicador] = i.valor; });
+  state.visitaForm = { id, fecha: v.fecha, avanceObra: v.avanceObra ?? '', valores, observaciones: v.observaciones || '' };
+  render();
+}
+function cancelarVisita() { state.visitaForm = null; render(); }
+function setVisita(key, val) { if (state.visitaForm) state.visitaForm[key] = val; }
+function setVisitaValor(i, val) {
+  const f = state.visitaForm;
+  const ind = indicadoresDeclarados(cur().data)[i];
+  if (!f || !ind) return;
+  f.valores[ind.indicador] = val;
+  render();
+}
+async function guardarVisita() {
+  const f = state.visitaForm;
+  if (!f || !puedeCargarVisitas()) return;
+  if (!f.fecha) return showToast('Completá la fecha de la visita', true);
+  const body = {
+    fecha: f.fecha, avanceObra: f.avanceObra, observaciones: f.observaciones,
+    indicadores: Object.keys(f.valores).map((indicador) => ({ indicador, valor: f.valores[indicador] }))
+  };
+  try {
+    const url = `/diagnosticos/${state.currentId}/seguimiento` + (f.id ? `/${f.id}` : '');
+    await api(url, { method: f.id ? 'PUT' : 'POST', body: JSON.stringify(body) });
+    await refreshCurrentDiag();
+    state.visitaForm = null;
+    showToast(f.id ? 'Visita actualizada' : 'Visita registrada');
+  } catch (e) { showToast(e.message || 'No se pudo guardar la visita', true); }
+  render();
+}
+async function borrarVisita(id) {
+  if (!puedeCargarVisitas() || !confirm('¿Borrar esta visita de seguimiento?')) return;
+  try {
+    await api(`/diagnosticos/${state.currentId}/seguimiento/${id}`, { method: 'DELETE' });
+    await refreshCurrentDiag();
+    showToast('Visita borrada');
+  } catch (e) { showToast(e.message || 'No se pudo borrar la visita', true); }
+  render();
+}
+function renderVisitasSeguimiento(dg) {
+  const d = dg.data;
+  const visitas = dg.visitas || [];
+  const fechaAR = (iso) => String(iso || '').split('-').reverse().join('/');
+  const unidad = (u) => (u ? ' ' + escH(u) : '');
+  const planificadas = Number(d.cantidadVisitasSeguimiento) || 0;
+  if (dg.docStatus !== 'firmado_cfi') {
+    return `<div class="hint">Se habilita cuando CFI valide el diagnóstico. Ahí el técnico va a poder cargar cada visita: fecha, avance de obra y valor real logrado de cada indicador.</div>`;
+  }
+  const lista = visitas.map((v, n) => `
+    <div style="border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+        <b>Visita ${n + 1} — ${fechaAR(v.fecha)}</b>
+        ${puedeCargarVisitas() && !state.visitaForm ? `<span style="display:flex;gap:6px">
+          <button class="add-row-btn" style="margin:0" type="button" onclick="editarVisita(${v.id})"><i class="ti ti-pencil"></i> Editar</button>
+          <button class="add-row-btn" style="margin:0" type="button" onclick="borrarVisita(${v.id})"><i class="ti ti-trash"></i> Borrar</button></span>` : ''}
+      </div>
+      ${v.avanceObra != null ? `<div class="hint" style="margin-top:4px">Avance de obra: <b>${v.avanceObra}%</b></div>` : ''}
+      ${(v.indicadores || []).length ? `<div class="table-scroll" style="margin-top:6px"><table class="dyn-table">
+        <thead><tr><th>Indicador</th><th>Situación proyectada</th><th>Valor real</th><th>Resultado</th></tr></thead>
+        <tbody>${v.indicadores.map((i) => `<tr><td>${escH(i.indicador)}</td><td>${i.proyectada ? escH(i.proyectada) + unidad(i.unidad) : '—'}</td><td>${escH(i.valor)}${unidad(i.unidad)}</td><td>${escH(i.logrado || '—')}</td></tr>`).join('')}</tbody>
+      </table></div>` : ''}
+      ${v.observaciones ? `<div style="margin-top:6px;white-space:pre-wrap">${escH(v.observaciones)}</div>` : ''}
+      <div class="hint" style="margin-top:4px">Cargada por ${escH(v.usuario)}</div>
+    </div>`).join('');
+
+  const f = state.visitaForm;
+  const decl = indicadoresDeclarados(d);
+  const form = f ? `
+    <div style="border:2px solid var(--green-mid);border-radius:10px;padding:12px;margin-bottom:10px">
+      <b>${f.id ? 'Editar visita' : `Visita ${visitas.length + 1}`}</b>
+      <div class="row2" style="margin-top:8px">
+        <div class="field-group"><label>Fecha de la visita <span class="req">*</span></label><input type="date" value="${escH(f.fecha)}" onchange="setVisita('fecha',this.value)"></div>
+        <div class="field-group"><label>Avance de obra (%)</label><input type="number" min="0" max="100" value="${escH(f.avanceObra)}" oninput="setVisita('avanceObra',this.value)"></div>
+      </div>
+      ${decl.length ? `<div class="table-scroll"><table class="dyn-table">
+        <thead><tr><th>Indicador</th><th>Situación proyectada</th><th>Valor real logrado</th><th>Resultado</th></tr></thead>
+        <tbody>${decl.map((it, i) => { const val = f.valores[it.indicador] ?? ''; return `<tr><td>${escH(it.indicador)}</td><td>${it.proyectada ? escH(it.proyectada) + unidad(it.unidad) : '—'}</td>
+          <td><input type="number" value="${escH(val)}" style="width:90px" onchange="setVisitaValor(${i},this.value)">${unidad(it.unidad)}</td>
+          <td>${compararConProyectado(val, it.proyectada) || '—'}</td></tr>`; }).join('')}</tbody>
+      </table></div>` : '<div class="hint">El diagnóstico no tiene indicadores cargados en la pestaña Impacto.</div>'}
+      <div class="field-group" style="margin-top:8px"><label>Observaciones</label><textarea oninput="setVisita('observaciones',this.value)">${escH(f.observaciones)}</textarea></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn-new" type="button" onclick="guardarVisita()"><i class="ti ti-device-floppy"></i> Guardar visita</button>
+        <button class="add-row-btn" style="margin:0" type="button" onclick="cancelarVisita()">Cancelar</button>
+      </div>
+    </div>` : '';
+
+  return `
+    <div class="hint" style="margin-bottom:8px">Visitas registradas: <b>${visitas.length}</b>${planificadas ? ` de ${planificadas} planificadas` : ''}.</div>
+    ${lista || (f ? '' : '<div class="hint" style="margin-bottom:8px">Todavía no hay visitas cargadas.</div>')}
+    ${form}
+    ${puedeCargarVisitas() && !f ? `<button class="add-row-btn" type="button" onclick="nuevaVisita()"><i class="ti ti-plus"></i> Registrar visita</button>` : ''}`;
 }
 
 /* ---- Presupuesto detallado (cantidad × precio unitario = subtotal) ---- */
@@ -933,7 +1040,7 @@ function renderTabContent(dg) {
         ${d.ubicacionArchivo?`
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <a href="${escH(d.ubicacionArchivo.url)}" target="_blank" rel="noopener"><i class="ti ti-map-pin"></i> ${escH(d.ubicacionArchivo.originalName||'Ver archivo')}</a>
-          ${canEdit()?`<button class="mail-btn" onclick="removeKmz()" type="button">Quitar</button>`:''}
+          ${canEdit()?`<button class="add-row-btn" style="margin:0" onclick="removeKmz()" type="button">Quitar</button>`:''}
         </div>` : `
         <input type="file" accept=".kmz,.kml" ${dis} onchange="onKmzSelected(this)">`}
       </div>
@@ -1035,7 +1142,7 @@ function renderTabContent(dg) {
         ${archivo?`
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <a href="${archivo.url}" target="_blank" rel="noopener"><i class="ti ti-file-text"></i> ${archivo.originalName||'Ver archivo'}</a>
-          ${canEdit()?`<button class="mail-btn" onclick="removeSueloDoc()" type="button">Quitar</button>`:''}
+          ${canEdit()?`<button class="add-row-btn" style="margin:0" onclick="removeSueloDoc()" type="button">Quitar</button>`:''}
         </div>` : `
         <input type="file" accept="image/*,.pdf" ${dis} onchange="onSueloDocSelected(this)">
         <div class="hint">Subí el PDF o la foto del análisis de laboratorio.</div>`}
@@ -1281,7 +1388,7 @@ function renderTabContent(dg) {
         ${presArchivo?`
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <a href="${presArchivo.url}" target="_blank" rel="noopener"><i class="ti ti-file-text"></i> ${presArchivo.originalName||'Ver archivo'}</a>
-          ${canEdit()?`<button class="mail-btn" onclick="removePresupuestoDoc()" type="button">Quitar</button>`:''}
+          ${canEdit()?`<button class="add-row-btn" style="margin:0" onclick="removePresupuestoDoc()" type="button">Quitar</button>`:''}
         </div>` : `
         <input type="file" accept="image/*,.pdf" ${dis} onchange="onPresupuestoDocSelected(this)">
         <div class="hint">Subí el PDF o la foto/imagen del presupuesto. No es necesario cargar los ítems abajo si adjuntás el archivo.</div>`}
@@ -1312,7 +1419,7 @@ function renderTabContent(dg) {
   if (t === 'seguimiento') return `
     ${lockedBanner(dg)}
     <div class="section-card">
-      <div class="section-title"><i class="ti ti-clipboard-check"></i> Estrategia de seguimiento y evaluación</div>
+      <div class="section-title"><i class="ti ti-clipboard-check"></i> Plan de seguimiento y evaluación</div>
       <div class="field-group"><label>Tipo de seguimiento</label>${selectHTML(TIPO_SEGUIMIENTO_OPCIONES,'tipoSeguimiento',d)}</div>
       <div class="row2">
         <div class="field-group"><label>Fecha estimada de inicio del seguimiento</label><input type="date" value="${escH(d.fechaEstimadaSeguimiento||'')}" ${dis} oninput="setField('fechaEstimadaSeguimiento',this.value)"></div>
@@ -1323,14 +1430,11 @@ function renderTabContent(dg) {
       <div class="field-group"><label>Métodos de control</label>${chipMulti(METODOS_CONTROL_ITEMS,'metodosControl',d)}</div>
       ${(d.metodosControl||[]).includes('Otro')?`<div class="field-group"><label>Detalle "Otro"</label><input type="text" value="${escH(d.metodosControlOtro||'')}" ${dis} oninput="setField('metodosControlOtro',this.value)"></div>`:''}
       <div class="field-group"><label>Periodicidad</label>${selectHTML(PERIODICIDAD_OPCIONES,'periodicidad',d)}</div>
-      <div class="subsection-title">Impacto logrado por indicador</div>
-      ${(()=>{ const rows = d.indicadores.map((it,i)=>({it,i})).filter(({it})=>it.actual||it.proyectada); return rows.length ? `<div class="table-scroll"><table class="dyn-table">
-        <thead><tr><th>Indicador</th><th>Situación proyectada</th><th>Valor real logrado</th><th>Impacto logrado</th></tr></thead>
-        <tbody>${rows.map(({it,i})=>`<tr><td>${it.indicador}${it.obs?` <span class="hint">(${it.obs})</span>`:''}</td><td>${it.proyectada?it.proyectada+(it.unidad?' '+it.unidad:''):'—'}</td>
-          <td><input type="number" value="${escH(it.logradoValor||'')}" ${dis} style="width:90px" onchange="setIndicador(${i},'logradoValor',this.value)">${it.unidad?` ${escH(it.unidad)}`:''}</td>
-          <td>${it.logrado||'—'}</td></tr>`).join('')}</tbody></table></div>` : '<div class="hint">Todavía no hay indicadores cargados en la pestaña Impacto.</div>'; })()}
       <div class="field-group"><label>Criterios de éxito</label><textarea ${dis} oninput="setField('criteriosExito',this.value)">${escH(d.criteriosExito||'')}</textarea></div>
-      <div class="hint">Al llegar la fecha de seguimiento, esta pestaña permite retomar el caso y comparar contra los indicadores declarados en la pestaña Impacto.</div>
+    </div>
+    <div class="section-card">
+      <div class="section-title"><i class="ti ti-map-pin-check"></i> Registro de visitas de seguimiento</div>
+      ${renderVisitasSeguimiento(dg)}
     </div>${navRow()}`;
 
   if (t === 'propuesta') return `
@@ -1529,8 +1633,12 @@ function printDiag() {
     + (detRows.length ? `<p><b>Total solicitud programa de mejora:</b> ${money(totalDet)}</p>` : '')
     + `<p>${kv('% de aporte del productor', d.aportePorcentajeProductor)}${kv('% de financiamiento solicitado', d.financiamientoPorcentajeSolicitado)}</p>`;
 
-  const logrados = arr(d.indicadores).filter((i) => has(i.logrado) || has(i.logradoValor)).map((i) => [i.indicador, i.proyectada, has(i.logradoValor) ? i.logradoValor + (i.unidad ? ' ' + i.unidad : '') : '', i.logrado]);
-  const seguimiento = table(['Indicador', 'Situación proyectada', 'Valor real logrado', 'Impacto logrado'], logrados) + `<p>${kv('Tipo de seguimiento', d.tipoSeguimiento)}${kv('Cantidad de visitas', d.cantidadVisitasSeguimiento)}${kv('Fecha estimada de inicio del seguimiento', d.fechaEstimadaSeguimiento)}${kv('Responsable técnico', d.responsableSeguimiento)}${kv('Recursos necesarios', d.recursosNecesariosSeguimiento)}${kvList('Métodos de control', d.metodosControl)}${kv('Detalle "Otro"', d.metodosControlOtro)}${kv('Periodicidad', d.periodicidad)}${kv('Criterios de éxito', d.criteriosExito)}</p>`;
+  const visitasHtml = arr(dg.visitas).map((v, n) => sub(`Visita ${n + 1} — ${String(v.fecha).split('-').reverse().join('/')}`,
+    `<p>${kv('Avance de obra', v.avanceObra != null ? v.avanceObra + '%' : '')}</p>`
+    + table(['Indicador', 'Situación proyectada', 'Valor real', 'Resultado'], arr(v.indicadores).map((i) => [i.indicador, i.proyectada ? i.proyectada + (i.unidad ? ' ' + i.unidad : '') : '', i.valor + (i.unidad ? ' ' + i.unidad : ''), i.logrado]))
+    + `<p>${kv('Observaciones', v.observaciones)}${kv('Cargada por', v.usuario)}</p>`)).join('');
+  const seguimiento = `<p>${kv('Tipo de seguimiento', d.tipoSeguimiento)}${kv('Cantidad de visitas', d.cantidadVisitasSeguimiento)}${kv('Fecha estimada de inicio del seguimiento', d.fechaEstimadaSeguimiento)}${kv('Responsable técnico', d.responsableSeguimiento)}${kv('Recursos necesarios', d.recursosNecesariosSeguimiento)}${kvList('Métodos de control', d.metodosControl)}${kv('Detalle "Otro"', d.metodosControlOtro)}${kv('Periodicidad', d.periodicidad)}${kv('Criterios de éxito', d.criteriosExito)}</p>`
+    + (visitasHtml ? sub('Registro de visitas de seguimiento', visitasHtml) : '');
 
   const conformidad = dg.signatures.cfi && dg.signatures.cfi.informe ? `<p style="white-space:pre-wrap">${esc(dg.signatures.cfi.informe)}</p>` : '';
 

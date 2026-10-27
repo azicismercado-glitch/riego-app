@@ -9,6 +9,7 @@ const { sendEmailNotif } = require('../mailer');
 const { subirBuffer } = require('../cloudinary');
 const { generarDiagnosticoPDF } = require('../pdfDiagnostico');
 const { generarConformidadPDF } = require('../conformidadPDF');
+const { listarVisitas } = require('./seguimiento');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -54,10 +55,11 @@ async function loadSignatures(diagId, roles) {
 }
 
 async function fullPayload(diag) {
-  const [fotosRes, sigRes, histRes] = await Promise.all([
+  const [fotosRes, sigRes, histRes, visitas] = await Promise.all([
     db.query('SELECT id, slot_index, filename, mimetype, lat, lng, url, created_at FROM fotos WHERE diagnostico_id = $1 ORDER BY slot_index', [diag.id]),
     db.query('SELECT role, usuario, ts, geo, hash, signature_image, con_observaciones, observaciones, informe FROM signatures WHERE diagnostico_id = $1', [diag.id]),
-    db.query('SELECT ts, usuario, evento, detalle, tipo FROM historial WHERE diagnostico_id = $1 ORDER BY ts ASC', [diag.id])
+    db.query('SELECT ts, usuario, evento, detalle, tipo FROM historial WHERE diagnostico_id = $1 ORDER BY ts ASC', [diag.id]),
+    listarVisitas(diag.id)
   ]);
   const signatures = { tecnico: null, provincia: null, cfi: null };
   for (const s of sigRes.rows) {
@@ -78,6 +80,7 @@ async function fullPayload(diag) {
     fotos: fotosRes.rows,
     signatures,
     historial: histRes.rows,
+    visitas,
     completeness: c,
     stageLabel: STAGE_LABELS[diag.doc_status]
   };
@@ -212,7 +215,8 @@ router.get('/:id/pdf', async (req, res, next) => {
     const diag = await loadDiag(req.params.id);
     if (!diag) return res.status(404).json({ error: 'No encontrado' });
     const sigs = await loadSignatures(diag.id, ['tecnico', 'provincia', 'cfi']);
-    const pdf = await generarDiagnosticoPDF({ data: diag.data, docStatus: diag.doc_status, signatures: sigs });
+    const visitas = await listarVisitas(diag.id);
+    const pdf = await generarDiagnosticoPDF({ data: diag.data, docStatus: diag.doc_status, signatures: sigs, visitas });
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="diagnostico-${diag.id}.pdf"`);
     res.send(pdf);

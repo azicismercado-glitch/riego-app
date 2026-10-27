@@ -118,7 +118,6 @@ const RENDIMIENTO_UNIDADES = ['Kg/ha','Kg MS/ha','Otros'];
 const ACTIVIDAD_GANADERA = ['Cría','Invernada','Ciclo completo'];
 const INDICADORES_BASE = ['Ahorro de agua (volumen o %)','Ahorro energético','Aumento de la superficie bajo riego (ha)','Caudal aprovechado (L/s)','Eficiencia de aplicación (%)','Impacto ambiental','Incremento en rendimientos','Mejora de calidad (% descarte/calibre/color)','Mejora de salinidad del suelo','Mejora del margen ($/ha)','Reducción de erosión','Reducción de escurrimiento / percolación','Reemplazo de energía convencional por fuentes renovables','Superficie tecnificada (ha)','Uniformidad de aplicación (%)','Otro'];
 const UNIDADES_INDICADOR = ['ha','l/s','m³/h','m³','%','kWh','kg','kg/ha','$','USD'];
-const IMPACTO_LOGRADO_OPCIONES = ['Mayor al proyectado','Igual al proyectado','Menor al proyectado'];
 const MANEJO_GANADERO = ['A campo','Confinado (feedlot/corral)'];
 const CATEGORIAS_GANADERAS = ['Terneros/as','Vaquillonas','Novillos','Novillitos','Vacas','Toros','Cabritos','Corderos','Otros'];
 const TEXTURAS_SUELO = ['Arenoso','Areno francoso','Franco arenoso','Franco','Franco limoso','Limoso','Franco arcillo arenoso','Franco arcilloso','Franco arcillo limoso','Arcillo arenoso','Arcillo limoso','Arcilloso'];
@@ -340,15 +339,7 @@ function setMaterial(i,key,val){ state.data.materiales[i][key]=val; scheduleSave
 
 /* ---- Indicadores de impacto (filas fijas) ---- */
 function setIndicador(i,key,val){
-  const it = state.data.indicadores[i];
-  it[key] = val;
-  if (key === 'logradoValor') {
-    const real = Number(it.logradoValor), proy = Number(it.proyectada);
-    if (it.logradoValor && it.proyectada && !isNaN(real) && !isNaN(proy)) {
-      it.logrado = real > proy ? 'Mayor al proyectado' : real === proy ? 'Igual al proyectado' : 'Menor al proyectado';
-    }
-    render();
-  }
+  state.data.indicadores[i][key] = val;
   scheduleSave();
 }
 
@@ -714,7 +705,7 @@ function renderResumenCompleto(dd, fotosCount){
   const hayImpacto = (dd.indicadores||[]).some(it=>it.actual||it.proyectada) || dd.presupuestoDetallado.some(p=>p.item);
   if (hayImpacto) {
     html += `<div class="subsection-title">Indicadores e impacto</div>`;
-    const indStr = (dd.indicadores||[]).filter(it=>it.actual||it.proyectada).map(it=>`${it.indicador}: ${it.actual||'—'} → ${it.proyectada||'—'}${it.logrado?' (impacto logrado: '+it.logrado+')':''}`).join('<br>');
+    const indStr = (dd.indicadores||[]).filter(it=>it.actual||it.proyectada).map(it=>`${it.indicador}: ${it.actual||'—'} → ${it.proyectada||'—'}`).join('<br>');
     if (indStr) html += `<div class="kv-row"><b>Indicadores:</b><br>${indStr}</div>`;
     const detStr = (dd.presupuestoDetallado||[]).filter(p=>p.item).map(p=>`${p.item} — ${p.cantidad||'?'} ${p.unidad||''} × $${p.precioUnitario||0}`).join('<br>');
     if (detStr) html += `<div class="kv-row"><b>Presupuesto detallado:</b><br>${detStr}</div>`;
@@ -1231,7 +1222,7 @@ function renderTab(){
 
   if (t==='seguimiento') return `
     <div class="section-card">
-      <div class="section-title">Estrategia de seguimiento y evaluación</div>
+      <div class="section-title">Plan de seguimiento y evaluación</div>
       <div class="field-group"><label>Tipo de seguimiento</label>${selectHTML(TIPO_SEGUIMIENTO_OPCIONES,'tipoSeguimiento',dd)}</div>
       <div class="row2">
         <div class="field-group"><label>Fecha estimada de inicio del seguimiento</label><input type="date" value="${escH(dd.fechaEstimadaSeguimiento||'')}" oninput="setField('fechaEstimadaSeguimiento',this.value)"></div>
@@ -1242,15 +1233,8 @@ function renderTab(){
       <div class="field-group"><label>Métodos de control</label>${chipMultiList(METODOS_CONTROL_ITEMS,'metodosControl',dd)}</div>
       ${(dd.metodosControl||[]).includes('Otro')?`<div class="field-group"><label>Detalle "Otro"</label><input type="text" value="${escH(dd.metodosControlOtro||'')}" oninput="setField('metodosControlOtro',this.value)"></div>`:''}
       <div class="field-group"><label>Periodicidad</label>${selectHTML(PERIODICIDAD_OPCIONES,'periodicidad',dd)}</div>
-      <div class="subsection-title">Impacto logrado por indicador</div>
-      ${(()=>{ const rows = dd.indicadores.map((it,i)=>({it,i})).filter(({it})=>it.actual||it.proyectada); return rows.length ? `<div class="table-scroll"><table class="dyn-table">
-        <thead><tr><th>Indicador</th><th>Situación proyectada</th><th>Valor real logrado</th><th>Impacto logrado</th></tr></thead>
-        <tbody>${rows.map(({it,i})=>{
-          return `<tr><td>${it.indicador}</td><td>${it.proyectada?it.proyectada+(it.unidad?' '+it.unidad:''):'—'}</td>
-          <td><input type="number" value="${escH(it.logradoValor||'')}" style="width:90px" onchange="setIndicador(${i},'logradoValor',this.value)">${it.unidad?` ${escH(it.unidad)}`:''}</td>
-          <td>${it.logrado||'—'}</td></tr>`;
-        }).join('')}</tbody></table></div>` : '<div class="hint">Todavía no hay indicadores cargados en la pestaña Impacto.</div>'; })()}
       <div class="field-group"><label>Criterios de éxito</label><textarea oninput="setField('criteriosExito',this.value)">${escH(dd.criteriosExito||'')}</textarea></div>
+      <div class="hint">Las visitas de seguimiento (con el valor real logrado de cada indicador) se cargan en la app, una vez que CFI valide el diagnóstico.</div>
     </div>${navRow()}`;
 
   if (t==='fotos') {

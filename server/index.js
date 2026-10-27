@@ -13,6 +13,7 @@ const adminRoutes = require('./routes/admin');
 const consultasRoutes = require('./routes/consultas');
 const documentoSueloRoutes = require('./routes/documentoSuelo');
 const documentosRoutes = require('./routes/documentos');
+const seguimiento = require('./routes/seguimiento');
 
 const app = express();
 app.use(cors());
@@ -32,6 +33,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/consultas', consultasRoutes);
 app.use('/api/diagnosticos', documentoSueloRoutes);
 app.use('/api/diagnosticos', documentosRoutes);
+app.use('/api/diagnosticos', seguimiento.router);
 
 // no-cache: el navegador revalida en cada carga (304 si no cambió), así los
 // cambios de app.js/offline se ven sin tener que forzar la recarga.
@@ -46,6 +48,7 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 3000;
+seguimiento.ensureSchema().catch((e) => console.error('No se pudo crear la tabla de seguimiento:', e.message));
 app.listen(PORT, () => {
   console.log(`Diagnóstico Técnico de Riego escuchando en http://localhost:${PORT}`);
 });

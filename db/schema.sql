@@ -131,3 +131,19 @@ CREATE INDEX IF NOT EXISTS idx_signatures_diag ON signatures(diagnostico_id);
 CREATE INDEX IF NOT EXISTS idx_historial_diag ON historial(diagnostico_id);
 CREATE INDEX IF NOT EXISTS idx_fotos_diag ON fotos(diagnostico_id);
 CREATE INDEX IF NOT EXISTS idx_emails_diag ON emails(diagnostico_id);
+
+-- Visitas de seguimiento, cargadas por el técnico una vez que CFI valida el
+-- diagnóstico. Tabla aparte para no alterar el contenido firmado (data). El
+-- servidor también la crea solo al arrancar (routes/seguimiento.js).
+CREATE TABLE IF NOT EXISTS seguimiento_visitas (
+  id SERIAL PRIMARY KEY,
+  diagnostico_id INTEGER NOT NULL REFERENCES diagnosticos(id) ON DELETE CASCADE,
+  fecha DATE NOT NULL,
+  avance_obra INTEGER CHECK (avance_obra BETWEEN 0 AND 100),
+  indicadores JSONB NOT NULL DEFAULT '[]'::jsonb,
+  observaciones TEXT NOT NULL DEFAULT '',
+  usuario TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_seguimiento_diag ON seguimiento_visitas(diagnostico_id);

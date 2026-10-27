@@ -47,7 +47,7 @@ function arr(v) { return Array.isArray(v) ? v : []; }
 function money(n) { return '$ ' + Number(n || 0).toLocaleString('es-AR', { maximumFractionDigits: 0 }); }
 function fmtDate(ts) { return ts ? new Date(ts).toLocaleString('es-AR') : '—'; }
 
-function generarDiagnosticoPDF({ data, docStatus, signatures }) {
+function generarDiagnosticoPDF({ data, docStatus, signatures, visitas }) {
   const d = data || {};
   const sigs = signatures || {};
   return new Promise((resolve, reject) => {
@@ -327,9 +327,7 @@ function generarDiagnosticoPDF({ data, docStatus, signatures }) {
       s.kv('% de financiamiento solicitado', d.financiamientoPorcentajeSolicitado);
     });
 
-    section('Seguimiento y evaluación', (s) => {
-      const logrados = arr(d.indicadores).filter((i) => has(i.logrado) || has(i.logradoValor)).map((i) => [i.indicador, i.proyectada, has(i.logradoValor) ? i.logradoValor + (i.unidad ? ' ' + i.unidad : '') : '', i.logrado]);
-      s.rows(['Indicador', 'Situación proyectada', 'Valor real logrado', 'Impacto logrado'], logrados);
+    section('Plan de seguimiento y evaluación', (s) => {
       s.kv('Tipo de seguimiento', d.tipoSeguimiento);
       s.kv('Cantidad de visitas', d.cantidadVisitasSeguimiento);
       s.kv('Fecha estimada de inicio del seguimiento', d.fechaEstimadaSeguimiento);
@@ -340,6 +338,19 @@ function generarDiagnosticoPDF({ data, docStatus, signatures }) {
       s.kv('Periodicidad', d.periodicidad);
       s.kv('Criterios de éxito', d.criteriosExito);
     });
+
+    if (arr(visitas).length) {
+      section('Registro de visitas de seguimiento', (s) => {
+        arr(visitas).forEach((v, n) => {
+          s.sub(`Visita ${n + 1} — ${String(v.fecha).split('-').reverse().join('/')}`);
+          s.kv('Avance de obra', v.avanceObra != null ? v.avanceObra + '%' : '');
+          s.rows(['Indicador', 'Situación proyectada', 'Valor real', 'Resultado'],
+            arr(v.indicadores).map((i) => [i.indicador, i.proyectada ? i.proyectada + (i.unidad ? ' ' + i.unidad : '') : '', i.valor + (i.unidad ? ' ' + i.unidad : ''), i.logrado]));
+          s.kv('Observaciones', v.observaciones);
+          s.kv('Cargada por', v.usuario);
+        });
+      });
+    }
 
     if (sigs.cfi && sigs.cfi.informe) {
       section('Conformidad Técnica (CFI)', (s) => {
